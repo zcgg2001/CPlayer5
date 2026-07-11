@@ -113,7 +113,10 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { requestErrorMessage, requestJson } from './js/http.mjs';
+        import { normalizePlaylistPayload } from './js/music-data.mjs';
+
         const input = document.getElementById('playlistInput');
         const btn = document.getElementById('downloadBtn');
         const toast = document.getElementById('toast');
@@ -156,17 +159,14 @@
             try {
                 // 使用原播放器中的 ChKSz API 获取数据
                 const url = `https://api.chksz.top/api/163_playlist?id=${listId}`;
-                const res = await fetch(url);
-                const json = await res.json();
-
-                let tracks = [];
-                if (json.data && Array.isArray(json.data.tracks)) {
-                    tracks = json.data.tracks;
-                } else if (json.data && Array.isArray(json.data)) {
-                    tracks = json.data;
-                } else if (json.playlist && Array.isArray(json.playlist.tracks)) {
-                    tracks = json.playlist.tracks;
-                }
+                const json = await requestJson(url);
+                const tracks = normalizePlaylistPayload(json).map(song => ({
+                    id: song.id,
+                    name: song.name,
+                    artists: song.artist,
+                    album: song.album,
+                    picUrl: song.cover
+                }));
 
                 if (!tracks || tracks.length === 0) {
                     throw new Error('歌单为空或获取失败，请检查ID');
@@ -199,7 +199,10 @@
 
             } catch (error) {
                 console.error(error);
-                showToast(error.message || '获取失败，请检查网络或重试', true);
+                const message = error.constructor === Error && error.message
+                    ? error.message
+                    : requestErrorMessage(error);
+                showToast(message, true);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-download mr-2"></i>立即生成并下载';

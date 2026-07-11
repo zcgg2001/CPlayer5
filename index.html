@@ -1534,6 +1534,17 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { normalizeMediaUrl } from './js/security.mjs';
+        import {
+            RequestCancelledError,
+            requestErrorMessage,
+            requestJson
+        } from './js/http.mjs';
+        import {
+            normalizeLyricsPayload,
+            normalizePlaylistPayload,
+            normalizeSearchPayload,
+            normalizeSongPayload
+        } from './js/music-data.mjs';
 
         let nativeIntegrationInitialized = false;
 
@@ -1582,55 +1593,26 @@
                 localStorage.setItem(`cp_${key}`, value);
             }
 
-            async search(query) {
+            async search(query, { signal } = {}) {
                 const url = `${this.baseUrl}/163_search?keyword=${encodeURIComponent(query)}&limit=30`;
-                try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-                    let items = [];
-                    if (json.code === 200) {
-                        if (Array.isArray(json.data)) items = json.data;
-                        else if (json.data && Array.isArray(json.data.songs)) items = json.data.songs;
-                        else if (json.result && Array.isArray(json.result.songs)) items = json.result.songs;
-                    }
-                    if (items.length > 0) {
-                        return items.map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            artist: item.artists ? (Array.isArray(item.artists) ? item.artists.map(a => a.name).join(', ') : (typeof item.artists === 'string' ? item.artists : (item.artists.name || 'Unknown'))) : 'Unknown',
-                            album: item.album ? (typeof item.album === 'string' ? item.album : item.album.name) : '',
-                            cover: item.picUrl || (item.album ? item.album.picUrl : '') || '',
-                            source: 'ChKSz'
-                        }));
-                    }
-                } catch (e) { console.error('Search API Error:', e); }
-                return [];
+                const json = await requestJson(url, { signal });
+                return normalizeSearchPayload(json);
             }
 
-            async getSong(id) {
+            async getSong(id, { signal } = {}) {
                 const level = 'jymaster';
                 const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
-                const res = await fetch(url);
-                const json = await res.json();
-                if (json.code === 200 && json.data) {
-                    const d = Array.isArray(json.data) ? json.data[0] : json.data;
-                    if (d && d.url) {
-                        return {
-                            id: d.id, url: d.url, name: d.name, artist: d.artist, cover: d.picUrl, source: 'ChKSz', level: d.level || level, br: d.br || d.bitrate
-                        };
-                    }
-                }
+                const json = await requestJson(url, { signal });
+                const song = normalizeSongPayload(json, level);
+                if (song) return song;
                 throw new Error('ChKSz GetSong Failed');
             }
 
             async getLyric(id) {
                 const url = `${this.baseUrl}/163_lyric?id=${id}`;
                 try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-                    if (json.code === 200 && json.data) {
-                        return { lrc: json.data.lrc || '', tlrc: json.data.tlyric || '', yrc: '' };
-                    }
+                    const json = await requestJson(url);
+                    return normalizeLyricsPayload(json);
                 } catch (e) { console.warn('ChKSz Lyric Failed:', e); }
                 return null;
             }
@@ -2340,9 +2322,22 @@
             }
         }
 
+        function setSearchStatus(container, message, { error = false } = {}) {
+            const status = document.createElement('div');
+            status.className = `p-4 text-center ${error ? 'text-red-400' : 'opacity-60'}`;
+            status.textContent = message;
+            container.replaceChildren(status);
+        }
+
+        let desktopSearchController = null;
+
         async function searchSongs(query) {
             query = query.trim();
             if (!query) return;
+
+            desktopSearchController?.abort();
+            const requestController = new AbortController();
+            desktopSearchController = requestController;
 
             if (/^\d+$/.test(query)) {
                 dom.searchResults.innerHTML = Array.from({ length: 1 }).map(() => `
@@ -2357,7 +2352,9 @@
                 dom.searchResults.classList.remove('hidden');
 
                 try {
-                    const songData = await musicService.getSong(query);
+                    const songData = await musicService.getSong(query, {
+                        signal: requestController.signal
+                    });
                     if (songData && songData.url) {
                         const newSong = {
                             id: songData.id,
@@ -2380,8 +2377,13 @@
                         throw new Error('无效的歌曲ID');
                     }
                 } catch (e) {
+                    if (e instanceof RequestCancelledError) return;
                     console.error(e);
-                    dom.searchResults.innerHTML = '<div class="p-4 text-center text-red-400">无效ID或加载失败</div>';
+                    setSearchStatus(dom.searchResults, `无法加载歌曲：${requestErrorMessage(e)}`, { error: true });
+                } finally {
+                    if (desktopSearchController === requestController) {
+                        desktopSearchController = null;
+                    }
                 }
                 return;
             }
@@ -2399,7 +2401,9 @@
             dom.searchResults.classList.remove('hidden');
 
             try {
-                const songs = await musicService.search(query);
+                const songs = await musicService.search(query, {
+                    signal: requestController.signal
+                });
 
                 // [需求4] 限制显示30条结果
                 const limitedSongs = songs ? songs.slice(0, 30) : [];
@@ -2460,13 +2464,16 @@
                         dom.searchResults.appendChild(div);
                     });
                 } else {
-                    dom.searchResults.innerHTML = '<div class="p-4 text-center opacity-60">未找到相关歌曲</div>';
+                    setSearchStatus(dom.searchResults, '未找到相关歌曲');
                 }
             } catch (error) {
+                if (error instanceof RequestCancelledError) return;
                 console.error(error);
-                dom.searchResults.innerHTML = '<div class="p-4 text-center text-red-400">搜索服务暂不可用</div>';
+                setSearchStatus(dom.searchResults, requestErrorMessage(error), { error: true });
             } finally {
-                // 搜索loader已移除
+                if (desktopSearchController === requestController) {
+                    desktopSearchController = null;
+                }
             }
         }
 
@@ -2809,34 +2816,8 @@
         class PlaylistService {
             static async fetchPlaylist(listId) {
                 const url = `${ChKSzAPI.baseUrl}/163_playlist?id=${listId}`;
-                try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-
-                    let tracks = [];
-                    // 兼容多种返回格式
-                    if (json.data && Array.isArray(json.data.tracks)) {
-                        tracks = json.data.tracks;
-                    } else if (json.data && Array.isArray(json.data)) {
-                        tracks = json.data;
-                    } else if (json.playlist && Array.isArray(json.playlist.tracks)) {
-                        tracks = json.playlist.tracks;
-                    }
-
-                    // 标准化歌曲数据格式（兼容 ar/al 和 artists/album 两种结构）
-                    return tracks.map(item => ({
-                        id: item.id,
-                        name: item.name || '未知歌曲',
-                        artist: item.artists
-                            ? (typeof item.artists === 'string' ? item.artists : (Array.isArray(item.artists) ? item.artists.map(a => a.name).join('/') : 'Unknown'))
-                            : (item.ar ? item.ar.map(a => a.name).join('/') : 'Unknown'),
-                        album: typeof item.album === 'string' ? item.album : (item.al ? item.al.name : ''),
-                        cover: item.picUrl || (item.al ? item.al.picUrl : '') || ''
-                    }));
-                } catch (e) {
-                    console.warn('Playlist fetch failed:', e);
-                }
-                return [];
+                const json = await requestJson(url);
+                return normalizePlaylistPayload(json);
             }
         }
 
@@ -3855,6 +3836,7 @@
                 this.isMobile = window.innerWidth < 768;
                 this.currentMode = 'cover';
                 this.activeSheetTab = 'playlist'; // playlist | search
+                this.searchController = null;
 
                 this.dom = {
                     mobileLayout: document.getElementById('mobileLayout'),
@@ -4248,13 +4230,19 @@
             async handleSearch(query) {
                 if (!query.trim()) return;
 
+                this.searchController?.abort();
+                const requestController = new AbortController();
+                this.searchController = requestController;
+
                 // [紧急Fix] 纯数字ID直接添加并播放
                 if (/^\d+$/.test(query.trim())) {
                     const container = this.dom.searchResults;
                     container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">正在加载ID歌曲...</div>';
 
                     try {
-                        const songData = await musicService.getSong(query.trim());
+                        const songData = await musicService.getSong(query.trim(), {
+                            signal: requestController.signal
+                        });
                         if (songData && songData.url) {
                             const newSong = {
                                 id: songData.id,
@@ -4283,8 +4271,13 @@
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
                     } catch (e) {
+                        if (e instanceof RequestCancelledError) return;
                         console.error(e);
-                        container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">加载失败</div>';
+                        setSearchStatus(container, requestErrorMessage(e), { error: true });
+                    } finally {
+                        if (this.searchController === requestController) {
+                            this.searchController = null;
+                        }
                     }
                     return;
                 }
@@ -4294,11 +4287,13 @@
 
                 try {
                     // Use global musicService instance
-                    const results = await musicService.search(query);
+                    const results = await musicService.search(query, {
+                        signal: requestController.signal
+                    });
                     container.innerHTML = '';
 
                     if (!results || results.length === 0) {
-                        container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">无结果</div>';
+                        setSearchStatus(container, '无结果');
                         return;
                     }
 
@@ -4351,8 +4346,13 @@
                     });
 
                 } catch (e) {
+                    if (e instanceof RequestCancelledError) return;
                     console.error('Search failed', e);
-                    container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">搜索出错</div>';
+                    setSearchStatus(container, requestErrorMessage(e), { error: true });
+                } finally {
+                    if (this.searchController === requestController) {
+                        this.searchController = null;
+                    }
                 }
             }
 
