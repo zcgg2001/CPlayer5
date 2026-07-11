@@ -39,6 +39,19 @@ class ValidateSiteTests(unittest.TestCase):
                 ["manifest.json: missing local asset img/icon.png"],
             )
 
+    def test_reports_song_data_interpolated_into_inner_html(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                "element.innerHTML = `<b>${song.name}</b>`;",
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                validate_site(root),
+                ["index.html: unsafe dynamic innerHTML uses song data"],
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

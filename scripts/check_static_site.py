@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -6,6 +7,10 @@ from urllib.parse import urlsplit
 
 
 OPTIONAL_ASSETS = {"playlist.js"}
+UNSAFE_SONG_HTML = re.compile(
+    r"innerHTML\s*=\s*`[^`]*\$\{song\.(?:name|artist|album)\}[^`]*`",
+    re.DOTALL,
+)
 
 
 class LocalAssetParser(HTMLParser):
@@ -32,8 +37,9 @@ def validate_site(root):
     errors = []
 
     for html_file in sorted(root.glob("*.html")):
+        html_source = html_file.read_text(encoding="utf-8")
         parser = LocalAssetParser()
-        parser.feed(html_file.read_text(encoding="utf-8"))
+        parser.feed(html_source)
         for reference in parser.assets:
             local_path = _local_path(reference)
             if (
@@ -44,6 +50,10 @@ def validate_site(root):
                 errors.append(
                     f"{html_file.name}: missing local asset {local_path}"
                 )
+        if UNSAFE_SONG_HTML.search(html_source):
+            errors.append(
+                f"{html_file.name}: unsafe dynamic innerHTML uses song data"
+            )
 
     manifest_file = root / "manifest.json"
     if manifest_file.is_file():

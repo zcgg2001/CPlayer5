@@ -1533,21 +1533,28 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
-        // 监听 plusready 事件，增加原生能力支持
-        document.addEventListener('plusready', function () {
-            // 锁定屏幕方向为竖屏
-            plus.screen.lockOrientation("portrait-primary");
-            // 设置系统音量控制 (初始化音频模块)
-            plus.audio.createPlayer();
-            // 申请电源锁 (WakeLock) 防止锁屏断网/断CPU
-            plus.device.setWakelock(true);
-            // 重写 Android 返回键逻辑
-            plus.key.addEventListener("backbutton", function () {
-                // 隐藏应用到后台而不是退出
-                var main = plus.android.runtimeMainActivity();
-                main.moveTaskToBack(false);
-            });
-        });
+        import { normalizeMediaUrl } from './js/security.mjs';
+
+        let nativeIntegrationInitialized = false;
+
+        function initNativeIntegration() {
+            if (nativeIntegrationInitialized || !globalThis.plus) return;
+            nativeIntegrationInitialized = true;
+
+            try {
+                plus.screen.lockOrientation('portrait-primary');
+                plus.audio.createPlayer();
+                plus.device.setWakelock(true);
+                plus.key.addEventListener('backbutton', () => {
+                    const main = plus.android.runtimeMainActivity();
+                    main.moveTaskToBack(false);
+                });
+            } catch (error) {
+                console.warn('H5+ 初始化失败:', error);
+            }
+        }
+
+        document.addEventListener('plusready', initNativeIntegration, { once: true });
 
         // ================= 架构核心：ChKSz API (整合版) =================
 
@@ -1695,14 +1702,18 @@
 
         // ================= 歌单小图缓存逻辑（仅用于列表缩略图） =================
         window.getCachedImage = async function (url) {
-            if (!url || !db) return url;
+            const secureUrl = normalizeMediaUrl(url, {
+                allowDataImage: true,
+                baseUrl: window.location.href
+            });
+            if (!secureUrl) return '';
+            if (!db) return secureUrl;
 
             // 安全检查：确保 images 表存在
             if (!db.objectStoreNames.contains('images')) {
-                return url;
+                return secureUrl;
             }
 
-            const secureUrl = url.replace(/^http:/, 'https:');
             return new Promise((resolve) => {
                 try {
                     const tx = db.transaction('images', 'readonly');
@@ -1833,8 +1844,9 @@
 
             // 异步获取下一首歌曲的 URL
             musicService.getSong(nextSongId).then(data => {
-                if (data?.url) {
-                    preloadAudio.src = data.url;
+                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
+                if (mediaUrl) {
+                    preloadAudio.src = mediaUrl;
                     preloadAudio.load();
                     preloadedSongId = nextSongId;
                     console.log('🎵 预加载下一首:', nextSong.name || nextSongId);
@@ -1861,31 +1873,7 @@
             return null;
         }
 
-        // ================= 音量标准化 (ReplayGain 模拟) =================
         let compressorNode = null;
-
-        function setupAudioNormalization() {
-            if (!audioContext) return;
-
-            try {
-                // 创建动态压缩器（防止爆音）
-                compressorNode = audioContext.createDynamicsCompressor();
-                compressorNode.threshold.setValueAtTime(-24, audioContext.currentTime);
-                compressorNode.knee.setValueAtTime(30, audioContext.currentTime);
-                compressorNode.ratio.setValueAtTime(12, audioContext.currentTime);
-                compressorNode.attack.setValueAtTime(0.003, audioContext.currentTime);
-                compressorNode.release.setValueAtTime(0.25, audioContext.currentTime);
-
-                // 重新连接音频图
-                analyser.disconnect();
-                analyser.connect(compressorNode);
-                compressorNode.connect(gainNode);
-
-                console.log('🔊 音量标准化已启用');
-            } catch (e) {
-                console.warn('音量标准化设置失败:', e);
-            }
-        }
 
         // ================= 虚拟滚动配置 =================
         let renderedCount = 0;
@@ -1901,63 +1889,6 @@
             itemHeight: 56,  // 每个歌曲项的高度
             bufferCount: 5   // 缓冲区大小
         };
-
-        // ================= 弹簧物理滚动 =================
-        let springState = {
-            animating: false,
-            current: 0,
-            target: 0,
-            velocity: 0
-        };
-
-        // 弹簧参数（参考 aura-music）
-        const SPRING_CONFIG = {
-            stiffness: 80,    // 更软的弹簧
-            damping: 20,      // 适当阻尼
-            mass: 1           // 质量
-        };
-
-        function springScrollTo(container, targetY) {
-            springState.target = targetY;
-            springState.current = container.scrollTop;
-
-            if (springState.animating) return;
-            springState.animating = true;
-            springState.velocity = 0;
-
-            function animate() {
-                const { stiffness, damping, mass } = SPRING_CONFIG;
-
-                // 弹簧力 = -k * x
-                const displacement = springState.current - springState.target;
-                const springForce = -stiffness * displacement;
-
-                // 阻尼力 = -c * v
-                const dampingForce = -damping * springState.velocity;
-
-                // 加速度 = F / m
-                const acceleration = (springForce + dampingForce) / mass;
-
-                // 更新速度和位置（使用固定时间步长 16ms）
-                springState.velocity += acceleration * 0.016;
-                springState.current += springState.velocity * 0.016;
-
-                // 应用滚动
-                container.scrollTop = springState.current;
-
-                // 判断是否停止（速度和位移都足够小）
-                const isSettled = Math.abs(springState.velocity) < 0.5 && Math.abs(displacement) < 0.5;
-
-                if (isSettled) {
-                    container.scrollTop = springState.target;
-                    springState.animating = false;
-                } else {
-                    requestAnimationFrame(animate);
-                }
-            }
-
-            requestAnimationFrame(animate);
-        }
 
         // 主题色系统已移除，使用纯白色/灰色调极简风格
         const tempCanvas = document.createElement('canvas');
@@ -2031,18 +1962,6 @@
                 });
             }
 
-            // H5+ Integration for Android App
-            document.addEventListener('plusready', function () {
-                // Keep CPU awake
-                plus.device.setWakelock(true);
-
-                // Handle physical back button
-                plus.key.addEventListener('backbutton', function () {
-                    // Move task to background
-                    var main = plus.android.runtimeMainActivity();
-                    main.moveTaskToBack(false);
-                }, false);
-            });
         });
 
         function initEventListeners() {
@@ -2514,7 +2433,7 @@
                         infoDiv.className = 'flex-1 min-w-0';
                         const titleDiv = document.createElement('div');
                         titleDiv.className = 'truncate text-sm font-medium flex items-center';
-                        titleDiv.innerHTML = `${song.name}`;
+                        titleDiv.textContent = song.name || '未知歌曲';
                         const artistDiv = document.createElement('div');
                         artistDiv.className = 'truncate text-xs opacity-50';
                         artistDiv.textContent = song.artist || '未知艺术家';
@@ -2558,14 +2477,16 @@
             const artwork = [];
             if (data.cover) {
                 const sizes = ['96x96', '128x128', '192x192', '256x256', '384x384', '512x512'];
-                const src = data.cover.replace(/^http:/, 'https:');
-                sizes.forEach(size => {
-                    artwork.push({
-                        src: src,
-                        sizes: size,
-                        type: 'image/jpeg'
+                const src = normalizeMediaUrl(data.cover, { baseUrl: window.location.href });
+                if (src) {
+                    sizes.forEach(size => {
+                        artwork.push({
+                            src,
+                            sizes: size,
+                            type: 'image/jpeg'
+                        });
                     });
-                });
+                }
             }
 
             navigator.mediaSession.metadata = new MediaMetadata({
@@ -2597,7 +2518,9 @@
                     throw new Error('No URL returned');
                 }
 
-                audio.src = data.url.replace(/^http:/, 'https:');
+                const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
+                if (!mediaUrl) throw new Error('Invalid media URL');
+                audio.src = mediaUrl;
                 dom.songTitle.textContent = data.name || '未知歌曲';
                 dom.artistName.textContent = data.artist || '未知艺术家';
 
@@ -2635,7 +2558,7 @@
                 });
 
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
-                const picUrl = data.cover ? data.cover.replace(/^http:/, 'https:') : '';
+                const picUrl = normalizeMediaUrl(data.cover, { baseUrl: window.location.href }) || '';
                 if (picUrl) {
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
@@ -3567,11 +3490,6 @@
             setupVirtualScroll();
         }
 
-        // 保留旧函数名以兼容
-        function renderPlaylistChunk() {
-            renderAllPlaylistItems();
-        }
-
         // Expose functions globally for Mobile UI
         window.playSongAtIndex = (index) => {
             if (index < 0 || index >= playlist.length) return;
@@ -4234,14 +4152,17 @@
                         if (isPlaying) div.id = 'mobile-playing-item';
 
                         div.innerHTML = `
-                            <span class="text-xs font-mono opacity-50 w-6 text-center">${i + 1}</span>
+                            <span data-song-index class="text-xs font-mono opacity-50 w-6 text-center"></span>
                             <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none" loading="lazy" crossorigin="anonymous">
                             <div class="flex-1 min-w-0">
-                                <div class="font-bold truncate text-sm ${textClass}">${song.name}</div>
-                                <div class="text-xs truncate opacity-50">${song.artist}</div>
+                                <div data-song-title class="font-bold truncate text-sm ${textClass}"></div>
+                                <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
                             <span class="opacity-40 p-2"><i class="fas ${isPlaying ? 'fa-volume-up' : 'fa-play'} text-xs"></i></span>
                         `;
+                        div.querySelector('[data-song-index]').textContent = String(i + 1);
+                        div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
+                        div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
                         div.onclick = () => {
                             playSongAtIndex(actualIndex);
                             self.closeSheet();
@@ -4385,22 +4306,23 @@
                         const div = document.createElement('div');
                         div.className = 'flex items-center gap-3 p-2 rounded-xl active:bg-white/5 transition-colors cursor-pointer';
 
-                        const searchId = `mob-search-img-${song.id}-${Math.random().toString(36).substr(2, 5)}`;
                         div.innerHTML = `
-                            <img id="${searchId}" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjwvc3ZnPg==" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy" crossorigin="anonymous">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjwvc3ZnPg==" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy" crossorigin="anonymous">
                             <div class="flex-1 min-w-0">
-                                <div class="font-bold truncate text-sm text-white/90">${song.name}</div>
-                                <div class="text-xs truncate opacity-50">${song.artist}</div>
+                                <div data-song-title class="font-bold truncate text-sm text-white/90"></div>
+                                <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
                             <button class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
                                 <i class="fas fa-plus"></i>
                             </button>
                         `;
+                        const targetImg = div.querySelector('img');
+                        div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
+                        div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
 
                         if (song.cover) {
                             window.getCachedImage(`${song.cover}?param=80y80`).then(cachedSrc => {
-                                const targetImg = document.getElementById(searchId);
-                                if (targetImg) targetImg.src = cachedSrc;
+                                if (targetImg.isConnected && cachedSrc) targetImg.src = cachedSrc;
                             });
                         }
 
@@ -4474,6 +4396,10 @@
             // Updates - 带过渡动画
             updateInfo(title, artist, cover) {
                 const elements = [this.dom.title, this.dom.artist, this.dom.coverImg].filter(Boolean);
+                const safeCover = normalizeMediaUrl(cover, {
+                    allowDataImage: true,
+                    baseUrl: window.location.href
+                });
 
                 // 淡出
                 elements.forEach(el => el.style.transition = 'opacity 0.2s ease');
@@ -4481,9 +4407,9 @@
 
                 setTimeout(() => {
                     // 更新内容
-                    if (this.dom.title) this.dom.title.textContent = title;
-                    if (this.dom.artist) this.dom.artist.textContent = artist;
-                    if (this.dom.coverImg) this.dom.coverImg.src = cover;
+                    if (this.dom.title) this.dom.title.textContent = title || '未知歌曲';
+                    if (this.dom.artist) this.dom.artist.textContent = artist || '未知艺术家';
+                    if (this.dom.coverImg && safeCover) this.dom.coverImg.src = safeCover;
 
                     // Sync metadata badges from desktop DOM
                     const desktopSource = document.getElementById('sourceTag');
@@ -5052,15 +4978,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initCanvasRenderers, 100);
         });
-
-        // updateLyrics 更新由 Canvas 的 animate 循环自动处理
-
-        // 当封面变化时更新背景颜色
-        function updateBackgroundFromCover(coverUrl) {
-            if (fluidBg && coverUrl) {
-                fluidBg.extractColorsFromImage(coverUrl);
-            }
-        }
 
     </script>
 </body>
