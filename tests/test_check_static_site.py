@@ -1,0 +1,44 @@
+import tempfile
+import unittest
+from pathlib import Path
+
+from scripts.check_static_site import validate_site
+
+
+class ValidateSiteTests(unittest.TestCase):
+    def test_reports_missing_local_html_asset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                '<script src="js/app.js"></script>', encoding="utf-8"
+            )
+
+            self.assertEqual(
+                validate_site(root),
+                ["index.html: missing local asset js/app.js"],
+            )
+
+    def test_allows_optional_local_playlist(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                '<script src="playlist.js"></script>', encoding="utf-8"
+            )
+
+            self.assertEqual(validate_site(root), [])
+
+    def test_reports_missing_manifest_icon(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "manifest.json").write_text(
+                '{"icons": [{"src": "img/icon.png"}]}', encoding="utf-8"
+            )
+
+            self.assertEqual(
+                validate_site(root),
+                ["manifest.json: missing local asset img/icon.png"],
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

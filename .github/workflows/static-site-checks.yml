@@ -1,0 +1,35 @@
+name: Static site checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run unit tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Validate local assets
+        run: python3 scripts/check_static_site.py
+
+      - name: Probe static pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 > /tmp/cplayer-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+
+          for path in / /playlist-downloader.html /sw.js /manifest.json; do
+            curl --fail --silent --show-error \
+              --retry 5 --retry-connrefused --retry-delay 1 \
+              "http://127.0.0.1:8080${path}" > /dev/null
+          done
