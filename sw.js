@@ -1,96 +1,153 @@
-const CACHE_NAME = 'cplayer5-v1';
+const SHELL_CACHE = 'cplayer5-shell-v2';
+const COVER_CACHE = 'cplayer5-covers-v1';
+const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
+const MAX_COVER_ENTRIES = 100;
 
-// 核心资源 - 安装时缓存
 const CORE_ASSETS = [
   './',
   './index.html',
+  './offline.html',
+  './playlist-downloader.html',
   './css/all.min.css',
   './css/noto-sans-sc.css',
   './js/tailwindcss.js',
   './js/color-thief.umd.js',
+  './js/security.mjs',
+  './js/http.mjs',
+  './js/music-data.mjs',
   './img/icon.svg',
   './img/icon.png',
   './manifest.json'
 ];
 
-// 字体文件
-const FONT_ASSETS = [
-  './fonts/NotoSansSC-Regular.ttf',
-  './fonts/NotoSansSC-Medium.ttf',
-  './fonts/NotoSansSC-Bold.ttf',
-  './fonts/NotoSansSC-Black.ttf'
-];
+function isNetEaseHost(hostname) {
+  return hostname === 'music.126.net' || hostname.endsWith('.music.126.net');
+}
 
-// 安装：缓存核心资源
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(CORE_ASSETS).catch(err => {
-        console.warn('SW: 部分核心资源缓存失败', err);
-      });
-    })
-  );
+function classifyRequest(request) {
+  if (request.method !== 'GET') return 'ignore';
+
+  const url = new URL(request.url);
+  if (url.hostname === 'api.chksz.top') return 'api';
+
+  const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);
+  if (isNetEaseHost(url.hostname) && (request.destination === 'image' || imagePath)) {
+    return 'cover';
+  }
+
+  const audioPath = /\.(?:aac|flac|m4a|mp3|ogg|wav)(?:$|\?)/i.test(url.pathname);
+  if (isNetEaseHost(url.hostname) || request.destination === 'audio' || audioPath) {
+    return 'audio';
+  }
+
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    return 'navigate';
+  }
+
+  if (url.origin === self.location.origin) return 'asset';
+  return 'ignore';
+}
+
+function cacheNamesToDelete(keys) {
+  return keys.filter(key => key.startsWith('cplayer5-') && !ACTIVE_CACHES.has(key));
+}
+
+async function pruneCoverCache(cache) {
+  const keys = await cache.keys();
+  const overflow = keys.length - MAX_COVER_ENTRIES;
+  if (overflow <= 0) return;
+  await Promise.all(keys.slice(0, overflow).map(key => cache.delete(key)));
+}
+
+async function coverCacheFirst(request) {
+  const cache = await caches.open(COVER_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response.ok || response.type === 'opaque') {
+    await cache.put(request, response.clone());
+    await pruneCoverCache(cache);
+  }
+  return response;
+}
+
+async function navigationNetworkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) return response;
+  } catch (error) {
+    console.warn('SW: navigation network request failed', error);
+  }
+
+  return (await caches.match(request))
+    || (await caches.match('./index.html'))
+    || caches.match('./offline.html');
+}
+
+async function updateShellAsset(request) {
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
+async function staleWhileRevalidate(request, event) {
+  const cached = await caches.match(request);
+  const update = updateShellAsset(request).catch(error => {
+    console.warn('SW: asset update failed', error);
+    return null;
+  });
+
+  if (cached) {
+    event.waitUntil(update);
+    return cached;
+  }
+
+  const response = await update;
+  if (response) return response;
+  return new Response('Offline', { status: 503 });
+}
+
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    try {
+      await cache.addAll(CORE_ASSETS);
+    } catch (error) {
+      console.error('SW: shell installation failed', error);
+      throw error;
+    }
+  })());
   self.skipWaiting();
 });
 
-// 激活：清理旧缓存
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      );
-    })
-  );
-  self.clients.claim();
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(cacheNamesToDelete(keys).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
-// 请求策略
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', event => {
+  const policy = classifyRequest(event.request);
 
-  // API 请求：始终网络优先，不缓存
-  if (url.hostname === 'api.chksz.top') {
+  if (policy === 'api' || policy === 'audio') {
     event.respondWith(fetch(event.request));
     return;
   }
-
-  // 音频流：不缓存
-  if (url.pathname.match(/\.(mp3|flac|wav|ogg|m4a|aac)$/i) ||
-      url.hostname.includes('music.126.net')) {
-    event.respondWith(fetch(event.request));
+  if (policy === 'cover') {
+    event.respondWith(coverCacheFirst(event.request));
     return;
   }
-
-  // 封面图片：缓存优先 (网易云 CDN)
-  if (url.hostname.includes('music.126.net') && url.pathname.match(/\.(jpg|jpeg|png|webp)/i)) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(resp => {
-          if (resp.ok) {
-            const clone = resp.clone();
-            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-          }
-          return resp;
-        }).catch(() => new Response('', { status: 404 }));
-      })
-    );
+  if (policy === 'navigate') {
+    event.respondWith(navigationNetworkFirst(event.request));
     return;
   }
-
-  // 本地资源：缓存优先，回退网络
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(resp => {
-        // 缓存成功的本地资源
-        if (resp.ok && url.origin === self.location.origin) {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
-        }
-        return resp;
-      });
-    })
-  );
+  if (policy === 'asset') {
+    event.respondWith(staleWhileRevalidate(event.request, event));
+  }
 });

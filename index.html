@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
 
     <!-- Favicon -->
@@ -953,6 +953,25 @@
                 background: rgba(20, 20, 20, 0.9) !important;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            html:focus-within {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .album-art-wrapper.playing {
+                animation: none !important;
+            }
+        }
     </style>
     <script src="playlist.js"></script>
 </head>
@@ -968,6 +987,7 @@
 
     <!-- 复制成功 Toast -->
     <div id="copyToast"
+        role="status" aria-live="polite" aria-atomic="true"
         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-surface-container-high-color text-on-surface-color px-6 py-3 rounded-full shadow-xl z-[100] opacity-0 pointer-events-none transition-all duration-300 scale-90 flex items-center gap-2 border border-primary-color/20 backdrop-blur-md">
         <i class="fas fa-check-circle text-primary-color"></i>
         <span class="font-bold text-sm">已复制到剪贴板</span>
@@ -995,11 +1015,11 @@
                 </h1>
                 <!-- 设置 & 全屏按钮（从右上角固定位置移入此处） -->
                 <div class="flex items-center gap-2">
-                    <button id="settingsBtn" title="设置"
+                    <button id="settingsBtn" title="设置" aria-label="打开设置"
                         class="top-btn w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
                         <i class="fas fa-cog text-sm opacity-70"></i>
                     </button>
-                    <button id="fullscreenBtn" title="全屏模式"
+                    <button id="fullscreenBtn" title="全屏模式" aria-label="切换全屏模式"
                         class="top-btn mobile-hide w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
                         <i class="fas fa-expand text-sm opacity-70"></i>
                     </button>
@@ -1081,13 +1101,13 @@
                         </div>
 
                         <div class="volume-control-group">
-                            <button id="volumeBtn"
+                            <button id="volumeBtn" aria-label="调整音量"
                                 class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
                                 <i id="volumeIcon" class="fas fa-volume-up text-lg"></i>
                             </button>
                             <div id="volumePopover" class="volume-popup">
                                 <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
-                                    step="0.01" value="0.5">
+                                    step="0.01" value="0.5" aria-label="音量">
                             </div>
                         </div>
                     </div>
@@ -1135,19 +1155,21 @@
 
             <!-- Tab 切换头部 -->
             <div class="flex-none pt-5 pb-0 px-5">
-                <div class="flex items-center gap-5 border-b border-white/10 pb-3">
+                <div class="flex items-center gap-5 border-b border-white/10 pb-3" role="tablist" aria-label="侧边栏内容">
                     <button id="desktopTabPlaylist"
+                        role="tab" aria-selected="true" aria-controls="desktopContentPlaylist"
                         class="text-base font-bold border-b-2 border-primary-color pb-1 transition-all opacity-100">
                         <i class="fas fa-list-ul mr-1.5 text-primary-color"></i>当前播放
                         <span id="playlistCount" class="text-xs opacity-50 font-normal ml-1"></span>
                     </button>
                     <button id="desktopTabSearch"
+                        role="tab" aria-selected="false" aria-controls="desktopContentSearch"
                         class="text-base font-bold border-b-2 border-transparent pb-1 transition-all opacity-50">
                         <i class="fas fa-search mr-1.5"></i>搜索添加
                     </button>
                     <!-- Upload Area hidden by default -->
                     <div class="upload-container soft-upload-area hidden ml-auto">
-                        <input type="file" id="playlistFile" accept=".json" class="hidden">
+                        <input type="file" id="playlistFile" accept=".json" class="hidden" aria-label="导入 JSON 歌单">
                     </div>
                 </div>
             </div>
@@ -1164,7 +1186,7 @@
             <!-- Content: 搜索 -->
             <div id="desktopContentSearch" class="flex-1 min-h-0 hidden flex-col overflow-hidden p-4 pt-2">
                 <div class="relative flex items-center group mb-3 flex-none">
-                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..."
+                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
                         class="w-full pl-10 pr-14 py-2.5 rounded-full bg-white/10 border-transparent focus:border-primary-color outline-none transition-all text-sm font-medium">
                     <i class="fas fa-search absolute left-3.5 opacity-50"></i>
                     <button id="searchButton"
@@ -1176,7 +1198,7 @@
 
         <!-- 隐藏的兼容元素 (保留旧ID供JS不报错) -->
         <div id="floatingSearchPanel" class="hidden"></div>
-        <button id="toggleSearchBtn" class="hidden"></button>
+        <button id="toggleSearchBtn" class="hidden" aria-label="打开搜索"></button>
 
     </div>
 
@@ -1186,7 +1208,7 @@
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
             <!-- 设置按钮 (移动端) -->
-            <button id="mobileSettingsBtn" class="absolute right-4 p-2 opacity-70 active:opacity-100">
+            <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 min-w-11 min-h-11 p-2 opacity-70 active:opacity-100 flex items-center justify-center">
                 <i class="fas fa-cog"></i>
             </button>
         </header>
@@ -1286,7 +1308,7 @@
                 </button>
 
                 <!-- Prev -->
-                <button id="mobilePrevBtn" class="p-3 active:scale-90 transition-transform text-2xl" aria-label="上一曲">
+                <button id="mobilePrevBtn" class="min-w-11 min-h-11 p-3 active:scale-90 transition-transform text-2xl flex items-center justify-center" aria-label="上一曲">
                     <i class="fas fa-step-backward"></i>
                 </button>
 
@@ -1297,7 +1319,7 @@
                 </button>
 
                 <!-- Next -->
-                <button id="mobileNextBtn" class="p-3 active:scale-90 transition-transform text-2xl" aria-label="下一曲">
+                <button id="mobileNextBtn" class="min-w-11 min-h-11 p-3 active:scale-90 transition-transform text-2xl flex items-center justify-center" aria-label="下一曲">
                     <i class="fas fa-step-forward"></i>
                 </button>
 
@@ -1311,8 +1333,11 @@
 
             <!-- ★ Mobile Playlist/Search Bottom Sheet - Fixed 定位 + 拖拽手柄 -->
             <div id="mobilePlaylistSheet"
+                role="dialog" aria-modal="true" aria-labelledby="mobilePlaylistSheetTitle" aria-hidden="true"
                 class="fixed inset-x-0 bottom-0 h-[70vh] bg-black/60 backdrop-blur-lg rounded-t-3xl z-[60] transform translate-y-[110%] transition-transform duration-300 flex flex-col shadow-2xl border-t border-white/10"
                 style="isolation: isolate;">
+
+                <h2 id="mobilePlaylistSheetTitle" class="sr-only">播放列表和搜索</h2>
 
 
 
@@ -1324,18 +1349,20 @@
                 <!-- Header / Tabs -->
                 <div class="flex-none px-4 pb-2 relative">
                     <!-- Close Button -->
-                    <button id="closeSheetBtn" class="absolute right-4 top-1 opacity-50 p-2">
+                    <button id="closeSheetBtn" aria-label="关闭播放列表" class="absolute right-4 top-1 min-w-11 min-h-11 opacity-50 p-2 flex items-center justify-center">
                         <i class="fas fa-chevron-down"></i>
                     </button>
 
                     <!-- Tab Switcher -->
-                    <div class="flex justify-center gap-6 text-lg font-bold">
+                    <div class="flex justify-center gap-6 text-lg font-bold" role="tablist" aria-label="移动端列表内容">
                         <button id="sheetTabPlaylist"
-                            class="opacity-100 border-b-2 border-primary-color pb-1 transition-all">
+                            role="tab" aria-selected="true" aria-controls="sheetContentPlaylist"
+                            class="min-w-11 min-h-11 opacity-100 border-b-2 border-primary-color pb-1 transition-all">
                             当前播放
                         </button>
                         <button id="sheetTabSearch"
-                            class="opacity-50 border-b-2 border-transparent pb-1 transition-all">
+                            role="tab" aria-selected="false" aria-controls="sheetContentSearch"
+                            class="min-w-11 min-h-11 opacity-50 border-b-2 border-transparent pb-1 transition-all">
                             搜索添加
                         </button>
                     </div>
@@ -1352,7 +1379,7 @@
                 <!-- Content: Search -->
                 <div id="sheetContentSearch" class="flex-1 overflow-hidden p-4 hidden flex-col">
                     <div class="relative mb-4 flex-none">
-                        <input type="text" id="mobileSearchInput" placeholder="搜索歌曲、歌手..."
+                        <input type="text" id="mobileSearchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
                             class="w-full bg-white/10 rounded-full px-4 py-3 pl-11 outline-none focus:bg-white/20 transition-all text-sm font-medium">
                         <i class="fas fa-search absolute left-4 top-3.5 opacity-50"></i>
                     </div>
@@ -1366,15 +1393,16 @@
 
     <!-- 设置模态框 -->
     <div id="settingsModal"
+        role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true"
         class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-300">
         <div class="modal-card w-full max-w-sm md:max-w-2xl mx-4 p-6 rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300"
             id="settingsCard">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold flex items-center">
+                <h2 id="settingsTitle" class="text-xl font-bold flex items-center">
                     <i class="fas fa-sliders-h mr-2 theme-text-primary"></i>
                     歌单设置
                 </h2>
-                <button id="closeSettingsBtn"
+                <button id="closeSettingsBtn" aria-label="关闭设置"
                     class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1403,7 +1431,7 @@
                 <!-- 在线歌单 ID 输入 -->
                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
                     <div class="flex gap-2">
-                        <input type="text" id="playlistIdInput"
+                        <input type="text" id="playlistIdInput" aria-label="网易云歌单 ID 或链接"
                             placeholder="网易云歌单 ID 或链接"
                             class="flex-1 min-w-0 bg-white/[0.06] border border-white/[0.12] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary-color/60 focus:bg-white/[0.1] transition-colors placeholder:opacity-30"
                             autocomplete="off">
@@ -1417,8 +1445,9 @@
                 <!-- 本地歌单导入（桌面端） -->
                 <div id="fileImportSection" class="hidden md:block">
                     <div id="settingsDropZone"
+                        role="button" tabindex="0" aria-label="导入 playlist.js 或 JSON 歌单文件"
                         class="p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-primary-color/40 hover:bg-white/[0.03] cursor-pointer text-center group transition-colors">
-                        <input type="file" id="settingsFileInput" accept=".js,.json" class="hidden">
+                        <input type="file" id="settingsFileInput" accept=".js,.json" class="hidden" aria-label="选择 playlist.js 或 JSON 歌单文件">
                         <div class="flex items-center justify-center gap-3 pointer-events-none">
                             <i class="fas fa-file-import text-lg opacity-25 group-hover:opacity-50 transition-opacity"></i>
                             <span class="text-xs opacity-35 group-hover:opacity-55 transition-opacity">
@@ -1450,6 +1479,7 @@
 
     <!-- ★ 欢迎/歌单引导模态框 -->
     <div id="welcomeModal"
+        role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" aria-hidden="true"
         class="fixed inset-0 z-[110] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-500">
         <div class="w-full max-w-md mx-4 rounded-3xl shadow-2xl transform scale-95 transition-all duration-500 overflow-hidden"
             id="welcomeCard">
@@ -1466,12 +1496,12 @@
                 </div>
 
                 <!-- Title -->
-                <h2 class="text-2xl font-bold text-center mb-2">欢迎使用 CPlayer 5</h2>
+                <h2 id="welcomeTitle" class="text-2xl font-bold text-center mb-2">欢迎使用 CPlayer 5</h2>
                 <p class="text-center opacity-60 text-sm mb-8">输入你的网易云歌单 ID，即刻开始超清母带体验</p>
 
                 <!-- Input -->
                 <div class="relative mb-4">
-                    <input type="text" id="welcomePlaylistInput"
+                    <input type="text" id="welcomePlaylistInput" aria-label="网易云歌单 ID"
                         placeholder="网易云歌单 ID（纯数字）"
                         class="w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-5 py-4 text-center text-lg font-mono tracking-wider outline-none focus:border-white/30 focus:bg-white/[0.1] transition-all placeholder:opacity-30 placeholder:text-sm placeholder:tracking-normal placeholder:font-sans"
                         autocomplete="off" inputmode="numeric">
@@ -1490,7 +1520,7 @@
                 </button>
 
                 <!-- Error message area -->
-                <div id="welcomeError" class="hidden mt-4 text-center text-sm text-red-400">
+                <div id="welcomeError" role="alert" class="hidden mt-4 text-center text-sm text-red-400">
                     <i class="fas fa-exclamation-circle mr-1"></i>
                     <span id="welcomeErrorText"></span>
                 </div>
@@ -1533,21 +1563,39 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
-        // 监听 plusready 事件，增加原生能力支持
-        document.addEventListener('plusready', function () {
-            // 锁定屏幕方向为竖屏
-            plus.screen.lockOrientation("portrait-primary");
-            // 设置系统音量控制 (初始化音频模块)
-            plus.audio.createPlayer();
-            // 申请电源锁 (WakeLock) 防止锁屏断网/断CPU
-            plus.device.setWakelock(true);
-            // 重写 Android 返回键逻辑
-            plus.key.addEventListener("backbutton", function () {
-                // 隐藏应用到后台而不是退出
-                var main = plus.android.runtimeMainActivity();
-                main.moveTaskToBack(false);
-            });
-        });
+        import { normalizeMediaUrl } from './js/security.mjs';
+        import {
+            RequestCancelledError,
+            requestErrorMessage,
+            requestJson
+        } from './js/http.mjs';
+        import {
+            normalizeLyricsPayload,
+            normalizePlaylistPayload,
+            normalizeSearchPayload,
+            normalizeSongPayload
+        } from './js/music-data.mjs';
+
+        let nativeIntegrationInitialized = false;
+
+        function initNativeIntegration() {
+            if (nativeIntegrationInitialized || !globalThis.plus) return;
+            nativeIntegrationInitialized = true;
+
+            try {
+                plus.screen.lockOrientation('portrait-primary');
+                plus.audio.createPlayer();
+                plus.device.setWakelock(true);
+                plus.key.addEventListener('backbutton', () => {
+                    const main = plus.android.runtimeMainActivity();
+                    main.moveTaskToBack(false);
+                });
+            } catch (error) {
+                console.warn('H5+ 初始化失败:', error);
+            }
+        }
+
+        document.addEventListener('plusready', initNativeIntegration, { once: true });
 
         // ================= 架构核心：ChKSz API (整合版) =================
 
@@ -1575,55 +1623,26 @@
                 localStorage.setItem(`cp_${key}`, value);
             }
 
-            async search(query) {
+            async search(query, { signal } = {}) {
                 const url = `${this.baseUrl}/163_search?keyword=${encodeURIComponent(query)}&limit=30`;
-                try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-                    let items = [];
-                    if (json.code === 200) {
-                        if (Array.isArray(json.data)) items = json.data;
-                        else if (json.data && Array.isArray(json.data.songs)) items = json.data.songs;
-                        else if (json.result && Array.isArray(json.result.songs)) items = json.result.songs;
-                    }
-                    if (items.length > 0) {
-                        return items.map(item => ({
-                            id: item.id,
-                            name: item.name,
-                            artist: item.artists ? (Array.isArray(item.artists) ? item.artists.map(a => a.name).join(', ') : (typeof item.artists === 'string' ? item.artists : (item.artists.name || 'Unknown'))) : 'Unknown',
-                            album: item.album ? (typeof item.album === 'string' ? item.album : item.album.name) : '',
-                            cover: item.picUrl || (item.album ? item.album.picUrl : '') || '',
-                            source: 'ChKSz'
-                        }));
-                    }
-                } catch (e) { console.error('Search API Error:', e); }
-                return [];
+                const json = await requestJson(url, { signal });
+                return normalizeSearchPayload(json);
             }
 
-            async getSong(id) {
+            async getSong(id, { signal } = {}) {
                 const level = 'jymaster';
                 const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
-                const res = await fetch(url);
-                const json = await res.json();
-                if (json.code === 200 && json.data) {
-                    const d = Array.isArray(json.data) ? json.data[0] : json.data;
-                    if (d && d.url) {
-                        return {
-                            id: d.id, url: d.url, name: d.name, artist: d.artist, cover: d.picUrl, source: 'ChKSz', level: d.level || level, br: d.br || d.bitrate
-                        };
-                    }
-                }
+                const json = await requestJson(url, { signal });
+                const song = normalizeSongPayload(json, level);
+                if (song) return song;
                 throw new Error('ChKSz GetSong Failed');
             }
 
             async getLyric(id) {
                 const url = `${this.baseUrl}/163_lyric?id=${id}`;
                 try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-                    if (json.code === 200 && json.data) {
-                        return { lrc: json.data.lrc || '', tlrc: json.data.tlyric || '', yrc: '' };
-                    }
+                    const json = await requestJson(url);
+                    return normalizeLyricsPayload(json);
                 } catch (e) { console.warn('ChKSz Lyric Failed:', e); }
                 return null;
             }
@@ -1695,14 +1714,18 @@
 
         // ================= 歌单小图缓存逻辑（仅用于列表缩略图） =================
         window.getCachedImage = async function (url) {
-            if (!url || !db) return url;
+            const secureUrl = normalizeMediaUrl(url, {
+                allowDataImage: true,
+                baseUrl: window.location.href
+            });
+            if (!secureUrl) return '';
+            if (!db) return secureUrl;
 
             // 安全检查：确保 images 表存在
             if (!db.objectStoreNames.contains('images')) {
-                return url;
+                return secureUrl;
             }
 
-            const secureUrl = url.replace(/^http:/, 'https:');
             return new Promise((resolve) => {
                 try {
                     const tx = db.transaction('images', 'readonly');
@@ -1833,8 +1856,9 @@
 
             // 异步获取下一首歌曲的 URL
             musicService.getSong(nextSongId).then(data => {
-                if (data?.url) {
-                    preloadAudio.src = data.url;
+                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
+                if (mediaUrl) {
+                    preloadAudio.src = mediaUrl;
                     preloadAudio.load();
                     preloadedSongId = nextSongId;
                     console.log('🎵 预加载下一首:', nextSong.name || nextSongId);
@@ -1861,31 +1885,7 @@
             return null;
         }
 
-        // ================= 音量标准化 (ReplayGain 模拟) =================
         let compressorNode = null;
-
-        function setupAudioNormalization() {
-            if (!audioContext) return;
-
-            try {
-                // 创建动态压缩器（防止爆音）
-                compressorNode = audioContext.createDynamicsCompressor();
-                compressorNode.threshold.setValueAtTime(-24, audioContext.currentTime);
-                compressorNode.knee.setValueAtTime(30, audioContext.currentTime);
-                compressorNode.ratio.setValueAtTime(12, audioContext.currentTime);
-                compressorNode.attack.setValueAtTime(0.003, audioContext.currentTime);
-                compressorNode.release.setValueAtTime(0.25, audioContext.currentTime);
-
-                // 重新连接音频图
-                analyser.disconnect();
-                analyser.connect(compressorNode);
-                compressorNode.connect(gainNode);
-
-                console.log('🔊 音量标准化已启用');
-            } catch (e) {
-                console.warn('音量标准化设置失败:', e);
-            }
-        }
 
         // ================= 虚拟滚动配置 =================
         let renderedCount = 0;
@@ -1901,63 +1901,6 @@
             itemHeight: 56,  // 每个歌曲项的高度
             bufferCount: 5   // 缓冲区大小
         };
-
-        // ================= 弹簧物理滚动 =================
-        let springState = {
-            animating: false,
-            current: 0,
-            target: 0,
-            velocity: 0
-        };
-
-        // 弹簧参数（参考 aura-music）
-        const SPRING_CONFIG = {
-            stiffness: 80,    // 更软的弹簧
-            damping: 20,      // 适当阻尼
-            mass: 1           // 质量
-        };
-
-        function springScrollTo(container, targetY) {
-            springState.target = targetY;
-            springState.current = container.scrollTop;
-
-            if (springState.animating) return;
-            springState.animating = true;
-            springState.velocity = 0;
-
-            function animate() {
-                const { stiffness, damping, mass } = SPRING_CONFIG;
-
-                // 弹簧力 = -k * x
-                const displacement = springState.current - springState.target;
-                const springForce = -stiffness * displacement;
-
-                // 阻尼力 = -c * v
-                const dampingForce = -damping * springState.velocity;
-
-                // 加速度 = F / m
-                const acceleration = (springForce + dampingForce) / mass;
-
-                // 更新速度和位置（使用固定时间步长 16ms）
-                springState.velocity += acceleration * 0.016;
-                springState.current += springState.velocity * 0.016;
-
-                // 应用滚动
-                container.scrollTop = springState.current;
-
-                // 判断是否停止（速度和位移都足够小）
-                const isSettled = Math.abs(springState.velocity) < 0.5 && Math.abs(displacement) < 0.5;
-
-                if (isSettled) {
-                    container.scrollTop = springState.target;
-                    springState.animating = false;
-                } else {
-                    requestAnimationFrame(animate);
-                }
-            }
-
-            requestAnimationFrame(animate);
-        }
 
         // 主题色系统已移除，使用纯白色/灰色调极简风格
         const tempCanvas = document.createElement('canvas');
@@ -2031,18 +1974,6 @@
                 });
             }
 
-            // H5+ Integration for Android App
-            document.addEventListener('plusready', function () {
-                // Keep CPU awake
-                plus.device.setWakelock(true);
-
-                // Handle physical back button
-                plus.key.addEventListener('backbutton', function () {
-                    // Move task to background
-                    var main = plus.android.runtimeMainActivity();
-                    main.moveTaskToBack(false);
-                }, false);
-            });
         });
 
         function initEventListeners() {
@@ -2233,12 +2164,14 @@
             const contentSearch = document.getElementById('desktopContentSearch');
 
             if (tabPlaylist) {
+                tabPlaylist.setAttribute('aria-selected', String(isPlaylist));
                 tabPlaylist.classList.toggle('opacity-100', isPlaylist);
                 tabPlaylist.classList.toggle('opacity-50', !isPlaylist);
                 tabPlaylist.classList.toggle('border-primary-color', isPlaylist);
                 tabPlaylist.classList.toggle('border-transparent', !isPlaylist);
             }
             if (tabSearch) {
+                tabSearch.setAttribute('aria-selected', String(!isPlaylist));
                 tabSearch.classList.toggle('opacity-100', !isPlaylist);
                 tabSearch.classList.toggle('opacity-50', isPlaylist);
                 tabSearch.classList.toggle('border-primary-color', !isPlaylist);
@@ -2306,6 +2239,8 @@
         function showToast(msg, isError = false) {
             const toast = document.getElementById('copyToast');
             toast.querySelector('span').textContent = msg;
+            toast.setAttribute('role', isError ? 'alert' : 'status');
+            toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.classList.remove('opacity-0', 'scale-90');
             toast.classList.add('opacity-100', 'scale-100');
 
@@ -2328,6 +2263,61 @@
             // 设置项的UI已精简，此处留空防报错
         }
 
+        const dialogTriggers = new WeakMap();
+
+        function getFocusableElements(dialog) {
+            return Array.from(dialog.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )).filter(element => !element.hidden && element.getClientRects().length > 0);
+        }
+
+        function activateDialog(dialog, focusTarget) {
+            const trigger = document.activeElement;
+            if (trigger instanceof HTMLElement) dialogTriggers.set(dialog, trigger);
+            dialog.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                const target = focusTarget || getFocusableElements(dialog)[0];
+                target?.focus();
+            }, 0);
+        }
+
+        function deactivateDialog(dialog) {
+            dialog.setAttribute('aria-hidden', 'true');
+            const trigger = dialogTriggers.get(dialog);
+            dialogTriggers.delete(dialog);
+            if (trigger?.isConnected) trigger.focus();
+        }
+
+        function activeDialog() {
+            const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-hidden="false"]'));
+            return dialogs[dialogs.length - 1] || null;
+        }
+
+        document.addEventListener('keydown', event => {
+            const dialog = activeDialog();
+            if (!dialog) return;
+
+            if (event.key === 'Escape') {
+                if (dialog.id === 'settingsModal') closeSettings();
+                if (dialog.id === 'mobilePlaylistSheet') mobileUI?.closeSheet();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+            const focusable = getFocusableElements(dialog);
+            if (!focusable.length) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
         function openSettings() {
             dom.settingsModal.classList.remove('hidden');
             // Allow reflow
@@ -2340,6 +2330,7 @@
             const idInput = document.getElementById('playlistIdInput');
             const savedId = localStorage.getItem('cp_playlistId');
             if (idInput && savedId) idInput.value = savedId;
+            activateDialog(dom.settingsModal, idInput || dom.closeSettingsBtn);
 
             // 刷新歌单来源状态
             updateSourceDisplay();
@@ -2371,6 +2362,7 @@
         }
 
         function closeSettings() {
+            deactivateDialog(dom.settingsModal);
             dom.settingsModal.classList.add('opacity-0');
             dom.settingsModal.querySelector('.modal-card').classList.add('scale-95');
             dom.settingsModal.querySelector('.modal-card').classList.remove('scale-100');
@@ -2421,9 +2413,22 @@
             }
         }
 
+        function setSearchStatus(container, message, { error = false } = {}) {
+            const status = document.createElement('div');
+            status.className = `p-4 text-center ${error ? 'text-red-400' : 'opacity-60'}`;
+            status.textContent = message;
+            container.replaceChildren(status);
+        }
+
+        let desktopSearchController = null;
+
         async function searchSongs(query) {
             query = query.trim();
             if (!query) return;
+
+            desktopSearchController?.abort();
+            const requestController = new AbortController();
+            desktopSearchController = requestController;
 
             if (/^\d+$/.test(query)) {
                 dom.searchResults.innerHTML = Array.from({ length: 1 }).map(() => `
@@ -2438,7 +2443,9 @@
                 dom.searchResults.classList.remove('hidden');
 
                 try {
-                    const songData = await musicService.getSong(query);
+                    const songData = await musicService.getSong(query, {
+                        signal: requestController.signal
+                    });
                     if (songData && songData.url) {
                         const newSong = {
                             id: songData.id,
@@ -2461,8 +2468,13 @@
                         throw new Error('无效的歌曲ID');
                     }
                 } catch (e) {
+                    if (e instanceof RequestCancelledError) return;
                     console.error(e);
-                    dom.searchResults.innerHTML = '<div class="p-4 text-center text-red-400">无效ID或加载失败</div>';
+                    setSearchStatus(dom.searchResults, `无法加载歌曲：${requestErrorMessage(e)}`, { error: true });
+                } finally {
+                    if (desktopSearchController === requestController) {
+                        desktopSearchController = null;
+                    }
                 }
                 return;
             }
@@ -2480,7 +2492,9 @@
             dom.searchResults.classList.remove('hidden');
 
             try {
-                const songs = await musicService.search(query);
+                const songs = await musicService.search(query, {
+                    signal: requestController.signal
+                });
 
                 // [需求4] 限制显示30条结果
                 const limitedSongs = songs ? songs.slice(0, 30) : [];
@@ -2514,7 +2528,7 @@
                         infoDiv.className = 'flex-1 min-w-0';
                         const titleDiv = document.createElement('div');
                         titleDiv.className = 'truncate text-sm font-medium flex items-center';
-                        titleDiv.innerHTML = `${song.name}`;
+                        titleDiv.textContent = song.name || '未知歌曲';
                         const artistDiv = document.createElement('div');
                         artistDiv.className = 'truncate text-xs opacity-50';
                         artistDiv.textContent = song.artist || '未知艺术家';
@@ -2541,13 +2555,16 @@
                         dom.searchResults.appendChild(div);
                     });
                 } else {
-                    dom.searchResults.innerHTML = '<div class="p-4 text-center opacity-60">未找到相关歌曲</div>';
+                    setSearchStatus(dom.searchResults, '未找到相关歌曲');
                 }
             } catch (error) {
+                if (error instanceof RequestCancelledError) return;
                 console.error(error);
-                dom.searchResults.innerHTML = '<div class="p-4 text-center text-red-400">搜索服务暂不可用</div>';
+                setSearchStatus(dom.searchResults, requestErrorMessage(error), { error: true });
             } finally {
-                // 搜索loader已移除
+                if (desktopSearchController === requestController) {
+                    desktopSearchController = null;
+                }
             }
         }
 
@@ -2558,14 +2575,16 @@
             const artwork = [];
             if (data.cover) {
                 const sizes = ['96x96', '128x128', '192x192', '256x256', '384x384', '512x512'];
-                const src = data.cover.replace(/^http:/, 'https:');
-                sizes.forEach(size => {
-                    artwork.push({
-                        src: src,
-                        sizes: size,
-                        type: 'image/jpeg'
+                const src = normalizeMediaUrl(data.cover, { baseUrl: window.location.href });
+                if (src) {
+                    sizes.forEach(size => {
+                        artwork.push({
+                            src,
+                            sizes: size,
+                            type: 'image/jpeg'
+                        });
                     });
-                });
+                }
             }
 
             navigator.mediaSession.metadata = new MediaMetadata({
@@ -2597,7 +2616,9 @@
                     throw new Error('No URL returned');
                 }
 
-                audio.src = data.url.replace(/^http:/, 'https:');
+                const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
+                if (!mediaUrl) throw new Error('Invalid media URL');
+                audio.src = mediaUrl;
                 dom.songTitle.textContent = data.name || '未知歌曲';
                 dom.artistName.textContent = data.artist || '未知艺术家';
 
@@ -2635,7 +2656,7 @@
                 });
 
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
-                const picUrl = data.cover ? data.cover.replace(/^http:/, 'https:') : '';
+                const picUrl = normalizeMediaUrl(data.cover, { baseUrl: window.location.href }) || '';
                 if (picUrl) {
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
@@ -2886,34 +2907,8 @@
         class PlaylistService {
             static async fetchPlaylist(listId) {
                 const url = `${ChKSzAPI.baseUrl}/163_playlist?id=${listId}`;
-                try {
-                    const res = await fetch(url);
-                    const json = await res.json();
-
-                    let tracks = [];
-                    // 兼容多种返回格式
-                    if (json.data && Array.isArray(json.data.tracks)) {
-                        tracks = json.data.tracks;
-                    } else if (json.data && Array.isArray(json.data)) {
-                        tracks = json.data;
-                    } else if (json.playlist && Array.isArray(json.playlist.tracks)) {
-                        tracks = json.playlist.tracks;
-                    }
-
-                    // 标准化歌曲数据格式（兼容 ar/al 和 artists/album 两种结构）
-                    return tracks.map(item => ({
-                        id: item.id,
-                        name: item.name || '未知歌曲',
-                        artist: item.artists
-                            ? (typeof item.artists === 'string' ? item.artists : (Array.isArray(item.artists) ? item.artists.map(a => a.name).join('/') : 'Unknown'))
-                            : (item.ar ? item.ar.map(a => a.name).join('/') : 'Unknown'),
-                        album: typeof item.album === 'string' ? item.album : (item.al ? item.al.name : ''),
-                        cover: item.picUrl || (item.al ? item.al.picUrl : '') || ''
-                    }));
-                } catch (e) {
-                    console.warn('Playlist fetch failed:', e);
-                }
-                return [];
+                const json = await requestJson(url);
+                return normalizePlaylistPayload(json);
             }
         }
 
@@ -3186,6 +3181,12 @@
 
             if (dropZone && fileInput) {
                 dropZone.addEventListener('click', () => fileInput.click());
+                dropZone.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fileInput.click();
+                    }
+                });
 
                 fileInput.addEventListener('change', (e) => {
                     if (e.target.files[0]) handleImportedFile(e.target.files[0]);
@@ -3302,12 +3303,7 @@
             modal.classList.remove('opacity-0');
             card.classList.remove('scale-95');
             card.classList.add('scale-100');
-
-            // Focus input
-            setTimeout(() => {
-                const input = document.getElementById('welcomePlaylistInput');
-                if (input) input.focus();
-            }, 400);
+            activateDialog(modal, document.getElementById('welcomePlaylistInput'));
         }
 
         function closeWelcomeModal() {
@@ -3315,6 +3311,7 @@
             const card = document.getElementById('welcomeCard');
             if (!modal || !card) return;
 
+            deactivateDialog(modal);
             modal.classList.add('opacity-0');
             card.classList.add('scale-95');
             card.classList.remove('scale-100');
@@ -3565,11 +3562,6 @@
         // 一次性渲染播放列表（保留作为兼容入口，内部走虚拟滚动）
         function renderAllPlaylistItems() {
             setupVirtualScroll();
-        }
-
-        // 保留旧函数名以兼容
-        function renderPlaylistChunk() {
-            renderAllPlaylistItems();
         }
 
         // Expose functions globally for Mobile UI
@@ -3937,6 +3929,7 @@
                 this.isMobile = window.innerWidth < 768;
                 this.currentMode = 'cover';
                 this.activeSheetTab = 'playlist'; // playlist | search
+                this.searchController = null;
 
                 this.dom = {
                     mobileLayout: document.getElementById('mobileLayout'),
@@ -4162,9 +4155,17 @@
                 this.loadPlaylist();
                 this.dom.sheet.classList.remove('translate-y-[110%]');
                 this.dom.sheet.classList.add('translate-y-0');
+                if (this.dom.sheet.getAttribute('aria-hidden') !== 'false') {
+                    activateDialog(this.dom.sheet, this.activeSheetTab === 'search'
+                        ? this.dom.searchInput
+                        : this.dom.closeSheetBtn);
+                }
             }
 
             closeSheet() {
+                if (this.dom.sheet.getAttribute('aria-hidden') === 'false') {
+                    deactivateDialog(this.dom.sheet);
+                }
                 this.dom.sheet.style.transform = ''; // 清除拖拽残留
                 this.dom.sheet.classList.remove('translate-y-0');
                 this.dom.sheet.classList.add('translate-y-[110%]');
@@ -4175,6 +4176,8 @@
                 const isPlaylist = tab === 'playlist';
 
                 // Update Tab Styles
+                this.dom.tabPlaylist.setAttribute('aria-selected', String(isPlaylist));
+                this.dom.tabSearch.setAttribute('aria-selected', String(!isPlaylist));
                 this.dom.tabPlaylist.classList.toggle('opacity-100', isPlaylist);
                 this.dom.tabPlaylist.classList.toggle('opacity-50', !isPlaylist);
                 this.dom.tabPlaylist.classList.toggle('border-primary-color', isPlaylist);
@@ -4234,14 +4237,17 @@
                         if (isPlaying) div.id = 'mobile-playing-item';
 
                         div.innerHTML = `
-                            <span class="text-xs font-mono opacity-50 w-6 text-center">${i + 1}</span>
+                            <span data-song-index class="text-xs font-mono opacity-50 w-6 text-center"></span>
                             <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none" loading="lazy" crossorigin="anonymous">
                             <div class="flex-1 min-w-0">
-                                <div class="font-bold truncate text-sm ${textClass}">${song.name}</div>
-                                <div class="text-xs truncate opacity-50">${song.artist}</div>
+                                <div data-song-title class="font-bold truncate text-sm ${textClass}"></div>
+                                <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
                             <span class="opacity-40 p-2"><i class="fas ${isPlaying ? 'fa-volume-up' : 'fa-play'} text-xs"></i></span>
                         `;
+                        div.querySelector('[data-song-index]').textContent = String(i + 1);
+                        div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
+                        div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
                         div.onclick = () => {
                             playSongAtIndex(actualIndex);
                             self.closeSheet();
@@ -4327,13 +4333,19 @@
             async handleSearch(query) {
                 if (!query.trim()) return;
 
+                this.searchController?.abort();
+                const requestController = new AbortController();
+                this.searchController = requestController;
+
                 // [紧急Fix] 纯数字ID直接添加并播放
                 if (/^\d+$/.test(query.trim())) {
                     const container = this.dom.searchResults;
                     container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">正在加载ID歌曲...</div>';
 
                     try {
-                        const songData = await musicService.getSong(query.trim());
+                        const songData = await musicService.getSong(query.trim(), {
+                            signal: requestController.signal
+                        });
                         if (songData && songData.url) {
                             const newSong = {
                                 id: songData.id,
@@ -4362,8 +4374,13 @@
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
                     } catch (e) {
+                        if (e instanceof RequestCancelledError) return;
                         console.error(e);
-                        container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">加载失败</div>';
+                        setSearchStatus(container, requestErrorMessage(e), { error: true });
+                    } finally {
+                        if (this.searchController === requestController) {
+                            this.searchController = null;
+                        }
                     }
                     return;
                 }
@@ -4373,11 +4390,13 @@
 
                 try {
                     // Use global musicService instance
-                    const results = await musicService.search(query);
+                    const results = await musicService.search(query, {
+                        signal: requestController.signal
+                    });
                     container.innerHTML = '';
 
                     if (!results || results.length === 0) {
-                        container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">无结果</div>';
+                        setSearchStatus(container, '无结果');
                         return;
                     }
 
@@ -4385,22 +4404,23 @@
                         const div = document.createElement('div');
                         div.className = 'flex items-center gap-3 p-2 rounded-xl active:bg-white/5 transition-colors cursor-pointer';
 
-                        const searchId = `mob-search-img-${song.id}-${Math.random().toString(36).substr(2, 5)}`;
                         div.innerHTML = `
-                            <img id="${searchId}" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjwvc3ZnPg==" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy" crossorigin="anonymous">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjwvc3ZnPg==" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy" crossorigin="anonymous">
                             <div class="flex-1 min-w-0">
-                                <div class="font-bold truncate text-sm text-white/90">${song.name}</div>
-                                <div class="text-xs truncate opacity-50">${song.artist}</div>
+                                <div data-song-title class="font-bold truncate text-sm text-white/90"></div>
+                                <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
-                            <button class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
+                            <button aria-label="添加并播放歌曲" class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
                                 <i class="fas fa-plus"></i>
                             </button>
                         `;
+                        const targetImg = div.querySelector('img');
+                        div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
+                        div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
 
                         if (song.cover) {
                             window.getCachedImage(`${song.cover}?param=80y80`).then(cachedSrc => {
-                                const targetImg = document.getElementById(searchId);
-                                if (targetImg) targetImg.src = cachedSrc;
+                                if (targetImg.isConnected && cachedSrc) targetImg.src = cachedSrc;
                             });
                         }
 
@@ -4429,8 +4449,13 @@
                     });
 
                 } catch (e) {
+                    if (e instanceof RequestCancelledError) return;
                     console.error('Search failed', e);
-                    container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">搜索出错</div>';
+                    setSearchStatus(container, requestErrorMessage(e), { error: true });
+                } finally {
+                    if (this.searchController === requestController) {
+                        this.searchController = null;
+                    }
                 }
             }
 
@@ -4474,6 +4499,10 @@
             // Updates - 带过渡动画
             updateInfo(title, artist, cover) {
                 const elements = [this.dom.title, this.dom.artist, this.dom.coverImg].filter(Boolean);
+                const safeCover = normalizeMediaUrl(cover, {
+                    allowDataImage: true,
+                    baseUrl: window.location.href
+                });
 
                 // 淡出
                 elements.forEach(el => el.style.transition = 'opacity 0.2s ease');
@@ -4481,9 +4510,9 @@
 
                 setTimeout(() => {
                     // 更新内容
-                    if (this.dom.title) this.dom.title.textContent = title;
-                    if (this.dom.artist) this.dom.artist.textContent = artist;
-                    if (this.dom.coverImg) this.dom.coverImg.src = cover;
+                    if (this.dom.title) this.dom.title.textContent = title || '未知歌曲';
+                    if (this.dom.artist) this.dom.artist.textContent = artist || '未知艺术家';
+                    if (this.dom.coverImg && safeCover) this.dom.coverImg.src = safeCover;
 
                     // Sync metadata badges from desktop DOM
                     const desktopSource = document.getElementById('sourceTag');
@@ -4529,6 +4558,12 @@
         // Global Instance
         let mobileUI = null;
 
+        const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        function shouldAnimateContinuously() {
+            return !document.hidden && !motionPreference.matches;
+        }
+
         // ================= ★ FluidBackground (复制 aura-music WebGL) =================
         class FluidBackground {
             constructor(canvasId) {
@@ -4544,6 +4579,7 @@
                 this.isPlaying = true;
                 this.timeAccumulator = 0;
                 this.lastFrameTime = performance.now();
+                this.animationFrame = null;
 
                 // 默认颜色 (aura-music)
                 this.colors = [
@@ -4555,7 +4591,7 @@
 
                 this.initShader();
                 this.resize();
-                this.animate();
+                this.start();
                 window.addEventListener('resize', () => this.resize());
             }
 
@@ -4688,7 +4724,30 @@
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
             }
 
-            animate() { this.render(); requestAnimationFrame(() => this.animate()); }
+            start() {
+                if (!this.gl || this.animationFrame) return;
+                if (!shouldAnimateContinuously()) {
+                    this.render();
+                    return;
+                }
+                this.lastFrameTime = performance.now();
+                this.animate();
+            }
+
+            animate() {
+                if (!shouldAnimateContinuously()) {
+                    this.animationFrame = null;
+                    return;
+                }
+                this.render();
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            stop() {
+                if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+
             setPlaying(p) { this.isPlaying = p; }
             setColors(c) { if (c && c.length >= 4) this.colors = c; }
         }
@@ -4700,7 +4759,7 @@
                 if (!this.canvas) return;
 
                 this.ctx = this.canvas.getContext('2d');
-                this.pixelRatio = window.devicePixelRatio || 1;
+                this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
                 this.lines = [];
                 this.activeIndex = -1;
                 this.scrollY = 0;
@@ -4710,6 +4769,7 @@
                 this.lastTouchY = 0;
                 this.lastInteractionTime = 0;
                 this.isAnimating = false;
+                this.animationFrame = null;
 
                 this.resize();
                 this.bindEvents();
@@ -4825,10 +4885,7 @@
                 this.targetScrollY = this.scrollY;
                 this.activeIndex = -1;
 
-                if (!this.isAnimating) {
-                    this.isAnimating = true;
-                    this.animate();
-                }
+                this.start();
             }
 
             measureLines() {
@@ -5019,16 +5076,33 @@
 
             animate() {
                 if (!this.isAnimating) return;
+                if (!shouldAnimateContinuously()) {
+                    this.isAnimating = false;
+                    this.animationFrame = null;
+                    return;
+                }
 
                 const time = audio?.currentTime || 0;
                 this.update(time);
                 this.render(time);
 
-                requestAnimationFrame(() => this.animate());
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            start() {
+                if (this.isAnimating || !this.lines.length) return;
+                if (!shouldAnimateContinuously()) {
+                    this.render(audio?.currentTime || 0);
+                    return;
+                }
+                this.isAnimating = true;
+                this.animate();
             }
 
             stop() {
                 this.isAnimating = false;
+                if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
             }
         }
 
@@ -5048,19 +5122,27 @@
             mobileUI = new MobileUIManager();
         }
 
+        function syncContinuousRendering() {
+            if (shouldAnimateContinuously()) {
+                fluidBg?.start();
+                lyricsCanvas?.start();
+            } else {
+                fluidBg?.stop();
+                lyricsCanvas?.stop();
+            }
+        }
+
+        document.addEventListener('visibilitychange', syncContinuousRendering);
+        if (typeof motionPreference.addEventListener === 'function') {
+            motionPreference.addEventListener('change', syncContinuousRendering);
+        } else {
+            motionPreference.addListener(syncContinuousRendering);
+        }
+
         // 在 DOMContentLoaded 后初始化
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initCanvasRenderers, 100);
         });
-
-        // updateLyrics 更新由 Canvas 的 animate 循环自动处理
-
-        // 当封面变化时更新背景颜色
-        function updateBackgroundFromCover(coverUrl) {
-            if (fluidBg && coverUrl) {
-                fluidBg.extractColorsFromImage(coverUrl);
-            }
-        }
 
     </script>
 </body>

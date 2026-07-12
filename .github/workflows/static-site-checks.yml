@@ -17,6 +17,9 @@ jobs:
       - name: Run unit tests
         run: python3 -m unittest discover -s tests -v
 
+      - name: Run JavaScript unit tests
+        run: node --test tests/*.test.mjs
+
       - name: Validate local assets
         run: python3 scripts/check_static_site.py
 
@@ -28,7 +31,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
 
-          for path in / /playlist-downloader.html /sw.js /manifest.json; do
+          for path in / /playlist-downloader.html /offline.html /sw.js /manifest.json; do
             curl --fail --silent --show-error \
               --retry 5 --retry-connrefused --retry-delay 1 \
               "http://127.0.0.1:8080${path}" > /dev/null

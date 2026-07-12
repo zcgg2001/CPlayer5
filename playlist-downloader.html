@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5 - 歌单下载器</title>
 
     <!-- Tailwind CSS -->
@@ -57,6 +57,17 @@
         .input-field:focus {
             box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 
@@ -70,6 +81,7 @@
 
     <!-- 复制/提示 Toast -->
     <div id="toast"
+        role="status" aria-live="polite" aria-atomic="true"
         class="fixed top-10 left-1/2 transform -translate-x-1/2 bg-[rgba(255,255,255,0.15)] text-white px-6 py-3 rounded-full shadow-xl z-[100] opacity-0 pointer-events-none transition-all duration-300 scale-90 flex items-center gap-2 border border-white/20 backdrop-blur-md">
         <i id="toastIcon" class="fas fa-check-circle"></i>
         <span id="toastText" class="font-bold text-sm tracking-wide">操作成功</span>
@@ -95,6 +107,7 @@
             <!-- Input -->
             <div class="relative mb-6">
                 <input type="text" id="playlistInput"
+                    aria-label="网易云歌单 ID"
                     placeholder="例如: 12345678"
                     class="input-field w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-5 py-4 text-center text-lg font-mono tracking-wider outline-none text-white transition-all placeholder:opacity-30 placeholder:text-sm placeholder:tracking-normal placeholder:font-sans"
                     autocomplete="off" inputmode="numeric">
@@ -113,7 +126,10 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { requestErrorMessage, requestJson } from './js/http.mjs';
+        import { normalizePlaylistPayload } from './js/music-data.mjs';
+
         const input = document.getElementById('playlistInput');
         const btn = document.getElementById('downloadBtn');
         const toast = document.getElementById('toast');
@@ -122,6 +138,8 @@
 
         function showToast(msg, isError = false) {
             toastText.textContent = msg;
+            toast.setAttribute('role', isError ? 'alert' : 'status');
+            toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.classList.remove('opacity-0', 'scale-90');
             toast.classList.add('opacity-100', 'scale-100');
             
@@ -156,17 +174,14 @@
             try {
                 // 使用原播放器中的 ChKSz API 获取数据
                 const url = `https://api.chksz.top/api/163_playlist?id=${listId}`;
-                const res = await fetch(url);
-                const json = await res.json();
-
-                let tracks = [];
-                if (json.data && Array.isArray(json.data.tracks)) {
-                    tracks = json.data.tracks;
-                } else if (json.data && Array.isArray(json.data)) {
-                    tracks = json.data;
-                } else if (json.playlist && Array.isArray(json.playlist.tracks)) {
-                    tracks = json.playlist.tracks;
-                }
+                const json = await requestJson(url);
+                const tracks = normalizePlaylistPayload(json).map(song => ({
+                    id: song.id,
+                    name: song.name,
+                    artists: song.artist,
+                    album: song.album,
+                    picUrl: song.cover
+                }));
 
                 if (!tracks || tracks.length === 0) {
                     throw new Error('歌单为空或获取失败，请检查ID');
@@ -199,7 +214,10 @@
 
             } catch (error) {
                 console.error(error);
-                showToast(error.message || '获取失败，请检查网络或重试', true);
+                const message = error.constructor === Error && error.message
+                    ? error.message
+                    : requestErrorMessage(error);
+                showToast(message, true);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-download mr-2"></i>立即生成并下载';

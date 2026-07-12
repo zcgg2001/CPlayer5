@@ -149,6 +149,18 @@ npx serve .
 
 访问 `http://localhost:8080`。
 
+### 4. 运行项目检查
+
+项目使用 Python 和 Node.js 内置测试，不需要安装 npm 依赖：
+
+```bash
+python3 -m unittest discover -s tests -v
+node --test tests/*.test.mjs
+python3 scripts/check_static_site.py
+```
+
+GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探测播放器、歌单下载器、离线页、Service Worker 和 PWA 清单。
+
 ## 项目结构
 
 ```text
@@ -212,6 +224,14 @@ CPlayer/
 - Canvas / WebGL
 - Service Worker
 - Media Session API（部分平台）
+
+## 无障碍与离线行为
+
+- 支持浏览器页面缩放、键盘操作和对话框焦点恢复
+- 图标按钮、表单输入、Toast 和错误信息提供屏幕阅读器语义
+- 尊重系统的“减少动态效果”设置，并在页面进入后台时暂停连续 Canvas/WebGL 渲染
+- Service Worker 缓存播放器外壳和最多 100 个封面请求，不缓存 API 与音频流
+- 离线时可打开缓存页面和离线说明；搜索、歌单刷新和音乐播放仍需要网络
 
 ## 版权与合规声明
 
