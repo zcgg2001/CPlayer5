@@ -34,6 +34,9 @@ Keep each commit focused and use one of these prefixes:
 Verify the change locally, then push the branch to the fork:
 
 ```bash
+python3 -m unittest discover -s tests -v
+node --test tests/*.test.mjs
+python3 scripts/check_static_site.py
 git status
 git add <files>
 git commit -m "feat: describe the change"
@@ -84,3 +87,10 @@ git push origin main
 Textual conflicts are not the only risk. An automatic merge can still introduce
 behavioral incompatibilities, so browser verification is required after every
 upstream sync.
+
+## Foundation Checks
+
+- Python tests validate local assets and required accessibility markup.
+- Node tests validate media URL safety, request error handling, API data normalization, and Service Worker request policies.
+- The Service Worker keeps API and audio requests network-only, limits the cover cache to 100 entries, and removes obsolete cache versions during activation.
+- Test desktop, tablet, and mobile layouts after changing dialog, touch, animation, or viewport behavior.
