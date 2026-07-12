@@ -953,6 +953,25 @@
                 background: rgba(20, 20, 20, 0.9) !important;
             }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            html:focus-within {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+
+            .album-art-wrapper.playing {
+                animation: none !important;
+            }
+        }
     </style>
     <script src="playlist.js"></script>
 </head>
@@ -1189,7 +1208,7 @@
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
             <!-- 设置按钮 (移动端) -->
-            <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 p-2 opacity-70 active:opacity-100">
+            <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 min-w-11 min-h-11 p-2 opacity-70 active:opacity-100 flex items-center justify-center">
                 <i class="fas fa-cog"></i>
             </button>
         </header>
@@ -1289,7 +1308,7 @@
                 </button>
 
                 <!-- Prev -->
-                <button id="mobilePrevBtn" class="p-3 active:scale-90 transition-transform text-2xl" aria-label="上一曲">
+                <button id="mobilePrevBtn" class="min-w-11 min-h-11 p-3 active:scale-90 transition-transform text-2xl flex items-center justify-center" aria-label="上一曲">
                     <i class="fas fa-step-backward"></i>
                 </button>
 
@@ -1300,7 +1319,7 @@
                 </button>
 
                 <!-- Next -->
-                <button id="mobileNextBtn" class="p-3 active:scale-90 transition-transform text-2xl" aria-label="下一曲">
+                <button id="mobileNextBtn" class="min-w-11 min-h-11 p-3 active:scale-90 transition-transform text-2xl flex items-center justify-center" aria-label="下一曲">
                     <i class="fas fa-step-forward"></i>
                 </button>
 
@@ -1330,7 +1349,7 @@
                 <!-- Header / Tabs -->
                 <div class="flex-none px-4 pb-2 relative">
                     <!-- Close Button -->
-                    <button id="closeSheetBtn" aria-label="关闭播放列表" class="absolute right-4 top-1 opacity-50 p-2">
+                    <button id="closeSheetBtn" aria-label="关闭播放列表" class="absolute right-4 top-1 min-w-11 min-h-11 opacity-50 p-2 flex items-center justify-center">
                         <i class="fas fa-chevron-down"></i>
                     </button>
 
@@ -1338,12 +1357,12 @@
                     <div class="flex justify-center gap-6 text-lg font-bold" role="tablist" aria-label="移动端列表内容">
                         <button id="sheetTabPlaylist"
                             role="tab" aria-selected="true" aria-controls="sheetContentPlaylist"
-                            class="opacity-100 border-b-2 border-primary-color pb-1 transition-all">
+                            class="min-w-11 min-h-11 opacity-100 border-b-2 border-primary-color pb-1 transition-all">
                             当前播放
                         </button>
                         <button id="sheetTabSearch"
                             role="tab" aria-selected="false" aria-controls="sheetContentSearch"
-                            class="opacity-50 border-b-2 border-transparent pb-1 transition-all">
+                            class="min-w-11 min-h-11 opacity-50 border-b-2 border-transparent pb-1 transition-all">
                             搜索添加
                         </button>
                     </div>
@@ -4539,6 +4558,12 @@
         // Global Instance
         let mobileUI = null;
 
+        const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+        function shouldAnimateContinuously() {
+            return !document.hidden && !motionPreference.matches;
+        }
+
         // ================= ★ FluidBackground (复制 aura-music WebGL) =================
         class FluidBackground {
             constructor(canvasId) {
@@ -4554,6 +4579,7 @@
                 this.isPlaying = true;
                 this.timeAccumulator = 0;
                 this.lastFrameTime = performance.now();
+                this.animationFrame = null;
 
                 // 默认颜色 (aura-music)
                 this.colors = [
@@ -4565,7 +4591,7 @@
 
                 this.initShader();
                 this.resize();
-                this.animate();
+                this.start();
                 window.addEventListener('resize', () => this.resize());
             }
 
@@ -4698,7 +4724,30 @@
                 gl.drawArrays(gl.TRIANGLES, 0, 6);
             }
 
-            animate() { this.render(); requestAnimationFrame(() => this.animate()); }
+            start() {
+                if (!this.gl || this.animationFrame) return;
+                if (!shouldAnimateContinuously()) {
+                    this.render();
+                    return;
+                }
+                this.lastFrameTime = performance.now();
+                this.animate();
+            }
+
+            animate() {
+                if (!shouldAnimateContinuously()) {
+                    this.animationFrame = null;
+                    return;
+                }
+                this.render();
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            stop() {
+                if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
+            }
+
             setPlaying(p) { this.isPlaying = p; }
             setColors(c) { if (c && c.length >= 4) this.colors = c; }
         }
@@ -4710,7 +4759,7 @@
                 if (!this.canvas) return;
 
                 this.ctx = this.canvas.getContext('2d');
-                this.pixelRatio = window.devicePixelRatio || 1;
+                this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
                 this.lines = [];
                 this.activeIndex = -1;
                 this.scrollY = 0;
@@ -4720,6 +4769,7 @@
                 this.lastTouchY = 0;
                 this.lastInteractionTime = 0;
                 this.isAnimating = false;
+                this.animationFrame = null;
 
                 this.resize();
                 this.bindEvents();
@@ -4835,10 +4885,7 @@
                 this.targetScrollY = this.scrollY;
                 this.activeIndex = -1;
 
-                if (!this.isAnimating) {
-                    this.isAnimating = true;
-                    this.animate();
-                }
+                this.start();
             }
 
             measureLines() {
@@ -5029,16 +5076,33 @@
 
             animate() {
                 if (!this.isAnimating) return;
+                if (!shouldAnimateContinuously()) {
+                    this.isAnimating = false;
+                    this.animationFrame = null;
+                    return;
+                }
 
                 const time = audio?.currentTime || 0;
                 this.update(time);
                 this.render(time);
 
-                requestAnimationFrame(() => this.animate());
+                this.animationFrame = requestAnimationFrame(() => this.animate());
+            }
+
+            start() {
+                if (this.isAnimating || !this.lines.length) return;
+                if (!shouldAnimateContinuously()) {
+                    this.render(audio?.currentTime || 0);
+                    return;
+                }
+                this.isAnimating = true;
+                this.animate();
             }
 
             stop() {
                 this.isAnimating = false;
+                if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
+                this.animationFrame = null;
             }
         }
 
@@ -5056,6 +5120,23 @@
 
             // ★ Mobile UI
             mobileUI = new MobileUIManager();
+        }
+
+        function syncContinuousRendering() {
+            if (shouldAnimateContinuously()) {
+                fluidBg?.start();
+                lyricsCanvas?.start();
+            } else {
+                fluidBg?.stop();
+                lyricsCanvas?.stop();
+            }
+        }
+
+        document.addEventListener('visibilitychange', syncContinuousRendering);
+        if (typeof motionPreference.addEventListener === 'function') {
+            motionPreference.addEventListener('change', syncContinuousRendering);
+        } else {
+            motionPreference.addListener(syncContinuousRendering);
         }
 
         // 在 DOMContentLoaded 后初始化

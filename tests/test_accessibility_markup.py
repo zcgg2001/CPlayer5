@@ -86,6 +86,30 @@ class AccessibilityMarkupTests(unittest.TestCase):
         playlist_input = parse_markup("playlist-downloader.html").by_id["playlistInput"]
         self.assertTrue(playlist_input.get("aria-label"))
 
+    def test_mobile_controls_have_minimum_touch_targets(self):
+        markup = parse_markup("index.html")
+        for element_id in (
+            "mobileSettingsBtn",
+            "mobilePrevBtn",
+            "mobileNextBtn",
+            "closeSheetBtn",
+            "sheetTabPlaylist",
+            "sheetTabSearch",
+        ):
+            classes = markup.by_id[element_id].get("class", "")
+            self.assertIn("min-w-11", classes, element_id)
+            self.assertIn("min-h-11", classes, element_id)
+
+    def test_pages_define_reduced_motion_styles(self):
+        for filename in ("index.html", "playlist-downloader.html"):
+            source = (ROOT / filename).read_text(encoding="utf-8")
+            self.assertIn("@media (prefers-reduced-motion: reduce)", source)
+
+    def test_player_pauses_rendering_when_page_is_hidden(self):
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("document.addEventListener('visibilitychange'", source)
+        self.assertIn("window.matchMedia('(prefers-reduced-motion: reduce)')", source)
+
 
 if __name__ == "__main__":
     unittest.main()
