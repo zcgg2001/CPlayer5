@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
 
     <!-- Favicon -->
@@ -968,6 +968,7 @@
 
     <!-- 复制成功 Toast -->
     <div id="copyToast"
+        role="status" aria-live="polite" aria-atomic="true"
         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-surface-container-high-color text-on-surface-color px-6 py-3 rounded-full shadow-xl z-[100] opacity-0 pointer-events-none transition-all duration-300 scale-90 flex items-center gap-2 border border-primary-color/20 backdrop-blur-md">
         <i class="fas fa-check-circle text-primary-color"></i>
         <span class="font-bold text-sm">已复制到剪贴板</span>
@@ -995,11 +996,11 @@
                 </h1>
                 <!-- 设置 & 全屏按钮（从右上角固定位置移入此处） -->
                 <div class="flex items-center gap-2">
-                    <button id="settingsBtn" title="设置"
+                    <button id="settingsBtn" title="设置" aria-label="打开设置"
                         class="top-btn w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
                         <i class="fas fa-cog text-sm opacity-70"></i>
                     </button>
-                    <button id="fullscreenBtn" title="全屏模式"
+                    <button id="fullscreenBtn" title="全屏模式" aria-label="切换全屏模式"
                         class="top-btn mobile-hide w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
                         <i class="fas fa-expand text-sm opacity-70"></i>
                     </button>
@@ -1081,13 +1082,13 @@
                         </div>
 
                         <div class="volume-control-group">
-                            <button id="volumeBtn"
+                            <button id="volumeBtn" aria-label="调整音量"
                                 class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
                                 <i id="volumeIcon" class="fas fa-volume-up text-lg"></i>
                             </button>
                             <div id="volumePopover" class="volume-popup">
                                 <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
-                                    step="0.01" value="0.5">
+                                    step="0.01" value="0.5" aria-label="音量">
                             </div>
                         </div>
                     </div>
@@ -1135,19 +1136,21 @@
 
             <!-- Tab 切换头部 -->
             <div class="flex-none pt-5 pb-0 px-5">
-                <div class="flex items-center gap-5 border-b border-white/10 pb-3">
+                <div class="flex items-center gap-5 border-b border-white/10 pb-3" role="tablist" aria-label="侧边栏内容">
                     <button id="desktopTabPlaylist"
+                        role="tab" aria-selected="true" aria-controls="desktopContentPlaylist"
                         class="text-base font-bold border-b-2 border-primary-color pb-1 transition-all opacity-100">
                         <i class="fas fa-list-ul mr-1.5 text-primary-color"></i>当前播放
                         <span id="playlistCount" class="text-xs opacity-50 font-normal ml-1"></span>
                     </button>
                     <button id="desktopTabSearch"
+                        role="tab" aria-selected="false" aria-controls="desktopContentSearch"
                         class="text-base font-bold border-b-2 border-transparent pb-1 transition-all opacity-50">
                         <i class="fas fa-search mr-1.5"></i>搜索添加
                     </button>
                     <!-- Upload Area hidden by default -->
                     <div class="upload-container soft-upload-area hidden ml-auto">
-                        <input type="file" id="playlistFile" accept=".json" class="hidden">
+                        <input type="file" id="playlistFile" accept=".json" class="hidden" aria-label="导入 JSON 歌单">
                     </div>
                 </div>
             </div>
@@ -1164,7 +1167,7 @@
             <!-- Content: 搜索 -->
             <div id="desktopContentSearch" class="flex-1 min-h-0 hidden flex-col overflow-hidden p-4 pt-2">
                 <div class="relative flex items-center group mb-3 flex-none">
-                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..."
+                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
                         class="w-full pl-10 pr-14 py-2.5 rounded-full bg-white/10 border-transparent focus:border-primary-color outline-none transition-all text-sm font-medium">
                     <i class="fas fa-search absolute left-3.5 opacity-50"></i>
                     <button id="searchButton"
@@ -1176,7 +1179,7 @@
 
         <!-- 隐藏的兼容元素 (保留旧ID供JS不报错) -->
         <div id="floatingSearchPanel" class="hidden"></div>
-        <button id="toggleSearchBtn" class="hidden"></button>
+        <button id="toggleSearchBtn" class="hidden" aria-label="打开搜索"></button>
 
     </div>
 
@@ -1186,7 +1189,7 @@
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
             <!-- 设置按钮 (移动端) -->
-            <button id="mobileSettingsBtn" class="absolute right-4 p-2 opacity-70 active:opacity-100">
+            <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 p-2 opacity-70 active:opacity-100">
                 <i class="fas fa-cog"></i>
             </button>
         </header>
@@ -1311,8 +1314,11 @@
 
             <!-- ★ Mobile Playlist/Search Bottom Sheet - Fixed 定位 + 拖拽手柄 -->
             <div id="mobilePlaylistSheet"
+                role="dialog" aria-modal="true" aria-labelledby="mobilePlaylistSheetTitle" aria-hidden="true"
                 class="fixed inset-x-0 bottom-0 h-[70vh] bg-black/60 backdrop-blur-lg rounded-t-3xl z-[60] transform translate-y-[110%] transition-transform duration-300 flex flex-col shadow-2xl border-t border-white/10"
                 style="isolation: isolate;">
+
+                <h2 id="mobilePlaylistSheetTitle" class="sr-only">播放列表和搜索</h2>
 
 
 
@@ -1324,17 +1330,19 @@
                 <!-- Header / Tabs -->
                 <div class="flex-none px-4 pb-2 relative">
                     <!-- Close Button -->
-                    <button id="closeSheetBtn" class="absolute right-4 top-1 opacity-50 p-2">
+                    <button id="closeSheetBtn" aria-label="关闭播放列表" class="absolute right-4 top-1 opacity-50 p-2">
                         <i class="fas fa-chevron-down"></i>
                     </button>
 
                     <!-- Tab Switcher -->
-                    <div class="flex justify-center gap-6 text-lg font-bold">
+                    <div class="flex justify-center gap-6 text-lg font-bold" role="tablist" aria-label="移动端列表内容">
                         <button id="sheetTabPlaylist"
+                            role="tab" aria-selected="true" aria-controls="sheetContentPlaylist"
                             class="opacity-100 border-b-2 border-primary-color pb-1 transition-all">
                             当前播放
                         </button>
                         <button id="sheetTabSearch"
+                            role="tab" aria-selected="false" aria-controls="sheetContentSearch"
                             class="opacity-50 border-b-2 border-transparent pb-1 transition-all">
                             搜索添加
                         </button>
@@ -1352,7 +1360,7 @@
                 <!-- Content: Search -->
                 <div id="sheetContentSearch" class="flex-1 overflow-hidden p-4 hidden flex-col">
                     <div class="relative mb-4 flex-none">
-                        <input type="text" id="mobileSearchInput" placeholder="搜索歌曲、歌手..."
+                        <input type="text" id="mobileSearchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
                             class="w-full bg-white/10 rounded-full px-4 py-3 pl-11 outline-none focus:bg-white/20 transition-all text-sm font-medium">
                         <i class="fas fa-search absolute left-4 top-3.5 opacity-50"></i>
                     </div>
@@ -1366,15 +1374,16 @@
 
     <!-- 设置模态框 -->
     <div id="settingsModal"
+        role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true"
         class="fixed inset-0 z-[100] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-300">
         <div class="modal-card w-full max-w-sm md:max-w-2xl mx-4 p-6 rounded-3xl shadow-2xl transform scale-95 transition-transform duration-300"
             id="settingsCard">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold flex items-center">
+                <h2 id="settingsTitle" class="text-xl font-bold flex items-center">
                     <i class="fas fa-sliders-h mr-2 theme-text-primary"></i>
                     歌单设置
                 </h2>
-                <button id="closeSettingsBtn"
+                <button id="closeSettingsBtn" aria-label="关闭设置"
                     class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1403,7 +1412,7 @@
                 <!-- 在线歌单 ID 输入 -->
                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
                     <div class="flex gap-2">
-                        <input type="text" id="playlistIdInput"
+                        <input type="text" id="playlistIdInput" aria-label="网易云歌单 ID 或链接"
                             placeholder="网易云歌单 ID 或链接"
                             class="flex-1 min-w-0 bg-white/[0.06] border border-white/[0.12] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary-color/60 focus:bg-white/[0.1] transition-colors placeholder:opacity-30"
                             autocomplete="off">
@@ -1417,8 +1426,9 @@
                 <!-- 本地歌单导入（桌面端） -->
                 <div id="fileImportSection" class="hidden md:block">
                     <div id="settingsDropZone"
+                        role="button" tabindex="0" aria-label="导入 playlist.js 或 JSON 歌单文件"
                         class="p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-primary-color/40 hover:bg-white/[0.03] cursor-pointer text-center group transition-colors">
-                        <input type="file" id="settingsFileInput" accept=".js,.json" class="hidden">
+                        <input type="file" id="settingsFileInput" accept=".js,.json" class="hidden" aria-label="选择 playlist.js 或 JSON 歌单文件">
                         <div class="flex items-center justify-center gap-3 pointer-events-none">
                             <i class="fas fa-file-import text-lg opacity-25 group-hover:opacity-50 transition-opacity"></i>
                             <span class="text-xs opacity-35 group-hover:opacity-55 transition-opacity">
@@ -1450,6 +1460,7 @@
 
     <!-- ★ 欢迎/歌单引导模态框 -->
     <div id="welcomeModal"
+        role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" aria-hidden="true"
         class="fixed inset-0 z-[110] flex items-center justify-center modal-backdrop hidden opacity-0 transition-opacity duration-500">
         <div class="w-full max-w-md mx-4 rounded-3xl shadow-2xl transform scale-95 transition-all duration-500 overflow-hidden"
             id="welcomeCard">
@@ -1466,12 +1477,12 @@
                 </div>
 
                 <!-- Title -->
-                <h2 class="text-2xl font-bold text-center mb-2">欢迎使用 CPlayer 5</h2>
+                <h2 id="welcomeTitle" class="text-2xl font-bold text-center mb-2">欢迎使用 CPlayer 5</h2>
                 <p class="text-center opacity-60 text-sm mb-8">输入你的网易云歌单 ID，即刻开始超清母带体验</p>
 
                 <!-- Input -->
                 <div class="relative mb-4">
-                    <input type="text" id="welcomePlaylistInput"
+                    <input type="text" id="welcomePlaylistInput" aria-label="网易云歌单 ID"
                         placeholder="网易云歌单 ID（纯数字）"
                         class="w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-5 py-4 text-center text-lg font-mono tracking-wider outline-none focus:border-white/30 focus:bg-white/[0.1] transition-all placeholder:opacity-30 placeholder:text-sm placeholder:tracking-normal placeholder:font-sans"
                         autocomplete="off" inputmode="numeric">
@@ -1490,7 +1501,7 @@
                 </button>
 
                 <!-- Error message area -->
-                <div id="welcomeError" class="hidden mt-4 text-center text-sm text-red-400">
+                <div id="welcomeError" role="alert" class="hidden mt-4 text-center text-sm text-red-400">
                     <i class="fas fa-exclamation-circle mr-1"></i>
                     <span id="welcomeErrorText"></span>
                 </div>
@@ -2134,12 +2145,14 @@
             const contentSearch = document.getElementById('desktopContentSearch');
 
             if (tabPlaylist) {
+                tabPlaylist.setAttribute('aria-selected', String(isPlaylist));
                 tabPlaylist.classList.toggle('opacity-100', isPlaylist);
                 tabPlaylist.classList.toggle('opacity-50', !isPlaylist);
                 tabPlaylist.classList.toggle('border-primary-color', isPlaylist);
                 tabPlaylist.classList.toggle('border-transparent', !isPlaylist);
             }
             if (tabSearch) {
+                tabSearch.setAttribute('aria-selected', String(!isPlaylist));
                 tabSearch.classList.toggle('opacity-100', !isPlaylist);
                 tabSearch.classList.toggle('opacity-50', isPlaylist);
                 tabSearch.classList.toggle('border-primary-color', !isPlaylist);
@@ -2207,6 +2220,8 @@
         function showToast(msg, isError = false) {
             const toast = document.getElementById('copyToast');
             toast.querySelector('span').textContent = msg;
+            toast.setAttribute('role', isError ? 'alert' : 'status');
+            toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.classList.remove('opacity-0', 'scale-90');
             toast.classList.add('opacity-100', 'scale-100');
 
@@ -2229,6 +2244,61 @@
             // 设置项的UI已精简，此处留空防报错
         }
 
+        const dialogTriggers = new WeakMap();
+
+        function getFocusableElements(dialog) {
+            return Array.from(dialog.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )).filter(element => !element.hidden && element.getClientRects().length > 0);
+        }
+
+        function activateDialog(dialog, focusTarget) {
+            const trigger = document.activeElement;
+            if (trigger instanceof HTMLElement) dialogTriggers.set(dialog, trigger);
+            dialog.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                const target = focusTarget || getFocusableElements(dialog)[0];
+                target?.focus();
+            }, 0);
+        }
+
+        function deactivateDialog(dialog) {
+            dialog.setAttribute('aria-hidden', 'true');
+            const trigger = dialogTriggers.get(dialog);
+            dialogTriggers.delete(dialog);
+            if (trigger?.isConnected) trigger.focus();
+        }
+
+        function activeDialog() {
+            const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-hidden="false"]'));
+            return dialogs[dialogs.length - 1] || null;
+        }
+
+        document.addEventListener('keydown', event => {
+            const dialog = activeDialog();
+            if (!dialog) return;
+
+            if (event.key === 'Escape') {
+                if (dialog.id === 'settingsModal') closeSettings();
+                if (dialog.id === 'mobilePlaylistSheet') mobileUI?.closeSheet();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+            const focusable = getFocusableElements(dialog);
+            if (!focusable.length) return;
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
         function openSettings() {
             dom.settingsModal.classList.remove('hidden');
             // Allow reflow
@@ -2241,6 +2311,7 @@
             const idInput = document.getElementById('playlistIdInput');
             const savedId = localStorage.getItem('cp_playlistId');
             if (idInput && savedId) idInput.value = savedId;
+            activateDialog(dom.settingsModal, idInput || dom.closeSettingsBtn);
 
             // 刷新歌单来源状态
             updateSourceDisplay();
@@ -2272,6 +2343,7 @@
         }
 
         function closeSettings() {
+            deactivateDialog(dom.settingsModal);
             dom.settingsModal.classList.add('opacity-0');
             dom.settingsModal.querySelector('.modal-card').classList.add('scale-95');
             dom.settingsModal.querySelector('.modal-card').classList.remove('scale-100');
@@ -3090,6 +3162,12 @@
 
             if (dropZone && fileInput) {
                 dropZone.addEventListener('click', () => fileInput.click());
+                dropZone.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fileInput.click();
+                    }
+                });
 
                 fileInput.addEventListener('change', (e) => {
                     if (e.target.files[0]) handleImportedFile(e.target.files[0]);
@@ -3206,12 +3284,7 @@
             modal.classList.remove('opacity-0');
             card.classList.remove('scale-95');
             card.classList.add('scale-100');
-
-            // Focus input
-            setTimeout(() => {
-                const input = document.getElementById('welcomePlaylistInput');
-                if (input) input.focus();
-            }, 400);
+            activateDialog(modal, document.getElementById('welcomePlaylistInput'));
         }
 
         function closeWelcomeModal() {
@@ -3219,6 +3292,7 @@
             const card = document.getElementById('welcomeCard');
             if (!modal || !card) return;
 
+            deactivateDialog(modal);
             modal.classList.add('opacity-0');
             card.classList.add('scale-95');
             card.classList.remove('scale-100');
@@ -4062,9 +4136,17 @@
                 this.loadPlaylist();
                 this.dom.sheet.classList.remove('translate-y-[110%]');
                 this.dom.sheet.classList.add('translate-y-0');
+                if (this.dom.sheet.getAttribute('aria-hidden') !== 'false') {
+                    activateDialog(this.dom.sheet, this.activeSheetTab === 'search'
+                        ? this.dom.searchInput
+                        : this.dom.closeSheetBtn);
+                }
             }
 
             closeSheet() {
+                if (this.dom.sheet.getAttribute('aria-hidden') === 'false') {
+                    deactivateDialog(this.dom.sheet);
+                }
                 this.dom.sheet.style.transform = ''; // 清除拖拽残留
                 this.dom.sheet.classList.remove('translate-y-0');
                 this.dom.sheet.classList.add('translate-y-[110%]');
@@ -4075,6 +4157,8 @@
                 const isPlaylist = tab === 'playlist';
 
                 // Update Tab Styles
+                this.dom.tabPlaylist.setAttribute('aria-selected', String(isPlaylist));
+                this.dom.tabSearch.setAttribute('aria-selected', String(!isPlaylist));
                 this.dom.tabPlaylist.classList.toggle('opacity-100', isPlaylist);
                 this.dom.tabPlaylist.classList.toggle('opacity-50', !isPlaylist);
                 this.dom.tabPlaylist.classList.toggle('border-primary-color', isPlaylist);
@@ -4307,7 +4391,7 @@
                                 <div data-song-title class="font-bold truncate text-sm text-white/90"></div>
                                 <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
-                            <button class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
+                            <button aria-label="添加并播放歌曲" class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
                                 <i class="fas fa-plus"></i>
                             </button>
                         `;

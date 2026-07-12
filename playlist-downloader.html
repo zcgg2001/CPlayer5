@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5 - 歌单下载器</title>
 
     <!-- Tailwind CSS -->
@@ -70,6 +70,7 @@
 
     <!-- 复制/提示 Toast -->
     <div id="toast"
+        role="status" aria-live="polite" aria-atomic="true"
         class="fixed top-10 left-1/2 transform -translate-x-1/2 bg-[rgba(255,255,255,0.15)] text-white px-6 py-3 rounded-full shadow-xl z-[100] opacity-0 pointer-events-none transition-all duration-300 scale-90 flex items-center gap-2 border border-white/20 backdrop-blur-md">
         <i id="toastIcon" class="fas fa-check-circle"></i>
         <span id="toastText" class="font-bold text-sm tracking-wide">操作成功</span>
@@ -95,6 +96,7 @@
             <!-- Input -->
             <div class="relative mb-6">
                 <input type="text" id="playlistInput"
+                    aria-label="网易云歌单 ID"
                     placeholder="例如: 12345678"
                     class="input-field w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-5 py-4 text-center text-lg font-mono tracking-wider outline-none text-white transition-all placeholder:opacity-30 placeholder:text-sm placeholder:tracking-normal placeholder:font-sans"
                     autocomplete="off" inputmode="numeric">
@@ -125,6 +127,8 @@
 
         function showToast(msg, isError = false) {
             toastText.textContent = msg;
+            toast.setAttribute('role', isError ? 'alert' : 'status');
+            toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
             toast.classList.remove('opacity-0', 'scale-90');
             toast.classList.add('opacity-100', 'scale-100');
             
