@@ -33,6 +33,21 @@ test('normalizes supported search response shapes', () => {
   }
 });
 
+test('falls back to album artwork when the direct cover field is empty', () => {
+  assert.equal(
+    normalizeSearchPayload({
+      code: 200,
+      data: [{
+        id: 3,
+        name: 'Song',
+        picUrl: '',
+        album: { picUrl: 'https://img.example/fallback.jpg' },
+      }],
+    })[0].cover,
+    'https://img.example/fallback.jpg',
+  );
+});
+
 test('drops search and playlist entries without an ID', () => {
   assert.deepEqual(
     normalizeSearchPayload({ code: 200, data: [{ name: 'Missing ID' }] }),

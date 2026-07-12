@@ -28,7 +28,16 @@ function albumText(item) {
 }
 
 function coverUrl(item) {
-  return text(item?.picUrl ?? item?.cover ?? item?.album?.picUrl ?? item?.al?.picUrl);
+  for (const candidate of [
+    item?.picUrl,
+    item?.cover,
+    item?.album?.picUrl,
+    item?.al?.picUrl,
+  ]) {
+    const value = text(candidate);
+    if (value) return value;
+  }
+  return '';
 }
 
 function searchItems(payload) {

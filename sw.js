@@ -49,7 +49,7 @@ function classifyRequest(request) {
 }
 
 function cacheNamesToDelete(keys) {
-  return keys.filter(key => !ACTIVE_CACHES.has(key));
+  return keys.filter(key => key.startsWith('cplayer5-') && !ACTIVE_CACHES.has(key));
 }
 
 async function pruneCoverCache(cache) {

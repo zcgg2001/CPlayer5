@@ -84,6 +84,6 @@ test('selects obsolete cache names for deletion', () => {
       'cplayer5-covers-v1',
       'unrelated-cache',
     ])),
-    ['cplayer5-v1', 'unrelated-cache'],
+    ['cplayer5-v1'],
   );
 });
