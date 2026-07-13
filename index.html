@@ -1589,6 +1589,56 @@
             normalizeSongPayload
         } from './js/music-data.mjs';
 
+        const LAST_COVER_KEY = 'cp_lastCover';
+
+        function persistentCoverUrl(value) {
+            const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
+            if (!safeCover) return '';
+
+            try {
+                const url = new URL(safeCover);
+                return url.protocol === 'http:' || url.protocol === 'https:' ? safeCover : '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        function saveLastCover(value) {
+            const cover = persistentCoverUrl(value);
+            if (!cover) return;
+
+            try {
+                localStorage.setItem(LAST_COVER_KEY, cover);
+            } catch (error) {
+                console.warn('无法保存上次播放封面:', error);
+            }
+        }
+
+        function restoreLastCover() {
+            let storedCover = '';
+            try {
+                storedCover = localStorage.getItem(LAST_COVER_KEY) || '';
+            } catch (error) {
+                console.warn('无法读取上次播放封面:', error);
+                return;
+            }
+
+            const savedCover = persistentCoverUrl(storedCover);
+            if (!savedCover) {
+                if (storedCover) {
+                    try {
+                        localStorage.removeItem(LAST_COVER_KEY);
+                    } catch (error) {
+                        console.warn('无法清理无效封面记录:', error);
+                    }
+                }
+                return;
+            }
+
+            if (dom.albumArt) dom.albumArt.src = savedCover;
+            if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
+        }
+
         let nativeIntegrationInitialized = false;
 
         function initNativeIntegration() {
@@ -1929,6 +1979,7 @@
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            restoreLastCover();
 
             // ★ 初始化 IndexedDB 缓存
             try {
@@ -2671,6 +2722,7 @@
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
                 const picUrl = normalizeMediaUrl(data.cover, { baseUrl: window.location.href }) || '';
                 if (picUrl) {
+                    saveLastCover(picUrl);
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
 
