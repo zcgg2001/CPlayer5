@@ -348,31 +348,36 @@
             width: 100%;
             padding: 18px 56px;
             /* aura-music: paddingX = 56 (桌面端) */
-            text-align: left;
-            /* ★ 左对齐 - aura-music 核心特征 */
+            text-align: center;
             cursor: pointer;
-            transform-origin: left center;
-            /* 左对齐时从左侧缩放 */
+            transform-origin: center;
             /* GPU 加速，避免颤抖 */
-            will-change: transform, opacity;
+            will-change: transform, opacity, filter;
             transform: translateZ(0);
             backface-visibility: hidden;
-            /* 默认状态：未激活行 - aura-music: rgba(255,255,255,0.3) */
-            opacity: 0.3;
+            opacity: 0.12;
+            filter: blur(1px);
             color: rgba(255, 255, 255, 0.85);
             /* ★ 丝滑过渡 */
             transition:
                 opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
                 transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+                filter 0.4s ease-out,
                 color 0.3s ease-out,
                 margin 0.35s ease-out;
+        }
+
+        .lrc-line.near {
+            opacity: 0.36;
+            filter: blur(0.35px);
         }
 
         /* Active Line State - aura-music: 纯白 #FFFFFF */
         .lrc-line.active {
             opacity: 1;
+            filter: none;
             color: #FFFFFF;
-            margin: 20px 0;
+            margin: 0;
         }
 
         /* Main Text - aura-music: 800 weight, 40px size */
@@ -436,19 +441,27 @@
         /* 移动端歌词行样式 - 匹配 aura-music */
         #mobileLyricsScroller .lrc-line {
             padding: 12px 24px;
-            text-align: left;
-            /* 左对齐 */
-            opacity: 0.3;
-            will-change: transform, opacity;
+            text-align: center;
+            transform-origin: center;
+            opacity: 0.12;
+            filter: blur(1px);
+            will-change: transform, opacity, filter;
             transform: translateZ(0);
             backface-visibility: hidden;
             transition:
                 opacity 0.35s cubic-bezier(0.25, 0.1, 0.25, 1),
+                filter 0.35s ease-out,
                 color 0.3s ease-out;
+        }
+
+        #mobileLyricsScroller .lrc-line.near {
+            opacity: 0.36;
+            filter: blur(0.35px);
         }
 
         #mobileLyricsScroller .lrc-line.active {
             opacity: 1;
+            filter: none;
             color: #ffffff;
         }
 
@@ -2867,11 +2880,14 @@
                     if (!scroller) return;
 
                     const lines = scroller.getElementsByClassName('lrc-line');
-                    const oldActive = scroller.querySelector('.active');
-                    if (oldActive) oldActive.classList.remove('active');
+                    Array.from(lines).forEach(line => {
+                        line.classList.remove('active', 'near');
+                    });
 
                     if (lines[idx]) {
+                        lines[idx - 1]?.classList.add('near');
                         lines[idx].classList.add('active');
+                        lines[idx + 1]?.classList.add('near');
 
                         // Scroll logic
                         const containerHeight = scroller.clientHeight;
