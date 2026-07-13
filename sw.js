@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v2';
+const SHELL_CACHE = 'cplayer5-shell-v6';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -10,13 +10,16 @@ const CORE_ASSETS = [
   './playlist-downloader.html',
   './css/all.min.css',
   './css/noto-sans-sc.css',
+  './css/oneko-butterfly.css',
   './js/tailwindcss.js',
   './js/color-thief.umd.js',
   './js/security.mjs',
   './js/http.mjs',
   './js/music-data.mjs',
+  './js/oneko-butterfly.mjs',
   './img/icon.svg',
   './img/icon.png',
+  './img/oneko-tora.gif',
   './manifest.json'
 ];
 

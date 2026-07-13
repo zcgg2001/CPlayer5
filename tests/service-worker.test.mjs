@@ -81,9 +81,27 @@ test('selects obsolete cache names for deletion', () => {
     Array.from(cacheNamesToDelete([
       'cplayer5-v1',
       'cplayer5-shell-v2',
+      'cplayer5-shell-v3',
+      'cplayer5-shell-v4',
+      'cplayer5-shell-v5',
       'cplayer5-covers-v1',
       'unrelated-cache',
     ])),
-    ['cplayer5-v1'],
+    [
+      'cplayer5-v1',
+      'cplayer5-shell-v2',
+      'cplayer5-shell-v3',
+      'cplayer5-shell-v4',
+      'cplayer5-shell-v5',
+    ],
   );
+});
+
+test('precaches the oneko pet runtime and sprite assets', () => {
+  const context = loadServiceWorker();
+  const coreAssets = vm.runInContext('CORE_ASSETS', context);
+
+  assert.ok(coreAssets.includes('./css/oneko-butterfly.css'));
+  assert.ok(coreAssets.includes('./js/oneko-butterfly.mjs'));
+  assert.ok(coreAssets.includes('./img/oneko-tora.gif'));
 });

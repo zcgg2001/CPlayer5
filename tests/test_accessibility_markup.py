@@ -110,6 +110,11 @@ class AccessibilityMarkupTests(unittest.TestCase):
         self.assertIn("document.addEventListener('visibilitychange'", source)
         self.assertIn("window.matchMedia('(prefers-reduced-motion: reduce)')", source)
 
+    def test_cat_stays_above_butterfly_when_they_overlap(self):
+        source = (ROOT / "css/oneko-butterfly.css").read_text(encoding="utf-8")
+        self.assertRegex(source, r"(?s)\.oneko-cat\s*\{[^}]*z-index:\s*2")
+        self.assertRegex(source, r"(?s)\.oneko-butterfly\s*\{[^}]*z-index:\s*1")
+
 
 if __name__ == "__main__":
     unittest.main()

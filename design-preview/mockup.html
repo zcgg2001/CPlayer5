@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CPlayer 5 · Oneko Butterfly Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #21162f; }
+    .base-screen { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .pet-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .oneko {
+      position: absolute;
+      left: 74.5%;
+      top: 68%;
+      width: 64px;
+      height: 64px;
+      background-image: url('./oneko-tora.gif');
+      background-size: 512px 256px;
+      background-position: -192px 0;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 5px 8px rgba(209, 165, 255, .42));
+      transform: rotate(-8deg);
+      animation: cat-run .22s steps(1, end) infinite;
+    }
+
+    .butterfly {
+      position: absolute;
+      left: 84.5%;
+      top: 58%;
+      width: 30px;
+      height: 24px;
+      filter: drop-shadow(0 0 7px rgba(255, 208, 102, .9));
+      animation: butterfly-float 2.8s ease-in-out infinite;
+    }
+
+    .butterfly::before,
+    .butterfly::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      width: 13px;
+      height: 17px;
+      background: linear-gradient(145deg, #ffe08a 8%, #d8a7ff 55%, #8256c7 100%);
+      border: 2px solid rgba(255, 244, 209, .9);
+    }
+
+    .butterfly::before {
+      left: 1px;
+      border-radius: 90% 25% 72% 35%;
+      transform: rotate(-24deg);
+      transform-origin: right center;
+      animation: wing-left .32s ease-in-out infinite alternate;
+    }
+
+    .butterfly::after {
+      right: 1px;
+      border-radius: 25% 90% 35% 72%;
+      transform: rotate(24deg);
+      transform-origin: left center;
+      animation: wing-right .32s ease-in-out infinite alternate;
+    }
+
+    .body {
+      position: absolute;
+      left: 14px;
+      top: 5px;
+      width: 3px;
+      height: 17px;
+      border-radius: 999px;
+      background: #fff5cf;
+      box-shadow: 0 0 5px rgba(255, 220, 130, .95);
+      z-index: 2;
+    }
+
+    .trail { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #d7a8ff; box-shadow: 0 0 8px currentColor; opacity: .75; }
+    .trail.one { left: 80.6%; top: 65.2%; width: 5px; height: 5px; color: #d7a8ff; }
+    .trail.two { left: 82.1%; top: 63.5%; width: 4px; height: 4px; color: #ffd777; opacity: .62; }
+    .trail.three { left: 83.2%; top: 61.4%; width: 3px; height: 3px; color: #d7a8ff; opacity: .5; }
+
+    @keyframes cat-run {
+      0%, 49% { background-position: -192px 0; }
+      50%, 100% { background-position: -192px -64px; }
+    }
+
+    @keyframes butterfly-float {
+      0%, 100% { transform: translate3d(0, 0, 0) rotate(7deg); }
+      50% { transform: translate3d(14px, -11px, 0) rotate(-7deg); }
+    }
+
+    @keyframes wing-left {
+      from { transform: rotate(-42deg) scaleX(.72); }
+      to { transform: rotate(-12deg) scaleX(1); }
+    }
+
+    @keyframes wing-right {
+      from { transform: rotate(42deg) scaleX(.72); }
+      to { transform: rotate(12deg) scaleX(1); }
+    }
+  </style>
+</head>
+<body>
+  <img class="base-screen" src="./cplayer5-base.png" alt="CPlayer 5 interface">
+  <div class="pet-layer" aria-hidden="true">
+    <div class="oneko"></div>
+    <div class="trail one"></div>
+    <div class="trail two"></div>
+    <div class="trail three"></div>
+    <div class="butterfly"><span class="body"></span></div>
+  </div>
+</body>
+</html>

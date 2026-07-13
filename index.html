@@ -22,6 +22,7 @@
     <!-- Fonts & Icons -->
     <link href="css/noto-sans-sc.css" rel="stylesheet">
     <link rel="stylesheet" href="css/all.min.css">
+    <link rel="stylesheet" href="css/oneko-butterfly.css">
     <script src="js/tailwindcss.js"></script>
     <!-- ColorThief - 从图片提取主色调 -->
     <script src="js/color-thief.umd.js"></script>
@@ -348,31 +349,36 @@
             width: 100%;
             padding: 18px 56px;
             /* aura-music: paddingX = 56 (桌面端) */
-            text-align: left;
-            /* ★ 左对齐 - aura-music 核心特征 */
+            text-align: center;
             cursor: pointer;
-            transform-origin: left center;
-            /* 左对齐时从左侧缩放 */
+            transform-origin: center;
             /* GPU 加速，避免颤抖 */
-            will-change: transform, opacity;
+            will-change: transform, opacity, filter;
             transform: translateZ(0);
             backface-visibility: hidden;
-            /* 默认状态：未激活行 - aura-music: rgba(255,255,255,0.3) */
-            opacity: 0.3;
+            opacity: 0.12;
+            filter: blur(1px);
             color: rgba(255, 255, 255, 0.85);
             /* ★ 丝滑过渡 */
             transition:
                 opacity 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
                 transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+                filter 0.4s ease-out,
                 color 0.3s ease-out,
                 margin 0.35s ease-out;
+        }
+
+        .lrc-line.near {
+            opacity: 0.36;
+            filter: blur(0.35px);
         }
 
         /* Active Line State - aura-music: 纯白 #FFFFFF */
         .lrc-line.active {
             opacity: 1;
+            filter: none;
             color: #FFFFFF;
-            margin: 20px 0;
+            margin: 0;
         }
 
         /* Main Text - aura-music: 800 weight, 40px size */
@@ -436,19 +442,27 @@
         /* 移动端歌词行样式 - 匹配 aura-music */
         #mobileLyricsScroller .lrc-line {
             padding: 12px 24px;
-            text-align: left;
-            /* 左对齐 */
-            opacity: 0.3;
-            will-change: transform, opacity;
+            text-align: center;
+            transform-origin: center;
+            opacity: 0.12;
+            filter: blur(1px);
+            will-change: transform, opacity, filter;
             transform: translateZ(0);
             backface-visibility: hidden;
             transition:
                 opacity 0.35s cubic-bezier(0.25, 0.1, 0.25, 1),
+                filter 0.35s ease-out,
                 color 0.3s ease-out;
+        }
+
+        #mobileLyricsScroller .lrc-line.near {
+            opacity: 0.36;
+            filter: blur(0.35px);
         }
 
         #mobileLyricsScroller .lrc-line.active {
             opacity: 1;
+            filter: none;
             color: #ffffff;
         }
 
@@ -1576,6 +1590,56 @@
             normalizeSongPayload
         } from './js/music-data.mjs';
 
+        const LAST_COVER_KEY = 'cp_lastCover';
+
+        function persistentCoverUrl(value) {
+            const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
+            if (!safeCover) return '';
+
+            try {
+                const url = new URL(safeCover);
+                return url.protocol === 'http:' || url.protocol === 'https:' ? safeCover : '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        function saveLastCover(value) {
+            const cover = persistentCoverUrl(value);
+            if (!cover) return;
+
+            try {
+                localStorage.setItem(LAST_COVER_KEY, cover);
+            } catch (error) {
+                console.warn('无法保存上次播放封面:', error);
+            }
+        }
+
+        function restoreLastCover() {
+            let storedCover = '';
+            try {
+                storedCover = localStorage.getItem(LAST_COVER_KEY) || '';
+            } catch (error) {
+                console.warn('无法读取上次播放封面:', error);
+                return;
+            }
+
+            const savedCover = persistentCoverUrl(storedCover);
+            if (!savedCover) {
+                if (storedCover) {
+                    try {
+                        localStorage.removeItem(LAST_COVER_KEY);
+                    } catch (error) {
+                        console.warn('无法清理无效封面记录:', error);
+                    }
+                }
+                return;
+            }
+
+            if (dom.albumArt) dom.albumArt.src = savedCover;
+            if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
+        }
+
         let nativeIntegrationInitialized = false;
 
         function initNativeIntegration() {
@@ -1916,6 +1980,7 @@
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            restoreLastCover();
 
             // ★ 初始化 IndexedDB 缓存
             try {
@@ -2616,6 +2681,15 @@
                     throw new Error('No URL returned');
                 }
 
+                const queuedSong = playlist.find(song => (
+                    typeof song === 'object' && String(song.id) === String(id)
+                ));
+                const coverCandidate = queuedSong?.cover || data.cover;
+                const picUrl = normalizeMediaUrl(coverCandidate, { baseUrl: window.location.href })
+                    || normalizeMediaUrl(data.cover, { baseUrl: window.location.href })
+                    || '';
+                const playbackData = { ...data, cover: picUrl, album: queuedSong?.album || data.album || '' };
+
                 const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
                 if (!mediaUrl) throw new Error('Invalid media URL');
                 audio.src = mediaUrl;
@@ -2645,7 +2719,7 @@
 
                 // ★ 立即更新 MediaSession (确保锁屏有文字信息)
                 // 即使封面还在加载，也先显示歌名和歌手
-                updateMediaSessionMetadata(data);
+                updateMediaSessionMetadata(playbackData);
 
                 // 2. 音频开始播放后，再加载歌词和封面
                 // 歌词
@@ -2656,8 +2730,8 @@
                 });
 
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
-                const picUrl = normalizeMediaUrl(data.cover, { baseUrl: window.location.href }) || '';
                 if (picUrl) {
+                    saveLastCover(picUrl);
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
 
@@ -2669,7 +2743,7 @@
                     // 封面加载完成后更新 MediaSession（确保锁屏封面正确）
                     const coverImg = new Image();
                     coverImg.crossOrigin = 'anonymous';
-                    coverImg.onload = () => updateMediaSessionMetadata(data);
+                    coverImg.onload = () => updateMediaSessionMetadata(playbackData);
                     coverImg.src = picUrl;
 
                     if (mobileUI) {
@@ -2867,11 +2941,14 @@
                     if (!scroller) return;
 
                     const lines = scroller.getElementsByClassName('lrc-line');
-                    const oldActive = scroller.querySelector('.active');
-                    if (oldActive) oldActive.classList.remove('active');
+                    Array.from(lines).forEach(line => {
+                        line.classList.remove('active', 'near');
+                    });
 
                     if (lines[idx]) {
+                        lines[idx - 1]?.classList.add('near');
                         lines[idx].classList.add('active');
+                        lines[idx + 1]?.classList.add('near');
 
                         // Scroll logic
                         const containerHeight = scroller.clientHeight;
@@ -2898,6 +2975,7 @@
         let playlistTotalCount = 0;
         let isLoadingPlaylist = false;
         let allSongsLoaded = false;
+        const EMPTY_PLAYLIST_MESSAGE = '当前没有歌曲，请使用搜索添加';
 
         // 歌单来源追踪: 'local' | 'online' | 'cache' | 'import-js' | 'import-json' | ''
         let playlistSource = '';
@@ -3042,7 +3120,7 @@
         }
 
         async function loadDefaultPlaylist() {
-            // 优先级: 1. LOCAL_PLAYLIST → 2. localStorage → 3. 欢迎引导
+            // 优先级: 1. LOCAL_PLAYLIST → 2. localStorage → 3. 空播放列表
 
             // 1. 本地 playlist.js
             if (window.LOCAL_PLAYLIST && window.LOCAL_PLAYLIST.data && window.LOCAL_PLAYLIST.data.tracks) {
@@ -3079,9 +3157,15 @@
                 }
             }
 
-            // 3. 没有任何歌单来源 → 显示欢迎引导
-            console.log('🎵 首次使用，显示欢迎引导');
-            openWelcomeModal();
+            // 3. 没有任何歌单来源 → 直接进入播放器，通过搜索添加歌曲
+            console.log('🎵 未配置歌单，直接进入播放器');
+            playlist = [];
+            window.playlist = playlist;
+            playlistTotalCount = 0;
+            allSongsLoaded = true;
+            playlistSource = '';
+            playlistSourceName = '';
+            initPlaylistView();
         }
 
         // 从输入值中提取歌单 ID（支持纯数字、完整链接）
@@ -3424,7 +3508,10 @@
             vsNodeMap.clear();
 
             if (!playlist.length) {
-                dom.playlistContent.innerHTML = '<div class="text-center py-8 opacity-50">播放列表为空</div>';
+                const emptyState = document.createElement('div');
+                emptyState.className = 'text-center py-8 opacity-50';
+                emptyState.textContent = EMPTY_PLAYLIST_MESSAGE;
+                dom.playlistContent.replaceChildren(emptyState);
                 dom.playlistContent.style.height = '';
                 dom.playlistContent.style.position = '';
                 return;
@@ -3988,7 +4075,7 @@
 
                 // Preload Playlist (Wait for global playlist to be ready)
                 const checkPlaylist = setInterval(() => {
-                    if (window.playlist && window.playlist.length > 0) {
+                    if (Array.isArray(window.playlist)) {
                         this.loadPlaylist();
                         clearInterval(checkPlaylist);
 
@@ -4207,6 +4294,16 @@
                         displayOrder = shuffledOrder;
                     } else {
                         displayOrder = window.playlist.map((_, i) => i);
+                    }
+
+                    if (!displayOrder.length) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'p-6 text-center text-sm opacity-50';
+                        emptyState.textContent = EMPTY_PLAYLIST_MESSAGE;
+                        container.replaceChildren(emptyState);
+                        container.style.height = '';
+                        container.style.position = '';
+                        return;
                     }
 
                     const MH = 58;  // item height
@@ -5145,6 +5242,7 @@
         });
 
     </script>
+    <script type="module" src="js/oneko-butterfly.mjs"></script>
 </body>
 
 </html>
