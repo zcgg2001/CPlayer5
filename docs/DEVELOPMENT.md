@@ -35,7 +35,7 @@ Verify the change locally, then push the branch to the fork:
 
 ```bash
 python3 -m unittest discover -s tests -v
-node --test tests/*.test.mjs
+node --test tests/*.test.js
 python3 scripts/check_static_site.py
 git status
 git add <files>

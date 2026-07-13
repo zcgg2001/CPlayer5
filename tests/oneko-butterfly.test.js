@@ -13,7 +13,7 @@ import {
   restorePetPosition,
   serializePetPosition,
   shouldAnimatePet,
-} from '../js/oneko-butterfly.mjs';
+} from '../js/oneko-butterfly.js';
 
 
 test('uses the right-side safe region for desktop chase mode', () => {

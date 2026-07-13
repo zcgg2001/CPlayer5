@@ -36,6 +36,12 @@ def validate_site(root):
     root = Path(root)
     errors = []
 
+    for module_file in sorted(root.rglob("*.mjs")):
+        relative_path = module_file.relative_to(root).as_posix()
+        errors.append(
+            f"{relative_path}: unsupported .mjs extension; use .js"
+        )
+
     for html_file in sorted(root.glob("*.html")):
         html_source = html_file.read_text(encoding="utf-8")
         parser = LocalAssetParser()

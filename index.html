@@ -1577,18 +1577,18 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
-        import { normalizeMediaUrl } from './js/security.mjs';
+        import { normalizeMediaUrl } from './js/security.js';
         import {
             RequestCancelledError,
             requestErrorMessage,
             requestJson
-        } from './js/http.mjs';
+        } from './js/http.js';
         import {
             normalizeLyricsPayload,
             normalizePlaylistPayload,
             normalizeSearchPayload,
             normalizeSongPayload
-        } from './js/music-data.mjs';
+        } from './js/music-data.js';
 
         const LAST_COVER_KEY = 'cp_lastCover';
 
@@ -5242,7 +5242,7 @@
         });
 
     </script>
-    <script type="module" src="js/oneko-butterfly.mjs"></script>
+    <script type="module" src="js/oneko-butterfly.js"></script>
 </body>
 
 </html>

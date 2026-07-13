@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeMediaUrl } from '../js/security.mjs';
+import { normalizeMediaUrl } from '../js/security.js';
 
 
 const BASE_URL = 'https://player.example/app/';

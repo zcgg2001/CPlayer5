@@ -155,7 +155,7 @@ npx serve .
 
 ```bash
 python3 -m unittest discover -s tests -v
-node --test tests/*.test.mjs
+node --test tests/*.test.js
 python3 scripts/check_static_site.py
 ```
 

@@ -9,7 +9,7 @@ import {
   ResponseFormatError,
   requestErrorMessage,
   requestJson,
-} from '../js/http.mjs';
+} from '../js/http.js';
 
 
 test('returns parsed JSON for a successful response', async () => {

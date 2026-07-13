@@ -18,7 +18,7 @@ jobs:
         run: python3 -m unittest discover -s tests -v
 
       - name: Run JavaScript unit tests
-        run: node --test tests/*.test.mjs
+        run: node --test tests/*.test.js
 
       - name: Validate local assets
         run: python3 scripts/check_static_site.py

@@ -6,7 +6,7 @@ import {
   normalizePlaylistPayload,
   normalizeSearchPayload,
   normalizeSongPayload,
-} from '../js/music-data.mjs';
+} from '../js/music-data.js';
 
 
 test('normalizes supported search response shapes', () => {
