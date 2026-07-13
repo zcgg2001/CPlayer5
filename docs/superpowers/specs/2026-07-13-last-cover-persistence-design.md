@@ -8,6 +8,7 @@ Keep the album artwork from the last successfully loaded song visible after refr
 
 - Search result thumbnails continue to load as they do today.
 - The main vinyl artwork changes only after the user selects a song and its playable data is loaded.
+- Playback prefers the selected queue item's album cover because it comes from the search or playlist result the user chose. The audio endpoint cover is only a fallback.
 - A valid HTTP or HTTPS cover URL is saved in `localStorage` under `cp_lastCover`.
 - On startup, the saved cover is restored to both desktop and mobile artwork elements before playlist initialization.
 - Missing, malformed, executable, `blob:`, and unsupported cover URLs are ignored.
@@ -23,5 +24,5 @@ Storage access is wrapped so private browsing restrictions or malformed saved va
 - Verify only persistent HTTP/HTTPS URLs are accepted.
 - Verify startup restores both desktop and mobile cover elements.
 - Verify successful song loading saves the normalized cover URL.
+- Verify playback uses the selected queue cover for the vinyl and Media Session metadata.
 - Run all Python, Node.js, static-site, syntax, and HTTP preview checks.
-

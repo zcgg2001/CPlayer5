@@ -54,6 +54,17 @@ class CoverPersistenceTests(unittest.TestCase):
         )
         self.assertIn("saveLastCover(picUrl);", song_loading)
 
+    def test_playback_prefers_the_selected_queue_cover(self):
+        song_loading = source_block(
+            self.source,
+            "async function loadAndPlaySong(id)",
+            "function parseLyrics(lrc, tlrc)",
+        )
+        self.assertIn("const queuedSong = playlist.find", song_loading)
+        self.assertIn("const coverCandidate = queuedSong?.cover || data.cover;", song_loading)
+        self.assertIn("const playbackData = { ...data, cover: picUrl", song_loading)
+        self.assertIn("updateMediaSessionMetadata(playbackData);", song_loading)
+
 
 if __name__ == "__main__":
     unittest.main()

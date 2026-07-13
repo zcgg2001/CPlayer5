@@ -2680,6 +2680,15 @@
                     throw new Error('No URL returned');
                 }
 
+                const queuedSong = playlist.find(song => (
+                    typeof song === 'object' && String(song.id) === String(id)
+                ));
+                const coverCandidate = queuedSong?.cover || data.cover;
+                const picUrl = normalizeMediaUrl(coverCandidate, { baseUrl: window.location.href })
+                    || normalizeMediaUrl(data.cover, { baseUrl: window.location.href })
+                    || '';
+                const playbackData = { ...data, cover: picUrl, album: queuedSong?.album || data.album || '' };
+
                 const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
                 if (!mediaUrl) throw new Error('Invalid media URL');
                 audio.src = mediaUrl;
@@ -2709,7 +2718,7 @@
 
                 // ★ 立即更新 MediaSession (确保锁屏有文字信息)
                 // 即使封面还在加载，也先显示歌名和歌手
-                updateMediaSessionMetadata(data);
+                updateMediaSessionMetadata(playbackData);
 
                 // 2. 音频开始播放后，再加载歌词和封面
                 // 歌词
@@ -2720,7 +2729,6 @@
                 });
 
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
-                const picUrl = normalizeMediaUrl(data.cover, { baseUrl: window.location.href }) || '';
                 if (picUrl) {
                     saveLastCover(picUrl);
                     // 直接设置封面 URL
@@ -2734,7 +2742,7 @@
                     // 封面加载完成后更新 MediaSession（确保锁屏封面正确）
                     const coverImg = new Image();
                     coverImg.crossOrigin = 'anonymous';
-                    coverImg.onload = () => updateMediaSessionMetadata(data);
+                    coverImg.onload = () => updateMediaSessionMetadata(playbackData);
                     coverImg.src = picUrl;
 
                     if (mobileUI) {

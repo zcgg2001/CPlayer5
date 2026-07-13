@@ -11,6 +11,7 @@
 ## Global Constraints
 
 - Do not change search request or playback behavior.
+- Prefer the selected queue item's cover over the audio endpoint cover.
 - Persist only normalized HTTP and HTTPS cover URLs.
 - Restore both desktop and mobile artwork.
 - Add no dependencies or unrelated refactoring.
@@ -82,6 +83,17 @@ class CoverPersistenceTests(unittest.TestCase):
             "if (playlist.some",
         )
         self.assertIn("saveLastCover(picUrl);", song_loading)
+
+    def test_playback_prefers_the_selected_queue_cover(self):
+        song_loading = source_block(
+            self.source,
+            "async function loadAndPlaySong(id)",
+            "function parseLyrics(lrc, tlrc)",
+        )
+        self.assertIn("const queuedSong = playlist.find", song_loading)
+        self.assertIn("const coverCandidate = queuedSong?.cover || data.cover;", song_loading)
+        self.assertIn("const playbackData = { ...data, cover: picUrl", song_loading)
+        self.assertIn("updateMediaSessionMetadata(playbackData);", song_loading)
 ```
 
 - [ ] **Step 2: Run focused tests and verify they fail**
@@ -98,9 +110,9 @@ Use `normalizeMediaUrl(value, { baseUrl: window.location.href })`, parse it with
 
 After populating the `dom` map, call `restoreLastCover()` before IndexedDB and playlist initialization. Set both `dom.albumArt.src` and `dom.mobileCoverImg.src` when a valid cover exists.
 
-- [ ] **Step 5: Save successful song cover updates**
+- [ ] **Step 5: Prefer and save the selected song cover**
 
-Call `saveLastCover(picUrl)` inside the existing `if (picUrl)` branch before assigning the desktop artwork source.
+Find the queue item whose ID matches the song being loaded. Normalize `queuedSong.cover || data.cover`, use that result for the vinyl and Media Session metadata, and call `saveLastCover(picUrl)` before assigning the desktop artwork source.
 
 - [ ] **Step 6: Run focused and full verification**
 
@@ -134,4 +146,3 @@ Verify HTTP 200 responses and confirm served `index.html` contains `cp_lastCover
 - [ ] **Step 2: Keep the branch for user review**
 
 Do not push or create the Pull Request until the user confirms the restored-cover behavior.
-
