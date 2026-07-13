@@ -2898,6 +2898,7 @@
         let playlistTotalCount = 0;
         let isLoadingPlaylist = false;
         let allSongsLoaded = false;
+        const EMPTY_PLAYLIST_MESSAGE = '当前没有歌曲，请使用搜索添加';
 
         // 歌单来源追踪: 'local' | 'online' | 'cache' | 'import-js' | 'import-json' | ''
         let playlistSource = '';
@@ -3042,7 +3043,7 @@
         }
 
         async function loadDefaultPlaylist() {
-            // 优先级: 1. LOCAL_PLAYLIST → 2. localStorage → 3. 欢迎引导
+            // 优先级: 1. LOCAL_PLAYLIST → 2. localStorage → 3. 空播放列表
 
             // 1. 本地 playlist.js
             if (window.LOCAL_PLAYLIST && window.LOCAL_PLAYLIST.data && window.LOCAL_PLAYLIST.data.tracks) {
@@ -3079,9 +3080,15 @@
                 }
             }
 
-            // 3. 没有任何歌单来源 → 显示欢迎引导
-            console.log('🎵 首次使用，显示欢迎引导');
-            openWelcomeModal();
+            // 3. 没有任何歌单来源 → 直接进入播放器，通过搜索添加歌曲
+            console.log('🎵 未配置歌单，直接进入播放器');
+            playlist = [];
+            window.playlist = playlist;
+            playlistTotalCount = 0;
+            allSongsLoaded = true;
+            playlistSource = '';
+            playlistSourceName = '';
+            initPlaylistView();
         }
 
         // 从输入值中提取歌单 ID（支持纯数字、完整链接）
@@ -3424,7 +3431,10 @@
             vsNodeMap.clear();
 
             if (!playlist.length) {
-                dom.playlistContent.innerHTML = '<div class="text-center py-8 opacity-50">播放列表为空</div>';
+                const emptyState = document.createElement('div');
+                emptyState.className = 'text-center py-8 opacity-50';
+                emptyState.textContent = EMPTY_PLAYLIST_MESSAGE;
+                dom.playlistContent.replaceChildren(emptyState);
                 dom.playlistContent.style.height = '';
                 dom.playlistContent.style.position = '';
                 return;
@@ -3988,7 +3998,7 @@
 
                 // Preload Playlist (Wait for global playlist to be ready)
                 const checkPlaylist = setInterval(() => {
-                    if (window.playlist && window.playlist.length > 0) {
+                    if (Array.isArray(window.playlist)) {
                         this.loadPlaylist();
                         clearInterval(checkPlaylist);
 
@@ -4207,6 +4217,16 @@
                         displayOrder = shuffledOrder;
                     } else {
                         displayOrder = window.playlist.map((_, i) => i);
+                    }
+
+                    if (!displayOrder.length) {
+                        const emptyState = document.createElement('div');
+                        emptyState.className = 'p-6 text-center text-sm opacity-50';
+                        emptyState.textContent = EMPTY_PLAYLIST_MESSAGE;
+                        container.replaceChildren(emptyState);
+                        container.style.height = '';
+                        container.style.position = '';
+                        return;
                     }
 
                     const MH = 58;  // item height
