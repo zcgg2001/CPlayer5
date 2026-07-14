@@ -36,12 +36,13 @@ export function progressPercent(currentTime, duration) {
 
 export function setImmersiveState({ shell, immersive, opener, closeButton }, open) {
   if (!shell || !immersive || !opener) return;
+  const wasOpen = immersive.getAttribute('aria-hidden') === 'false';
   shell.inert = open;
   immersive.classList.toggle('is-open', open);
   immersive.setAttribute('aria-hidden', String(!open));
   opener.setAttribute('aria-expanded', String(open));
   if (open) closeButton?.focus();
-  else opener.focus();
+  else if (wasOpen) opener.focus();
 }
 
 export function initAppShell({ elements, actions = {}, onImmersiveChange = () => {} }) {

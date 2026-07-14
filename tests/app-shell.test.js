@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DESKTOP_SHELL_MEDIA,
   createShellHistory,
+  initAppShell,
   initialShellState,
   progressPercent,
   setImmersiveState,
@@ -10,9 +11,12 @@ import {
 
 function fakeElement() {
   const attributes = new Map();
+  const listeners = new Map();
   return {
     hidden: false,
     inert: false,
+    disabled: false,
+    dataset: {},
     classList: {
       values: new Set(),
       toggle(name, enabled) {
@@ -23,9 +27,55 @@ function fakeElement() {
     },
     setAttribute(name, value) { attributes.set(name, String(value)); },
     getAttribute(name) { return attributes.get(name) ?? null; },
+    removeAttribute(name) { attributes.delete(name); },
+    addEventListener(type, handler) {
+      if (!listeners.has(type)) listeners.set(type, new Set());
+      listeners.get(type).add(handler);
+    },
+    removeEventListener(type, handler) {
+      listeners.get(type)?.delete(handler);
+    },
+    dispatch(type, event = {}) {
+      const dispatchedEvent = {
+        type,
+        defaultPrevented: false,
+        preventDefault() { this.defaultPrevented = true; },
+        ...event,
+      };
+      listeners.get(type)?.forEach(handler => handler(dispatchedEvent));
+      return dispatchedEvent;
+    },
+    listenerCount(type) { return listeners.get(type)?.size ?? 0; },
     focusCalled: false,
-    focus() { this.focusCalled = true; },
+    focusCalls: 0,
+    focus() {
+      this.focusCalled = true;
+      this.focusCalls += 1;
+    },
   };
+}
+
+function fakeShellSetup() {
+  const libraryButton = fakeElement();
+  const queueButton = fakeElement();
+  libraryButton.dataset.shellDestination = 'library';
+  queueButton.dataset.shellDestination = 'queue';
+
+  const elements = {
+    shell: fakeElement(),
+    immersive: fakeElement(),
+    opener: fakeElement(),
+    closeButton: fakeElement(),
+    backButton: fakeElement(),
+    forwardButton: fakeElement(),
+    eventTarget: fakeElement(),
+    documentElement: fakeElement(),
+    destinationButtons: [libraryButton, queueButton],
+  };
+  elements.immersive.setAttribute('aria-hidden', 'true');
+  elements.opener.setAttribute('aria-expanded', 'false');
+
+  return { elements, libraryButton, queueButton };
 }
 
 test('desktop shell begins at 1024px with library active', () => {
@@ -63,13 +113,131 @@ test('immersive state updates visibility, inertness and accessibility', () => {
 
   setImmersiveState({ shell, immersive, opener, closeButton }, true);
   assert.equal(shell.inert, true);
+  assert.equal(immersive.classList.contains('is-open'), true);
   assert.equal(immersive.getAttribute('aria-hidden'), 'false');
   assert.equal(opener.getAttribute('aria-expanded'), 'true');
   assert.equal(closeButton.focusCalled, true);
 
   setImmersiveState({ shell, immersive, opener, closeButton }, false);
   assert.equal(shell.inert, false);
+  assert.equal(immersive.classList.contains('is-open'), false);
   assert.equal(immersive.getAttribute('aria-hidden'), 'true');
   assert.equal(opener.getAttribute('aria-expanded'), 'false');
   assert.equal(opener.focusCalled, true);
+});
+
+test('app shell runs destination actions and updates local history controls', () => {
+  const { elements, libraryButton, queueButton } = fakeShellSetup();
+  const actionCalls = [];
+  const controller = initAppShell({
+    elements,
+    actions: {
+      library: () => actionCalls.push('library'),
+      queue: () => actionCalls.push('queue'),
+    },
+  });
+
+  assert.equal(elements.backButton.disabled, true);
+  assert.equal(elements.forwardButton.disabled, true);
+
+  queueButton.dispatch('click');
+  assert.deepEqual(actionCalls, ['queue']);
+  assert.equal(queueButton.getAttribute('aria-current'), 'page');
+  assert.equal(libraryButton.getAttribute('aria-current'), null);
+  assert.equal(elements.backButton.disabled, false);
+  assert.equal(elements.forwardButton.disabled, true);
+
+  elements.backButton.dispatch('click');
+  assert.deepEqual(actionCalls, ['queue', 'library']);
+  assert.equal(elements.backButton.disabled, true);
+  assert.equal(elements.forwardButton.disabled, false);
+
+  elements.forwardButton.dispatch('click');
+  assert.deepEqual(actionCalls, ['queue', 'library', 'queue']);
+  assert.equal(elements.backButton.disabled, false);
+  assert.equal(elements.forwardButton.disabled, true);
+
+  controller.destroy();
+});
+
+test('app shell closes immersive on Escape and reports immersive changes', () => {
+  const { elements } = fakeShellSetup();
+  const immersiveChanges = [];
+  const controller = initAppShell({
+    elements,
+    onImmersiveChange: open => immersiveChanges.push(open),
+  });
+
+  elements.opener.dispatch('click');
+  assert.equal(elements.immersive.getAttribute('aria-hidden'), 'false');
+  assert.equal(elements.documentElement.classList.contains('desktop-immersive-open'), true);
+  assert.equal(elements.closeButton.focusCalls, 1);
+
+  const escapeEvent = elements.eventTarget.dispatch('keydown', { key: 'Escape' });
+  assert.equal(escapeEvent.defaultPrevented, true);
+  assert.equal(elements.immersive.getAttribute('aria-hidden'), 'true');
+  assert.equal(elements.documentElement.classList.contains('desktop-immersive-open'), false);
+  assert.equal(elements.opener.focusCalls, 1);
+  assert.deepEqual(immersiveChanges, [true, false]);
+
+  controller.destroy();
+});
+
+test('app shell close button restores focus after immersive opens', () => {
+  const { elements } = fakeShellSetup();
+  const controller = initAppShell({ elements });
+
+  elements.opener.dispatch('click');
+  elements.closeButton.dispatch('click');
+
+  assert.equal(elements.immersive.getAttribute('aria-hidden'), 'true');
+  assert.equal(elements.opener.focusCalls, 1);
+
+  controller.destroy();
+});
+
+test('app shell destroy removes every registered listener', () => {
+  const { elements, libraryButton, queueButton } = fakeShellSetup();
+  const actionCalls = [];
+  const controller = initAppShell({
+    elements,
+    actions: { queue: () => actionCalls.push('queue') },
+  });
+  const bindings = [
+    [libraryButton, 'click'],
+    [queueButton, 'click'],
+    [elements.opener, 'click'],
+    [elements.closeButton, 'click'],
+    [elements.backButton, 'click'],
+    [elements.forwardButton, 'click'],
+    [elements.eventTarget, 'keydown'],
+  ];
+
+  bindings.forEach(([element, type]) => assert.equal(element.listenerCount(type), 1));
+  controller.destroy();
+  bindings.forEach(([element, type]) => assert.equal(element.listenerCount(type), 0));
+
+  queueButton.dispatch('click');
+  assert.deepEqual(actionCalls, []);
+});
+
+test('ordinary destinations do not restore focus reserved for immersive close', () => {
+  const { elements } = fakeShellSetup();
+  const controller = initAppShell({ elements });
+
+  controller.navigate('queue');
+  controller.navigate('library');
+  controller.back();
+  assert.equal(elements.opener.focusCalls, 0);
+
+  controller.setImmersive(true);
+  assert.equal(elements.closeButton.focusCalls, 1);
+  controller.setImmersive(false);
+  assert.equal(elements.opener.focusCalls, 1);
+
+  controller.navigate('queue');
+  controller.setImmersive(false);
+  assert.equal(elements.opener.focusCalls, 1);
+
+  controller.destroy();
 });
