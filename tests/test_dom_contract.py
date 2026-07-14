@@ -1,4 +1,3 @@
-import re
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
@@ -8,39 +7,184 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "index.html").read_text(encoding="utf-8")
 
 
-class _IdCollector(HTMLParser):
+class _MarkupNode:
+    def __init__(self, tag, attrs, parent):
+        self.tag = tag
+        self.attributes = dict(attrs)
+        self.parent = parent
+
+    @property
+    def element_id(self):
+        return self.attributes.get("id")
+
+    @property
+    def classes(self):
+        return set((self.attributes.get("class") or "").split())
+
+
+class _MarkupParser(HTMLParser):
+    VOID_ELEMENTS = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr",
+    }
+
     def __init__(self):
         super().__init__()
+        self.elements = []
         self.ids = []
+        self.stack = []
+
+    def _record_element(self, tag, attrs, push):
+        parent = self.stack[-1] if self.stack else None
+        element = _MarkupNode(tag, attrs, parent)
+        self.elements.append(element)
+        self.ids.extend(value for name, value in attrs if name == "id" and value)
+        if push:
+            self.stack.append(element)
 
     def handle_starttag(self, tag, attrs):
-        self.ids.extend(value for name, value in attrs if name == "id")
+        self._record_element(tag, attrs, tag not in self.VOID_ELEMENTS)
+
+    def handle_startendtag(self, tag, attrs):
+        self._record_element(tag, attrs, False)
+
+    def handle_endtag(self, tag):
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index].tag == tag:
+                del self.stack[index:]
+                break
 
 
-ID_COLLECTOR = _IdCollector()
-ID_COLLECTOR.feed(SOURCE)
-ID_COLLECTOR.close()
-IDS = ID_COLLECTOR.ids
+MARKUP = _MarkupParser()
+MARKUP.feed(SOURCE)
+MARKUP.close()
+IDS = MARKUP.ids
+ELEMENTS_BY_ID = {
+    element.element_id: element
+    for element in MARKUP.elements
+    if element.element_id
+}
 
 REQUIRED_IDS = {
-    "desktopLayout", "mobileLayout", "settingsBtn", "fullscreenBtn",
-    "audioVisualizer", "albumArtWrapper", "albumArt",
-    "desktopLoaderOverlay", "songTitle", "artistName", "sourceTag",
-    "songIdTag", "qualityBadge", "currentTime", "totalTime",
-    "progressBar", "playModeBtn", "prevBtn", "playPauseBtn",
-    "nextBtn", "volumeBtn", "volumePopover", "volumeSlider",
-    "togglePlaylistBtn", "floatingPlaylistPanel", "desktopTabPlaylist",
-    "desktopTabSearch", "playlistCount", "playlistFile",
-    "desktopContentPlaylist", "playlistContainer", "playlistContent",
-    "playlistLoader", "desktopContentSearch", "searchInput",
-    "searchButton", "searchResults", "floatingSearchPanel",
-    "toggleSearchBtn", "lyricsScroller",
+    "albumArt",
+    "albumArtWrapper",
+    "artistName",
+    "audioVisualizer",
+    "closeSettingsBtn",
+    "closeSheetBtn",
+    "copyToast",
+    "currentTime",
+    "desktopContentPlaylist",
+    "desktopContentSearch",
+    "desktopLayout",
+    "desktopLoaderOverlay",
+    "desktopTabPlaylist",
+    "desktopTabSearch",
+    "fileImportSection",
+    "floatingPlaylistPanel",
+    "floatingSearchPanel",
+    "fluidBg",
+    "fluidNoise",
+    "fullscreenBtn",
+    "loadPlaylistBtn",
+    "lyricsScroller",
+    "mobileAlbumArtWrapper",
+    "mobileArtist",
+    "mobileCoverContainer",
+    "mobileCoverImg",
+    "mobileCurrentTime",
+    "mobileDuration",
+    "mobileLayout",
+    "mobileLoaderOverlay",
+    "mobileLyricsPage",
+    "mobileLyricsScroller",
+    "mobileMainView",
+    "mobileMetaContainer",
+    "mobileModeBtn",
+    "mobileNextBtn",
+    "mobilePlayBtn",
+    "mobilePlaylistContainer",
+    "mobilePlaylistSheet",
+    "mobilePlaylistSheetTitle",
+    "mobilePlaylistToggleBtn",
+    "mobilePrevBtn",
+    "mobileProgressBar",
+    "mobileProgressBarContainer",
+    "mobileQualityBadge",
+    "mobileSearchInput",
+    "mobileSearchResults",
+    "mobileSettingsBtn",
+    "mobileSongIdTag",
+    "mobileTitle",
+    "mobileVinylContainer",
+    "nextBtn",
+    "playModeBtn",
+    "playPauseBtn",
+    "playlistContainer",
+    "playlistContent",
+    "playlistCount",
+    "playlistFile",
+    "playlistIdInput",
+    "playlistLoader",
+    "playlistSourceCard",
+    "prevBtn",
+    "progressBar",
+    "qualityBadge",
+    "searchButton",
+    "searchInput",
+    "searchResults",
+    "settingsBtn",
+    "settingsCard",
+    "settingsDropZone",
+    "settingsFileInput",
+    "settingsModal",
+    "settingsTitle",
+    "sheetContentPlaylist",
+    "sheetContentSearch",
+    "sheetDragHandle",
+    "sheetTabPlaylist",
+    "sheetTabSearch",
+    "songIdTag",
+    "songTitle",
+    "sourceCount",
+    "sourceDetail",
+    "sourceIconI",
+    "sourceLabel",
+    "sourceTag",
+    "togglePlaylistBtn",
+    "toggleSearchBtn",
+    "totalTime",
+    "volumeBtn",
+    "volumeIcon",
+    "volumePopover",
+    "volumeSlider",
+    "welcomeCard",
+    "welcomeContent",
+    "welcomeError",
+    "welcomeErrorText",
+    "welcomeLoadBtn",
+    "welcomeLoading",
+    "welcomeLoadingSubtext",
+    "welcomeLoadingText",
+    "welcomeModal",
+    "welcomePlaylistInput",
+    "welcomeTitle",
 }
+
+
+def _is_descendant(element, ancestor):
+    current = element.parent
+    while current is not None:
+        if current is ancestor:
+            return True
+        current = current.parent
+    return False
 
 
 class DomContractTests(unittest.TestCase):
     def test_required_legacy_ids_remain(self):
         actual = set(IDS)
+        self.assertEqual(len(REQUIRED_IDS), 103)
         self.assertEqual(REQUIRED_IDS - actual, set())
 
     def test_index_has_no_duplicate_ids(self):
@@ -48,14 +192,50 @@ class DomContractTests(unittest.TestCase):
         self.assertEqual(duplicates, [])
 
     def test_progress_and_virtual_list_ancestry_remain(self):
-        self.assertRegex(
-            SOURCE,
-            r'(?s)progress-bar-container[^>]*>\s*<div[^>]*progress-track[^>]*>\s*<div id="progressBar"',
+        progress_track = ELEMENTS_BY_ID["progressBar"].parent
+        self.assertIsNotNone(progress_track)
+        self.assertIn("progress-track", progress_track.classes)
+        progress_container = progress_track.parent
+        self.assertIsNotNone(progress_container)
+        self.assertIn("progress-bar-container", progress_container.classes)
+
+        playlist_container = ELEMENTS_BY_ID["playlistContainer"]
+        for element_id in ("playlistContent", "playlistLoader"):
+            self.assertTrue(
+                _is_descendant(ELEMENTS_BY_ID[element_id], playlist_container),
+                f"#{element_id} must remain inside #playlistContainer",
+            )
+
+    def test_album_art_remains_inside_wrapper(self):
+        self.assertTrue(
+            _is_descendant(
+                ELEMENTS_BY_ID["albumArt"],
+                ELEMENTS_BY_ID["albumArtWrapper"],
+            )
         )
-        self.assertRegex(
-            SOURCE,
-            r'(?s)id="playlistContainer"[^>]*>.*id="playlistContent".*id="playlistLoader"',
+
+    def test_first_upload_container_directly_contains_playlist_file(self):
+        upload_container = next(
+            (
+                element
+                for element in MARKUP.elements
+                if "upload-container" in element.classes
+            ),
+            None,
+        )
+        self.assertIsNotNone(upload_container)
+        self.assertIs(ELEMENTS_BY_ID["playlistFile"].parent, upload_container)
+
+    def test_floating_playlist_panel_starts_off_canvas(self):
+        self.assertIn(
+            "translate-x-full",
+            ELEMENTS_BY_ID["floatingPlaylistPanel"].classes,
         )
 
     def test_hidden_legacy_lyrics_container_remains(self):
-        self.assertRegex(SOURCE, r'class="[^"]*lyrics-container[^"]*hidden[^"]*"')
+        self.assertTrue(
+            any(
+                {"lyrics-container", "hidden"} <= element.classes
+                for element in MARKUP.elements
+            )
+        )
