@@ -987,6 +987,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="./css/app-shell.css">
     <script src="playlist.js"></script>
 </head>
 
@@ -1007,217 +1008,323 @@
         <span class="font-bold text-sm">已复制到剪贴板</span>
     </div>
 
-    <!-- 主容器 (Desktop Layout) - 全屏重构版 -->
-    <div id="desktopLayout" class="hidden md:flex flex-row h-screen w-screen overflow-hidden bg-transparent">
+    <!-- Desktop application shell -->
+    <div id="desktopApp">
+        <a class="app-skip-link" href="#desktopLibraryView">跳到音乐库</a>
 
-        <!-- 左侧：播放器控制区 (Fixed width or percentage) -->
-        <div
-            class="flex-none w-[480px] lg:w-[550px] h-full flex flex-col justify-center items-center relative z-20 px-8 pt-16 pb-6">
-            <!-- 顶部栏：Logo + 功能按钮 -->
-            <header class="absolute top-6 left-8 right-8 flex items-center justify-between">
-                <h1 class="text-2xl font-bold theme-text-primary flex items-center gap-2 drop-shadow-sm">
-                    <svg class="w-8 h-8 theme-fill-primary animate-pulse" xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24">
-                        <path fill-rule="evenodd"
-                            d="m10.09 11.963l9.273-3.332L21 7.952v-.46c0-1.12 0-2.059-.088-2.807a7 7 0 0 0-.043-.31c-.085-.51-.234-.988-.523-1.386a2.2 2.2 0 0 0-.675-.617l-.01-.005c-.77-.461-1.638-.428-2.532-.224c-.864.198-1.935.6-3.249 1.095l-2.284.859c-.616.231-1.138.427-1.547.63c-.436.216-.811.471-1.092.851s-.399.79-.452 1.234c-.05.418-.05.926-.05 1.525v4.265z"
-                            clip-rule="evenodd"></path>
-                        <path
-                            d="M8.455 16.13a3.8 3.8 0 0 0-1.91-.5C4.587 15.63 3 17.056 3 18.815S4.587 22 6.545 22c1.959 0 3.546-1.426 3.546-3.185v-6.852l-1.636.638zm10.909-7.5v5.54a3.8 3.8 0 0 0-1.91-.5c-1.958 0-3.545 1.426-3.545 3.185s1.587 3.185 3.545 3.185c1.959 0 3.546-1.426 3.546-3.185V7.952z"
-                            opacity=".5"></path>
-                    </svg>
-                    CPlayer 5
-                </h1>
-                <!-- 设置 & 全屏按钮（从右上角固定位置移入此处） -->
-                <div class="flex items-center gap-2">
-                    <button id="settingsBtn" title="设置" aria-label="打开设置"
-                        class="top-btn w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
-                        <i class="fas fa-cog text-sm opacity-70"></i>
+        <div id="desktopShell">
+            <aside class="app-sidebar" aria-label="桌面应用导航">
+                <div class="app-brand">
+                    <span class="app-brand-mark" aria-hidden="true">
+                        <i class="fas fa-music"></i>
+                    </span>
+                    <span class="app-brand-copy">
+                        <strong>CPlayer 5</strong>
+                        <span>Music workspace</span>
+                    </span>
+                </div>
+
+                <nav class="app-navigation" aria-label="主导航">
+                    <p class="app-nav-label">浏览</p>
+                    <button id="desktopNavLibrary" class="app-nav-item" type="button"
+                        data-shell-destination="library" aria-controls="desktopLibraryView" aria-current="page">
+                        <i class="fas fa-compact-disc" aria-hidden="true"></i>
+                        <span>音乐库</span>
                     </button>
-                    <button id="fullscreenBtn" title="全屏模式" aria-label="切换全屏模式"
-                        class="top-btn mobile-hide w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
-                        <i class="fas fa-expand text-sm opacity-70"></i>
+                    <button id="desktopImmersiveToggle" class="app-nav-item" type="button"
+                        data-shell-destination="now-playing" aria-controls="desktopLayout" aria-expanded="false">
+                        <i class="fas fa-headphones" aria-hidden="true"></i>
+                        <span>正在播放</span>
+                    </button>
+                    <button id="togglePlaylistBtn" class="app-nav-item" type="button"
+                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel"
+                        aria-label="打开播放队列">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                        <span>播放队列</span>
+                    </button>
+                    <button id="desktopImportBtn" class="app-nav-item" type="button"
+                        data-shell-destination="import" aria-controls="playlistFile" aria-label="导入本地 JSON 歌单">
+                        <i class="fas fa-file-import" aria-hidden="true"></i>
+                        <span>本地导入</span>
+                    </button>
+                </nav>
+
+                <div class="app-sidebar-tools">
+                    <p class="app-nav-label">工具</p>
+                    <a class="app-nav-item" href="./playlist-downloader.html">
+                        <i class="fas fa-cloud-download-alt" aria-hidden="true"></i>
+                        <span>歌单工具</span>
+                    </a>
+                    <button id="settingsBtn" class="app-nav-item" type="button"
+                        data-shell-destination="settings" aria-controls="settingsModal" aria-label="打开设置">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
+                        <span>设置</span>
+                    </button>
+                </div>
+            </aside>
+
+            <header class="app-topbar">
+                <div class="app-history" aria-label="浏览历史">
+                    <button id="desktopBackBtn" class="app-icon-button" type="button" aria-label="后退" disabled>
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button id="desktopForwardBtn" class="app-icon-button" type="button" aria-label="前进" disabled>
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="app-topbar-copy">
+                    <strong>音乐库</strong>
+                    <span>搜索、导入并管理当前播放内容</span>
+                </div>
+
+                <div class="app-topbar-actions">
+                    <a id="desktopSearchShortcut" class="app-topbar-action" href="#searchInput"
+                        data-shell-destination="search" aria-controls="searchInput">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span>搜索</span>
+                    </a>
+                    <button id="fullscreenBtn" class="app-topbar-action mobile-hide" type="button"
+                        title="全屏模式" aria-label="切换全屏模式">
+                        <i class="fas fa-expand" aria-hidden="true"></i>
+                        <span>全屏</span>
                     </button>
                 </div>
             </header>
 
-            <!-- 播放器卡片内容 - 紧凑居中布局 -->
-            <div class="w-full flex flex-col items-center justify-center gap-0">
-                <!-- 视觉化 & 封面 -->
-                <div class="visualizer-container">
-                    <canvas id="audioVisualizer"></canvas>
-                    <div class="album-art-wrapper" id="albumArtWrapper">
-                        <img id="albumArt"
-                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23333;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23111;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='150' cy='150' r='148' fill='url(%23grad)' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='150' cy='150' r='50' fill='%2300C853' opacity='0.8'/%3E%3Ccircle cx='150' cy='150' r='5' fill='%23000'/%3E%3Cpath fill='none' stroke='%23444' stroke-width='1' d='M150,10 A140,140 0 1,1 149.9,10' stroke-dasharray='5,5'/%3E%3C/svg%3E"
-                            alt="专辑封面" crossOrigin="anonymous" draggable="true">
-                        <!-- 精美内嵌加载动画 -->
-                        <div id="desktopLoaderOverlay"
-                            class="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300 z-10 text-primary-color">
-                            <div
-                                class="w-16 h-16 rounded-full border-4 border-white/20 border-t-current animate-spin shadow-[0_0_15px_currentColor]">
+            <main id="desktopLibraryView" tabindex="-1" aria-labelledby="desktopLibraryTitle">
+                <div class="library-content">
+                    <header class="library-heading">
+                        <div>
+                            <p class="library-kicker">YOUR MUSIC</p>
+                            <h1 id="desktopLibraryTitle">音乐库</h1>
+                            <p class="library-description">
+                                使用现有搜索、播放队列与导入工具组织音乐。这里不展示虚构榜单或推荐，只呈现可直接使用的功能。
+                            </p>
+                        </div>
+                    </header>
+
+                    <section id="desktopContentSearch" aria-labelledby="desktopSearchTitle">
+                        <div class="search-heading">
+                            <span class="search-heading-icon" aria-hidden="true">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <div>
+                                <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
+                                <p>支持歌曲名、歌手或歌曲 ID，结果会加入同一播放队列。</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 歌曲信息 - 紧贴唱片 -->
-                <div class="song-info text-center w-full z-10 mt-0 mb-0">
-                    <div id="songTitle"
-                        class="text-2xl font-bold theme-text-on-surface truncate px-4 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="右键或长按复制">CPlayer 5</div>
-                    <div id="artistName"
-                        class="text-xl theme-text-on-surface opacity-60 truncate px-4 mt-1 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="右键或长按复制">ChKSz</div>
-
-                    <div class="flex justify-center items-center gap-2 mt-2">
-                        <div id="sourceTag"
-                            class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current">CHKSZ API
+                        <div class="search-box">
+                            <div class="search-input-wrap">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                <label class="sr-only" for="searchInput">搜索歌曲或歌手</label>
+                                <input type="text" id="searchInput" placeholder="搜索歌曲、歌手或输入歌曲 ID"
+                                    aria-label="搜索歌曲或歌手" autocomplete="off">
+                            </div>
+                            <button id="searchButton" type="button">
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                <span>搜索</span>
+                            </button>
                         </div>
-                        <div id="songIdTag"
-                            class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current cursor-pointer hover:opacity-100 transition-all">
-                            ID: 0413</div>
-                        <div id="qualityBadge" class="quality-badge quality-lossless">💎JyMaster</div>
+                        <p class="search-help">搜索结果使用项目现有服务；网络不可用时会沿用已有错误提示。</p>
+                        <div id="searchResults" class="hidden" aria-live="polite"></div>
+                    </section>
+
+                    <section class="capability-grid" aria-label="音乐库工具">
+                        <article class="capability-card">
+                            <span class="capability-icon" aria-hidden="true">
+                                <i class="fas fa-list-ul"></i>
+                            </span>
+                            <h2>当前播放列表</h2>
+                            <p>查看已经载入的真实曲目，并从现有虚拟列表继续播放。</p>
+                            <div class="capability-actions">
+                                <span id="playlistCount" class="capability-status" aria-live="polite">等待载入</span>
+                                <button id="desktopLibraryQueueBtn" class="capability-action" type="button"
+                                    data-shell-destination="queue" aria-controls="floatingPlaylistPanel">
+                                    查看队列
+                                </button>
+                            </div>
+                        </article>
+
+                        <article class="capability-card upload-container">
+                            <input type="file" id="playlistFile" accept=".json" class="hidden"
+                                aria-label="导入 JSON 歌单">
+                            <span class="capability-icon" aria-hidden="true">
+                                <i class="fas fa-file-import"></i>
+                            </span>
+                            <h2>本地导入</h2>
+                            <p>选择项目支持的 JSON 歌单文件，继续使用当前播放器和缓存流程。</p>
+                            <div class="capability-actions">
+                                <span class="capability-status">JSON 歌单</span>
+                                <button id="desktopImportCardBtn" class="capability-action" type="button"
+                                    data-shell-destination="import" aria-controls="playlistFile">
+                                    选择文件
+                                </button>
+                            </div>
+                        </article>
+
+                        <article class="capability-card">
+                            <span class="capability-icon" aria-hidden="true">
+                                <i class="fas fa-cloud-download-alt"></i>
+                            </span>
+                            <h2>歌单工具</h2>
+                            <p>打开项目自带的歌单下载工具，准备可供 CPlayer 5 使用的内容。</p>
+                            <div class="capability-actions">
+                                <span class="capability-status">内置工具</span>
+                                <a class="capability-action" href="./playlist-downloader.html">
+                                    打开工具
+                                </a>
+                            </div>
+                        </article>
+                    </section>
+                </div>
+            </main>
+
+            <footer id="desktopPlayerBar" aria-label="桌面播放控制">
+                <div class="player-meta">
+                    <button id="desktopMiniPlayer" type="button" aria-label="打开正在播放"
+                        aria-controls="desktopLayout" aria-expanded="false">
+                        <img id="desktopMiniCover" src="./img/icon.png" alt="" width="48" height="48">
+                        <span class="player-meta-copy">
+                            <span id="songTitle" class="player-song-title"
+                                title="右键或长按复制">CPlayer 5</span>
+                            <span id="artistName" title="右键或长按复制">ChKSz</span>
+                        </span>
+                    </button>
+                    <div class="player-tags" aria-label="当前曲目信息">
+                        <span id="sourceTag">未加载</span>
+                        <span id="songIdTag" title="右键或长按复制">ID: --</span>
+                        <span id="qualityBadge" class="quality-badge quality-standard">音质 --</span>
                     </div>
                 </div>
 
-                <!-- 控件区 - 紧贴歌曲信息 -->
-                <div class="custom-controls-wrapper w-full mt-2">
-                    <div class="flex justify-between text-xs font-mono theme-text-on-surface opacity-70 mb-1 px-2">
+                <div class="player-controls">
+                    <div class="transport-controls">
+                        <button id="playModeBtn" class="player-control-button" type="button"
+                            title="播放模式" aria-label="切换播放模式">
+                            <i class="fas fa-random" aria-hidden="true"></i>
+                        </button>
+                        <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲">
+                            <i class="fas fa-backward" aria-hidden="true"></i>
+                        </button>
+                        <button id="playPauseBtn" class="player-control-button" type="button" aria-label="播放/暂停">
+                            <i class="fas fa-play" aria-hidden="true"></i>
+                        </button>
+                        <button id="nextBtn" class="player-control-button" type="button" aria-label="下一曲">
+                            <i class="fas fa-forward" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div class="player-timeline">
                         <span id="currentTime">0:00</span>
+                        <div class="progress-bar-container" title="播放进度">
+                            <div class="progress-track">
+                                <div id="progressBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
                         <span id="totalTime">0:00</span>
                     </div>
-                    <div class="progress-bar-container group mb-4 px-2">
-                        <div class="progress-track bg-white/10">
-                            <div id="progressBar" style="width: 0%;"></div>
+                </div>
+
+                <div class="player-actions">
+                    <button id="desktopPlayerQueueBtn" class="player-action-button" type="button"
+                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                    </button>
+                    <div class="volume-control-group">
+                        <button id="volumeBtn" class="player-action-button" type="button" aria-label="调整音量">
+                            <i id="volumeIcon" class="fas fa-volume-up" aria-hidden="true"></i>
+                        </button>
+                        <div id="volumePopover" class="volume-popup">
+                            <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
+                                step="0.01" value="0.5" aria-label="音量">
                         </div>
                     </div>
+                </div>
+            </footer>
+        </div>
 
-                    <div class="control-buttons-row justify-center gap-6">
-                        <button id="playModeBtn" title="播放模式" aria-label="切换播放模式"
-                            class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
-                            <i class="fas fa-random text-lg"></i>
-                        </button>
+        <section id="desktopLayout" aria-hidden="true" role="dialog" aria-modal="true"
+            aria-label="沉浸式正在播放">
+            <header class="immersive-header">
+                <div class="immersive-heading">
+                    <strong>CPlayer 5</strong>
+                    <span>IMMERSIVE PLAYER</span>
+                </div>
+                <button id="desktopImmersiveClose" type="button" aria-label="关闭沉浸式播放器">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
 
-                        <div class="flex items-center gap-6">
-                            <button id="prevBtn" aria-label="上一曲"
-                                class="w-12 h-12 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-95">
-                                <i class="fas fa-backward text-xl"></i>
-                            </button>
-
-                            <button id="playPauseBtn" aria-label="播放/暂停"
-                                class="w-16 h-16 rounded-full bg-primary-color text-on-primary-color flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
-                                <i class="fas fa-play text-2xl ml-1"></i>
-                            </button>
-
-                            <button id="nextBtn" aria-label="下一曲"
-                                class="w-12 h-12 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-95">
-                                <i class="fas fa-forward text-xl"></i>
-                            </button>
-                        </div>
-
-                        <div class="volume-control-group">
-                            <button id="volumeBtn" aria-label="调整音量"
-                                class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
-                                <i id="volumeIcon" class="fas fa-volume-up text-lg"></i>
-                            </button>
-                            <div id="volumePopover" class="volume-popup">
-                                <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
-                                    step="0.01" value="0.5" aria-label="音量">
+            <div class="immersive-stage">
+                <div class="immersive-cover-pane">
+                    <div class="visualizer-container">
+                        <canvas id="audioVisualizer"></canvas>
+                        <div class="album-art-wrapper" id="albumArtWrapper">
+                            <img id="albumArt"
+                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23333;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23111;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='150' cy='150' r='148' fill='url(%23grad)' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='150' cy='150' r='50' fill='%2300C853' opacity='0.8'/%3E%3Ccircle cx='150' cy='150' r='5' fill='%23000'/%3E%3Cpath fill='none' stroke='%23444' stroke-width='1' d='M150,10 A140,140 0 1,1 149.9,10' stroke-dasharray='5,5'/%3E%3C/svg%3E"
+                                alt="专辑封面" crossorigin="anonymous" draggable="true">
+                            <div id="desktopLoaderOverlay"
+                                class="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300 z-10 text-primary-color">
+                                <div
+                                    class="w-16 h-16 rounded-full border-4 border-white/20 border-t-current animate-spin shadow-[0_0_15px_currentColor]">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- loader 移至 albumArtWrapper 内作为 overlay -->
-            </div>
-        </div>
-
-        <!-- 右侧：歌词区 (Flexible width) -->
-        <div class="flex-1 h-full relative z-10 flex flex-col justify-center overflow-hidden min-w-[300px]">
-            <div class="lyrics-card w-full h-full bg-transparent relative">
-                <!-- DOM Scroller (Plan B) -->
-                <div id="lyricsScroller" class="lyrics-scroller">
-                    <div class="lrc-line active">
-                        <span class="lrc-text">CPlayer 5</span>
-                        <span class="lrc-trans">Music for Everyone</span>
-                    </div>
-                </div>
-
-                <!-- Legacy Canvas (Hidden/Removed) -->
-                <!-- <canvas id="lyricsCanvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing hidden"></canvas> -->
-
-                <div class="lyrics-container custom-scrollbar hidden">
-                    <div class="lyric-line opacity-50 my-auto">等待播放...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 右下角浮动按钮 - 统一侧边栏 -->
-        <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-4 items-end">
-            <button id="togglePlaylistBtn" aria-label="打开播放列表和搜索"
-                class="w-14 h-14 rounded-full bg-primary-color text-on-primary-color shadow-xl flex items-center justify-center hover:scale-110 transition-all z-50"
-                title="播放列表 / 搜索">
-                <i class="fas fa-list-ul text-xl"></i>
-            </button>
-        </div>
-
-        <!-- ★ 统一侧边栏 (播放列表 + 搜索) -->
-        <div id="floatingPlaylistPanel"
-            class="fixed top-0 right-0 bottom-0 h-screen w-[400px] bg-black/40 backdrop-blur-md shadow-2xl transition-transform duration-300 translate-x-full z-40 flex flex-col border-l border-white/10"
-            style="isolation: isolate;">
-
-
-
-            <!-- Tab 切换头部 -->
-            <div class="flex-none pt-5 pb-0 px-5">
-                <div class="flex items-center gap-5 border-b border-white/10 pb-3" role="tablist" aria-label="侧边栏内容">
-                    <button id="desktopTabPlaylist"
-                        role="tab" aria-selected="true" aria-controls="desktopContentPlaylist"
-                        class="text-base font-bold border-b-2 border-primary-color pb-1 transition-all opacity-100">
-                        <i class="fas fa-list-ul mr-1.5 text-primary-color"></i>当前播放
-                        <span id="playlistCount" class="text-xs opacity-50 font-normal ml-1"></span>
-                    </button>
-                    <button id="desktopTabSearch"
-                        role="tab" aria-selected="false" aria-controls="desktopContentSearch"
-                        class="text-base font-bold border-b-2 border-transparent pb-1 transition-all opacity-50">
-                        <i class="fas fa-search mr-1.5"></i>搜索添加
-                    </button>
-                    <!-- Upload Area hidden by default -->
-                    <div class="upload-container soft-upload-area hidden ml-auto">
-                        <input type="file" id="playlistFile" accept=".json" class="hidden" aria-label="导入 JSON 歌单">
+                <div class="immersive-lyrics-pane">
+                    <div class="lyrics-card">
+                        <div id="lyricsScroller" class="lyrics-scroller">
+                            <div class="lrc-line active">
+                                <span class="lrc-text">CPlayer 5</span>
+                                <span class="lrc-trans">Music for Everyone</span>
+                            </div>
+                        </div>
+                        <div class="lyrics-container custom-scrollbar hidden">
+                            <div class="lyric-line opacity-50 my-auto">等待播放...</div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Content: 播放列表 -->
-            <div id="desktopContentPlaylist" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-                <div class="playlist-songs custom-scrollbar flex-1 overflow-y-auto px-4 pb-4 pt-2"
-                    id="playlistContainer">
+        <aside id="floatingPlaylistPanel"
+            class="translate-x-full"
+            style="isolation: isolate;" aria-label="播放队列">
+            <div class="queue-header">
+                <div class="queue-heading">
+                    <strong>播放队列</strong>
+                    <span>当前播放器的真实曲目列表</span>
+                </div>
+                <div role="tablist" aria-label="队列内容">
+                    <button id="desktopTabPlaylist" type="button" role="tab" aria-selected="true"
+                        aria-controls="desktopContentPlaylist">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                        当前播放
+                    </button>
+                    <button id="desktopTabSearch" class="hidden" type="button" role="tab" aria-selected="false"
+                        aria-controls="desktopContentSearch" tabindex="-1">
+                        搜索添加
+                    </button>
+                </div>
+            </div>
+
+            <div id="desktopContentPlaylist">
+                <div class="playlist-songs custom-scrollbar" id="playlistContainer">
                     <div id="playlistContent"></div>
                     <div id="playlistLoader" class="text-center py-4 text-xs opacity-50 hidden">加载更多...</div>
                 </div>
             </div>
+        </aside>
 
-            <!-- Content: 搜索 -->
-            <div id="desktopContentSearch" class="flex-1 min-h-0 hidden flex-col overflow-hidden p-4 pt-2">
-                <div class="relative flex items-center group mb-3 flex-none">
-                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
-                        class="w-full pl-10 pr-14 py-2.5 rounded-full bg-white/10 border-transparent focus:border-primary-color outline-none transition-all text-sm font-medium">
-                    <i class="fas fa-search absolute left-3.5 opacity-50"></i>
-                    <button id="searchButton"
-                        class="absolute right-1.5 px-3 py-1.5 rounded-full bg-primary-color text-on-primary-color text-xs font-bold hover:scale-105 transition-transform">Go</button>
-                </div>
-                <div id="searchResults" class="flex-1 overflow-y-auto no-scrollbar hidden space-y-1"></div>
-            </div>
-        </div>
-
-        <!-- 隐藏的兼容元素 (保留旧ID供JS不报错) -->
         <div id="floatingSearchPanel" class="hidden"></div>
-        <button id="toggleSearchBtn" class="hidden" aria-label="打开搜索"></button>
-
+        <button id="toggleSearchBtn" class="hidden" type="button" aria-label="打开搜索"></button>
     </div>
 
     <!-- ★ Mobile Layout (Visible < md) -->
-    <div id="mobileLayout" class="md:hidden flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
+    <div id="mobileLayout" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
