@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v7';
+const SHELL_CACHE = 'cplayer5-shell-v8';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -9,8 +9,10 @@ const CORE_ASSETS = [
   './offline.html',
   './playlist-downloader.html',
   './css/all.min.css',
+  './css/app-shell.css',
   './css/noto-sans-sc.css',
   './css/oneko-butterfly.css',
+  './js/app-shell.js',
   './js/tailwindcss.js',
   './js/color-thief.umd.js',
   './js/security.js',

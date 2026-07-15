@@ -29,6 +29,41 @@ class ValidateSiteTests(unittest.TestCase):
                 ["index.html: missing local asset js/app.js"],
             )
 
+    def test_reports_duplicate_dom_ids(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                '<div id="player"></div><button id="player"></button>',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(validate_site(root), ["index.html: duplicate id player"])
+
+    def test_reports_shell_entry_targeting_missing_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                '<button data-shell-destination="library" '
+                'aria-controls="missing"></button>',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(
+                validate_site(root),
+                ["index.html: shell destination library targets missing id missing"],
+            )
+
+    def test_allows_shell_entry_targeting_existing_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "index.html").write_text(
+                '<button data-shell-destination="library" '
+                'aria-controls="library"></button><section id="library"></section>',
+                encoding="utf-8",
+            )
+
+            self.assertEqual(validate_site(root), [])
+
     def test_allows_optional_local_playlist(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -17,9 +17,17 @@ class LocalAssetParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.assets = []
+        self.ids = []
+        self.shell_targets = []
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
+        element_id = attributes.get("id")
+        if element_id:
+            self.ids.append(element_id)
+        destination = attributes.get("data-shell-destination")
+        if destination and attributes.get("aria-controls"):
+            self.shell_targets.append((destination, attributes["aria-controls"]))
         attribute = {"img": "src", "script": "src", "link": "href"}.get(tag)
         if attribute and attributes.get(attribute):
             self.assets.append(attributes[attribute])
@@ -46,6 +54,17 @@ def validate_site(root):
         html_source = html_file.read_text(encoding="utf-8")
         parser = LocalAssetParser()
         parser.feed(html_source)
+        for element_id in sorted(
+            {value for value in parser.ids if parser.ids.count(value) > 1}
+        ):
+            errors.append(f"{html_file.name}: duplicate id {element_id}")
+        known_ids = set(parser.ids)
+        for destination, target in parser.shell_targets:
+            if target not in known_ids:
+                errors.append(
+                    f"{html_file.name}: shell destination {destination} "
+                    f"targets missing id {target}"
+                )
         for reference in parser.assets:
             local_path = _local_path(reference)
             if (
