@@ -1031,6 +1031,11 @@
                         <i class="fas fa-compact-disc" aria-hidden="true"></i>
                         <span>发现音乐</span>
                     </button>
+                    <button id="desktopNavSearch" class="app-nav-item" type="button"
+                        data-shell-destination="search" aria-controls="desktopSearchView">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span>搜索音乐</span>
+                    </button>
                     <button id="desktopImmersiveToggle" class="app-nav-item" type="button"
                         data-shell-destination="now-playing" aria-controls="desktopLayout" aria-expanded="false">
                         <i class="fas fa-headphones" aria-hidden="true"></i>
@@ -1074,8 +1079,8 @@
                 </div>
 
                 <div class="app-topbar-copy">
-                    <strong>发现音乐</strong>
-                    <span>浏览新歌、搜索并管理当前播放内容</span>
+                    <strong id="desktopTopbarTitle">发现音乐</strong>
+                    <span id="desktopTopbarDescription">浏览新歌并管理当前播放内容</span>
                 </div>
 
                 <div class="app-topbar-actions">
@@ -1094,118 +1099,135 @@
 
             <main id="desktopLibraryView" tabindex="-1" aria-labelledby="desktopLibraryTitle">
                 <div class="library-content">
-                    <header class="library-heading">
-                        <div>
-                            <p class="library-kicker">DISCOVER</p>
-                            <h1 id="desktopLibraryTitle">发现音乐</h1>
-                            <p class="library-description">
-                                浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
-                            </p>
-                        </div>
-                    </header>
-
-                    <section id="desktopDiscoverySection" class="discovery-panel"
-                        aria-labelledby="desktopDiscoveryTitle">
-                        <header class="discovery-heading">
-                            <div class="discovery-heading-copy">
-                                <div class="discovery-title-row">
-                                    <h2 id="desktopDiscoveryTitle">新歌速递</h2>
-                                    <span class="discovery-source">网易云新歌榜</span>
-                                </div>
-                                <p>真实榜单数据 · 每次展示最新 12 首</p>
-                            </div>
-                            <button id="desktopDiscoveryRefresh" class="discovery-refresh" type="button"
-                                aria-label="刷新新歌速递">
-                                <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                                <span>刷新</span>
-                            </button>
-                        </header>
-                        <div class="discovery-list-header" aria-hidden="true">
-                            <span>#</span>
-                            <span>标题</span>
-                            <span class="discovery-column-album">专辑</span>
-                            <span>操作</span>
-                        </div>
-                        <div id="desktopDiscoveryList" class="discovery-list" aria-live="polite" aria-busy="true">
-                            <div class="discovery-status" role="status">
-                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                <span>正在获取新歌榜...</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="desktopContentSearch" aria-labelledby="desktopSearchTitle">
-                        <div class="search-heading">
-                            <span class="search-heading-icon" aria-hidden="true">
-                                <i class="fas fa-search"></i>
-                            </span>
+                    <div id="desktopDiscoveryView" class="desktop-main-view" aria-hidden="false">
+                        <header class="library-heading">
                             <div>
-                                <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
-                                <p>支持歌曲名、歌手或歌曲 ID，结果会加入同一播放队列。</p>
+                                <p class="library-kicker">DISCOVER</p>
+                                <h1 id="desktopLibraryTitle">发现音乐</h1>
+                                <p class="library-description">
+                                    浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
+                                </p>
                             </div>
-                        </div>
-                        <div class="search-box">
-                            <div class="search-input-wrap">
-                                <i class="fas fa-search" aria-hidden="true"></i>
-                                <label class="sr-only" for="searchInput">搜索歌曲或歌手</label>
-                                <input type="text" id="searchInput" placeholder="搜索歌曲、歌手或输入歌曲 ID"
-                                    aria-label="搜索歌曲或歌手" autocomplete="off">
-                            </div>
-                            <button id="searchButton" type="button">
-                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                                <span>搜索</span>
-                            </button>
-                        </div>
-                        <p class="search-help">搜索结果使用项目现有服务；网络不可用时会沿用已有错误提示。</p>
-                        <div id="searchResults" class="hidden" aria-live="polite"></div>
-                    </section>
+                        </header>
 
-                    <section class="capability-grid" aria-label="音乐库工具">
-                        <article class="capability-card">
-                            <span class="capability-icon" aria-hidden="true">
-                                <i class="fas fa-list-ul"></i>
-                            </span>
-                            <h2>当前播放列表</h2>
-                            <p>查看已经载入的真实曲目，并从现有虚拟列表继续播放。</p>
-                            <div class="capability-actions">
-                                <span id="playlistCount" class="capability-status" aria-live="polite">等待载入</span>
-                                <button id="desktopLibraryQueueBtn" class="capability-action" type="button"
-                                    data-shell-destination="queue" aria-controls="floatingPlaylistPanel">
-                                    查看队列
+                        <section id="desktopDiscoverySection" class="discovery-panel"
+                            aria-labelledby="desktopDiscoveryTitle">
+                            <header class="discovery-heading">
+                                <div class="discovery-heading-copy">
+                                    <div class="discovery-title-row">
+                                        <h2 id="desktopDiscoveryTitle">新歌速递</h2>
+                                        <span class="discovery-source">网易云新歌榜</span>
+                                    </div>
+                                    <p>真实榜单数据 · 每次展示最新 12 首</p>
+                                </div>
+                                <button id="desktopDiscoveryRefresh" class="discovery-refresh" type="button"
+                                    aria-label="刷新新歌速递">
+                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                    <span>刷新</span>
+                                </button>
+                            </header>
+                            <div class="discovery-list-header" aria-hidden="true">
+                                <span>#</span>
+                                <span>标题</span>
+                                <span class="discovery-column-album">专辑</span>
+                                <span>操作</span>
+                            </div>
+                            <div id="desktopDiscoveryList" class="discovery-list" aria-live="polite"
+                                aria-busy="true">
+                                <div class="discovery-status" role="status">
+                                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                    <span>正在获取新歌榜...</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="capability-grid" aria-label="音乐库工具">
+                            <article class="capability-card">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-list-ul"></i>
+                                </span>
+                                <h2>当前播放列表</h2>
+                                <p>查看已经载入的真实曲目，并从现有虚拟列表继续播放。</p>
+                                <div class="capability-actions">
+                                    <span id="playlistCount" class="capability-status"
+                                        aria-live="polite">等待载入</span>
+                                    <button id="desktopLibraryQueueBtn" class="capability-action" type="button"
+                                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel">
+                                        查看队列
+                                    </button>
+                                </div>
+                            </article>
+
+                            <article class="capability-card upload-container">
+                                <input type="file" id="playlistFile" accept=".json" class="hidden"
+                                    aria-label="导入 JSON 歌单">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-file-import"></i>
+                                </span>
+                                <h2>本地导入</h2>
+                                <p>选择项目支持的 JSON 歌单文件，继续使用当前播放器和缓存流程。</p>
+                                <div class="capability-actions">
+                                    <span class="capability-status">JSON 歌单</span>
+                                    <button id="desktopImportCardBtn" class="capability-action" type="button"
+                                        data-shell-destination="import" aria-controls="playlistFile">
+                                        选择文件
+                                    </button>
+                                </div>
+                            </article>
+
+                            <article class="capability-card">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-cloud-download-alt"></i>
+                                </span>
+                                <h2>歌单工具</h2>
+                                <p>打开项目自带的歌单下载工具，准备可供 CPlayer 5 使用的内容。</p>
+                                <div class="capability-actions">
+                                    <span class="capability-status">内置工具</span>
+                                    <a class="capability-action" href="./playlist-downloader.html">
+                                        打开工具
+                                    </a>
+                                </div>
+                            </article>
+                        </section>
+                    </div>
+
+                    <section id="desktopSearchView" class="desktop-main-view" aria-hidden="true"
+                        aria-labelledby="desktopSearchPageTitle" hidden>
+                        <header class="library-heading">
+                            <div>
+                                <p class="library-kicker">SEARCH</p>
+                                <h1 id="desktopSearchPageTitle">搜索音乐</h1>
+                                <p class="library-description">
+                                    按歌曲名、歌手或歌曲 ID 查找内容，并直接加入当前播放队列。
+                                </p>
+                            </div>
+                        </header>
+
+                        <section id="desktopContentSearch" aria-labelledby="desktopSearchTitle">
+                            <div class="search-heading">
+                                <span class="search-heading-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <div>
+                                    <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
+                                    <p>支持歌曲名、歌手或歌曲 ID，结果会加入同一播放队列。</p>
+                                </div>
+                            </div>
+                            <div class="search-box">
+                                <div class="search-input-wrap">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                    <label class="sr-only" for="searchInput">搜索歌曲或歌手</label>
+                                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手或输入歌曲 ID"
+                                        aria-label="搜索歌曲或歌手" autocomplete="off">
+                                </div>
+                                <button id="searchButton" type="button">
+                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                    <span>搜索</span>
                                 </button>
                             </div>
-                        </article>
-
-                        <article class="capability-card upload-container">
-                            <input type="file" id="playlistFile" accept=".json" class="hidden"
-                                aria-label="导入 JSON 歌单">
-                            <span class="capability-icon" aria-hidden="true">
-                                <i class="fas fa-file-import"></i>
-                            </span>
-                            <h2>本地导入</h2>
-                            <p>选择项目支持的 JSON 歌单文件，继续使用当前播放器和缓存流程。</p>
-                            <div class="capability-actions">
-                                <span class="capability-status">JSON 歌单</span>
-                                <button id="desktopImportCardBtn" class="capability-action" type="button"
-                                    data-shell-destination="import" aria-controls="playlistFile">
-                                    选择文件
-                                </button>
-                            </div>
-                        </article>
-
-                        <article class="capability-card">
-                            <span class="capability-icon" aria-hidden="true">
-                                <i class="fas fa-cloud-download-alt"></i>
-                            </span>
-                            <h2>歌单工具</h2>
-                            <p>打开项目自带的歌单下载工具，准备可供 CPlayer 5 使用的内容。</p>
-                            <div class="capability-actions">
-                                <span class="capability-status">内置工具</span>
-                                <a class="capability-action" href="./playlist-downloader.html">
-                                    打开工具
-                                </a>
-                            </div>
-                        </article>
+                            <p class="search-help">搜索结果使用项目现有服务；网络不可用时会沿用已有错误提示。</p>
+                            <div id="searchResults" class="hidden" aria-live="polite"></div>
+                        </section>
                     </section>
                 </div>
             </main>
@@ -2155,12 +2177,16 @@
                     documentElement: document.documentElement,
                 },
                 actions: {
-                    library: () => dom.desktopLibraryView?.focus(),
+                    library: () => {
+                        showDesktopMainView('discovery');
+                        dom.desktopLibraryView?.focus();
+                    },
                     queue: () => {
                         switchDesktopTab('playlist');
                         togglePlaylistPanel(true);
                     },
                     search: () => {
+                        showDesktopMainView('search');
                         togglePlaylistPanel(false);
                         document.getElementById('searchInput')?.focus();
                     },
@@ -2170,6 +2196,7 @@
                 onImmersiveChange: syncContinuousRendering,
             });
             restoreLastCover();
+            showDesktopMainView('discovery');
 
             // ★ 初始化 IndexedDB 缓存
             try {
@@ -2231,6 +2258,30 @@
             }
 
         });
+
+        function showDesktopMainView(view) {
+            const showSearch = view === 'search';
+            if (dom.desktopDiscoveryView) {
+                dom.desktopDiscoveryView.hidden = showSearch;
+                dom.desktopDiscoveryView.setAttribute('aria-hidden', String(showSearch));
+            }
+            if (dom.desktopSearchView) {
+                dom.desktopSearchView.hidden = !showSearch;
+                dom.desktopSearchView.setAttribute('aria-hidden', String(!showSearch));
+            }
+
+            const titleId = showSearch ? 'desktopSearchPageTitle' : 'desktopLibraryTitle';
+            dom.desktopLibraryView?.setAttribute('aria-labelledby', titleId);
+            if (dom.desktopTopbarTitle) {
+                dom.desktopTopbarTitle.textContent = showSearch ? '搜索音乐' : '发现音乐';
+            }
+            if (dom.desktopTopbarDescription) {
+                dom.desktopTopbarDescription.textContent = showSearch
+                    ? '查找歌曲、歌手或歌曲 ID'
+                    : '浏览新歌并管理当前播放内容';
+            }
+            if (dom.desktopLibraryView) dom.desktopLibraryView.scrollTop = 0;
+        }
 
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));

@@ -419,6 +419,18 @@
   margin: 0 auto;
 }
 
+#desktopLibraryView .desktop-main-view[hidden] {
+  display: none !important;
+}
+
+#desktopSearchView {
+  min-height: 100%;
+}
+
+#desktopSearchView #desktopContentSearch {
+  min-height: 280px;
+}
+
 #desktopLibraryView .library-heading {
   display: flex;
   align-items: flex-end;

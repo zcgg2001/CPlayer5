@@ -91,10 +91,40 @@ class StartupBehaviorTests(unittest.TestCase):
             "dom.desktopLibraryView",
             "dom.floatingPlaylistPanel",
             "navigationButtons: Array.from(document.querySelectorAll('.app-navigation [data-shell-destination]'))",
-            "library: () => dom.desktopLibraryView?.focus()",
+            "showDesktopMainView('discovery');",
+            "dom.desktopLibraryView?.focus();",
         ):
             self.assertIn(fragment, shell_init)
         self.assertNotIn("dom.desktopPlayerBar", shell_init)
+
+    def test_desktop_search_switches_to_an_independent_main_view(self):
+        startup = function_block(
+            self.source,
+            "document.addEventListener('DOMContentLoaded', async () => {",
+            "function initEventListeners()",
+        )
+        for fragment in (
+            "showDesktopMainView('discovery');",
+            "showDesktopMainView('search');",
+            "document.getElementById('searchInput')?.focus();",
+        ):
+            self.assertIn(fragment, startup)
+
+        switcher = function_block(
+            self.source,
+            "function showDesktopMainView(view)",
+            "function initEventListeners()",
+        )
+        for fragment in (
+            "dom.desktopDiscoveryView.hidden = showSearch",
+            "dom.desktopSearchView.hidden = !showSearch",
+            "desktopSearchPageTitle",
+            "desktopLibraryTitle",
+            "dom.desktopTopbarTitle.textContent",
+            "dom.desktopTopbarDescription.textContent",
+            "dom.desktopLibraryView.scrollTop = 0",
+        ):
+            self.assertIn(fragment, switcher)
 
     def test_shell_owned_destinations_do_not_keep_legacy_desktop_bindings(self):
         listeners = function_block(

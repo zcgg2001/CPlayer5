@@ -81,6 +81,23 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertNotRegex(self.source, r'data-shell-destination="(?:ranking|artists|video|radio)"')
         self.assertNotIn('aria-disabled="true"', self.source)
 
+    def test_search_is_a_standalone_theme_below_discovery(self):
+        search_nav = self.markup.by_id["desktopNavSearch"]
+        discovery_view = self.markup.by_id["desktopDiscoveryView"]
+        search_view = self.markup.by_id["desktopSearchView"]
+
+        self.assertEqual(search_nav["tag"], "button")
+        self.assertEqual(search_nav.get("data-shell-destination"), "search")
+        self.assertEqual(search_nav.get("aria-controls"), "desktopSearchView")
+        self.assertEqual(discovery_view.get("aria-hidden"), "false")
+        self.assertEqual(search_view.get("aria-hidden"), "true")
+        self.assertIn("hidden", search_view)
+        self.assertRegex(
+            self.source,
+            r'(?s)id="desktopNavLibrary".*?</button>\s*<button id="desktopNavSearch"',
+        )
+        self.assertIn("desktopSearchPageTitle", self.markup.by_id)
+
     def test_mobile_layout_no_longer_disappears_at_768(self):
         classes = self.markup.by_id["mobileLayout"].get("class", "")
         self.assertNotIn("md:hidden", classes.split())
@@ -160,6 +177,12 @@ class DesktopShellMarkupTests(unittest.TestCase):
             "48px minmax(240px, 1.5fr) minmax(160px, 0.8fr) 112px",
         )
         self.assertEqual(self.css_property(selector, "min-height"), "72px")
+
+    def test_hidden_desktop_theme_is_removed_from_layout(self):
+        self.assertEqual(
+            self.css_property("#desktopLibraryView .desktop-main-view[hidden]", "display"),
+            "none !important",
+        )
 
     def test_player_and_volume_popover_stack_above_desktop_overlays(self):
         player_z = int(self.css_property("#desktopPlayerBar", "z-index"))
