@@ -151,6 +151,93 @@ test('immersive state defers focus until inert visibility updates settle', () =>
   assert.equal(opener.focusCalled, true);
 });
 
+test('browser focus waits for a later task after the animation frame', () => {
+  const shell = fakeElement();
+  const immersive = fakeElement();
+  const opener = fakeElement();
+  const closeButton = fakeElement();
+  const frames = [];
+  const timers = [];
+  const originals = {
+    requestAnimationFrame: globalThis.requestAnimationFrame,
+    cancelAnimationFrame: globalThis.cancelAnimationFrame,
+    setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout,
+  };
+
+  globalThis.requestAnimationFrame = callback => {
+    frames.push(callback);
+    return frames.length;
+  };
+  globalThis.cancelAnimationFrame = () => {};
+  globalThis.setTimeout = callback => {
+    timers.push(callback);
+    return timers.length;
+  };
+  globalThis.clearTimeout = () => {};
+
+  try {
+    setImmersiveState({ shell, immersive, opener, closeButton }, true);
+    assert.equal(closeButton.focusCalls, 0);
+    assert.equal(frames.length, 1);
+
+    frames.shift()();
+    assert.equal(closeButton.focusCalls, 0);
+    assert.equal(timers.length, 1);
+
+    timers.shift()();
+    assert.equal(closeButton.focusCalls, 1);
+  } finally {
+    Object.entries(originals).forEach(([name, value]) => {
+      if (value === undefined) delete globalThis[name];
+      else globalThis[name] = value;
+    });
+  }
+});
+
+test('rapid immersive close cancels scheduled focus and ignores stale callbacks', () => {
+  const shell = fakeElement();
+  const immersive = fakeElement();
+  const opener = fakeElement();
+  const closeButton = fakeElement();
+  let scheduledFocus = null;
+  let cancelCalls = 0;
+  const deferFocus = callback => {
+    scheduledFocus = callback;
+    return () => { cancelCalls += 1; };
+  };
+
+  setImmersiveState({ shell, immersive, opener, closeButton, deferFocus }, true);
+  setImmersiveState({ shell, immersive, opener, closeButton, deferFocus }, false);
+
+  assert.equal(cancelCalls, 1);
+  scheduledFocus();
+  assert.equal(closeButton.focusCalls, 0);
+  assert.equal(opener.focusCalls, 1);
+});
+
+test('stale focus from a closed session cannot affect a reopened immersive view', () => {
+  const shell = fakeElement();
+  const immersive = fakeElement();
+  const opener = fakeElement();
+  const closeButton = fakeElement();
+  const scheduledFocus = [];
+  const deferFocus = callback => {
+    scheduledFocus.push(callback);
+    return () => {};
+  };
+
+  setImmersiveState({ shell, immersive, opener, closeButton, deferFocus }, true);
+  setImmersiveState({ shell, immersive, opener, closeButton, deferFocus }, false);
+  setImmersiveState({ shell, immersive, opener, closeButton, deferFocus }, true);
+
+  scheduledFocus[0]();
+  assert.equal(closeButton.focusCalls, 0);
+
+  scheduledFocus[1]();
+  assert.equal(closeButton.focusCalls, 1);
+});
+
 test('app shell runs destination actions and updates local history controls', () => {
   const { elements, libraryButton, queueButton } = fakeShellSetup();
   const actionCalls = [];

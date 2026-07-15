@@ -182,6 +182,22 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("visualizer = initVisualizer();", self.source)
         self.assertIn("visualizer?.start();", sync)
         self.assertIn("visualizer?.stop();", sync)
+        for fragment in (
+            "const continuousRendering = shouldAnimateContinuously();",
+            "const desktopVisualizerActive = continuousRendering",
+            "&& desktopShellMedia.matches",
+            "&& document.documentElement.classList.contains('desktop-immersive-open');",
+            "if (desktopVisualizerActive)",
+        ):
+            self.assertIn(fragment, sync)
+        self.assertLess(
+            sync.index("if (desktopVisualizerActive)"),
+            sync.index("visualizer?.start();"),
+        )
+        self.assertLess(
+            sync.index("visualizer?.stop();"),
+            sync.index("if (continuousRendering)"),
+        )
 
 
 if __name__ == "__main__":

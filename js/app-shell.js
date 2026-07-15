@@ -34,12 +34,39 @@ export function progressPercent(currentTime, duration) {
   return Math.max(0, Math.min(100, (currentTime / duration) * 100));
 }
 
+const pendingImmersiveFocus = new WeakMap();
+
 function deferElementFocus(callback) {
+  let frameId = null;
+  let timerId = null;
+  let cancelled = false;
+
+  const scheduleTask = () => {
+    frameId = null;
+    if (cancelled) return;
+    timerId = globalThis.setTimeout(() => {
+      timerId = null;
+      if (!cancelled) callback();
+    }, 0);
+  };
+
   if (typeof globalThis.requestAnimationFrame === 'function') {
-    globalThis.requestAnimationFrame(callback);
-    return;
+    frameId = globalThis.requestAnimationFrame(scheduleTask);
+  } else {
+    scheduleTask();
   }
-  globalThis.setTimeout(callback, 0);
+
+  return () => {
+    cancelled = true;
+    if (frameId !== null && typeof globalThis.cancelAnimationFrame === 'function') {
+      globalThis.cancelAnimationFrame(frameId);
+    }
+    if (timerId !== null && typeof globalThis.clearTimeout === 'function') {
+      globalThis.clearTimeout(timerId);
+    }
+    frameId = null;
+    timerId = null;
+  };
 }
 
 export function setImmersiveState({
@@ -50,15 +77,29 @@ export function setImmersiveState({
   deferFocus = deferElementFocus,
 }, open) {
   if (!shell || !immersive || !opener) return;
+  pendingImmersiveFocus.get(immersive)?.();
+  pendingImmersiveFocus.delete(immersive);
   const wasOpen = immersive.getAttribute('aria-hidden') === 'false';
   shell.inert = open;
   immersive.classList.toggle('is-open', open);
   immersive.setAttribute('aria-hidden', String(!open));
   opener.setAttribute('aria-expanded', String(open));
   if (open) {
-    deferFocus(() => {
+    let focusPending = true;
+    const cancelScheduledFocus = deferFocus(() => {
+      if (!focusPending) return;
+      focusPending = false;
+      pendingImmersiveFocus.delete(immersive);
       if (immersive.getAttribute('aria-hidden') === 'false') closeButton?.focus();
     });
+    const cancelFocus = () => {
+      if (!focusPending) return;
+      focusPending = false;
+      if (typeof cancelScheduledFocus === 'function') cancelScheduledFocus();
+    };
+    if (focusPending) {
+      pendingImmersiveFocus.set(immersive, cancelFocus);
+    }
   }
   else if (wasOpen) opener.focus();
 }

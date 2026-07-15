@@ -5398,12 +5398,21 @@
         }
 
         function syncContinuousRendering() {
-            if (shouldAnimateContinuously()) {
+            const continuousRendering = shouldAnimateContinuously();
+            const desktopVisualizerActive = continuousRendering
+                && desktopShellMedia.matches
+                && document.documentElement.classList.contains('desktop-immersive-open');
+
+            if (desktopVisualizerActive) {
                 visualizer?.start();
+            } else {
+                visualizer?.stop();
+            }
+
+            if (continuousRendering) {
                 fluidBg?.start();
                 lyricsCanvas?.start();
             } else {
-                visualizer?.stop();
                 fluidBg?.stop();
                 lyricsCanvas?.stop();
             }
