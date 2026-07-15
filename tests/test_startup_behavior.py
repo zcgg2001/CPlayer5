@@ -128,6 +128,63 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("dom.desktopMiniCover.src = picUrl", load_song)
         self.assertNotIn("MutationObserver", self.source)
 
+    def test_discovery_loads_new_song_chart_and_reuses_the_queue(self):
+        self.assertIn("const NEW_SONGS_PLAYLIST_ID = '3779629';", self.source)
+        service = function_block(
+            self.source,
+            "class MusicService",
+            "class LyricService",
+        )
+        self.assertIn("async getNewSongs", service)
+        self.assertIn("/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}", service)
+        self.assertIn("normalizePlaylistPayload(json).slice(0, 12)", service)
+
+        startup = function_block(
+            self.source,
+            "document.addEventListener('DOMContentLoaded', async () => {",
+            "function initEventListeners()",
+        )
+        self.assertIn("loadNewSongDiscovery();", startup)
+
+        listeners = function_block(
+            self.source,
+            "function initEventListeners()",
+            "function toggleSearchPanel(forceState)",
+        )
+        self.assertIn(
+            "dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);",
+            listeners,
+        )
+
+        discovery = function_block(
+            self.source,
+            "async function loadNewSongDiscovery()",
+            "// ★ Helper for MediaSession",
+        )
+        for fragment in (
+            "musicService.getNewSongs",
+            "window.insertSongToPlaylist(newSong)",
+            "window.playSongAtIndex(targetIndex)",
+            "existingIndex",
+            "document.createElement('button')",
+            "replaceChildren",
+        ):
+            self.assertIn(fragment, discovery)
+
+    def test_song_resolution_falls_back_across_supported_quality_levels(self):
+        self.assertIn(
+            "const SONG_QUALITY_FALLBACKS = ['jymaster', 'lossless', 'exhigh', 'standard'];",
+            self.source,
+        )
+        service = function_block(
+            self.source,
+            "class MusicService",
+            "class LyricService",
+        )
+        self.assertIn("for (const level of SONG_QUALITY_FALLBACKS)", service)
+        self.assertIn("normalizeSongPayload(json, level)", service)
+        self.assertIn("if (song) return song;", service)
+
     def test_desktop_progress_supports_keyboard_seek_and_aria_updates(self):
         listeners = function_block(
             self.source,

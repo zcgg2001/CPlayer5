@@ -1029,7 +1029,7 @@
                     <button id="desktopNavLibrary" class="app-nav-item" type="button"
                         data-shell-destination="library" aria-controls="desktopLibraryView" aria-current="page">
                         <i class="fas fa-compact-disc" aria-hidden="true"></i>
-                        <span>音乐库</span>
+                        <span>发现音乐</span>
                     </button>
                     <button id="desktopImmersiveToggle" class="app-nav-item" type="button"
                         data-shell-destination="now-playing" aria-controls="desktopLayout" aria-expanded="false">
@@ -1074,8 +1074,8 @@
                 </div>
 
                 <div class="app-topbar-copy">
-                    <strong>音乐库</strong>
-                    <span>搜索、导入并管理当前播放内容</span>
+                    <strong>发现音乐</strong>
+                    <span>浏览新歌、搜索并管理当前播放内容</span>
                 </div>
 
                 <div class="app-topbar-actions">
@@ -1096,13 +1096,43 @@
                 <div class="library-content">
                     <header class="library-heading">
                         <div>
-                            <p class="library-kicker">YOUR MUSIC</p>
-                            <h1 id="desktopLibraryTitle">音乐库</h1>
+                            <p class="library-kicker">DISCOVER</p>
+                            <h1 id="desktopLibraryTitle">发现音乐</h1>
                             <p class="library-description">
-                                使用现有搜索、播放队列与导入工具组织音乐。这里不展示虚构榜单或推荐，只呈现可直接使用的功能。
+                                浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
                             </p>
                         </div>
                     </header>
+
+                    <section id="desktopDiscoverySection" class="discovery-panel"
+                        aria-labelledby="desktopDiscoveryTitle">
+                        <header class="discovery-heading">
+                            <div class="discovery-heading-copy">
+                                <div class="discovery-title-row">
+                                    <h2 id="desktopDiscoveryTitle">新歌速递</h2>
+                                    <span class="discovery-source">网易云新歌榜</span>
+                                </div>
+                                <p>真实榜单数据 · 每次展示最新 12 首</p>
+                            </div>
+                            <button id="desktopDiscoveryRefresh" class="discovery-refresh" type="button"
+                                aria-label="刷新新歌速递">
+                                <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                <span>刷新</span>
+                            </button>
+                        </header>
+                        <div class="discovery-list-header" aria-hidden="true">
+                            <span>#</span>
+                            <span>标题</span>
+                            <span class="discovery-column-album">专辑</span>
+                            <span>操作</span>
+                        </div>
+                        <div id="desktopDiscoveryList" class="discovery-list" aria-live="polite" aria-busy="true">
+                            <div class="discovery-status" role="status">
+                                <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                <span>正在获取新歌榜...</span>
+                            </div>
+                        </div>
+                    </section>
 
                     <section id="desktopContentSearch" aria-labelledby="desktopSearchTitle">
                         <div class="search-heading">
@@ -1702,6 +1732,8 @@
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
+        const NEW_SONGS_PLAYLIST_ID = '3779629';
+        const SONG_QUALITY_FALLBACKS = ['jymaster', 'lossless', 'exhigh', 'standard'];
 
         function persistentCoverUrl(value) {
             const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
@@ -1805,12 +1837,19 @@
                 return normalizeSearchPayload(json);
             }
 
-            async getSong(id, { signal } = {}) {
-                const level = 'jymaster';
-                const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
+            async getNewSongs({ signal } = {}) {
+                const url = `${this.baseUrl}/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}`;
                 const json = await requestJson(url, { signal });
-                const song = normalizeSongPayload(json, level);
-                if (song) return song;
+                return normalizePlaylistPayload(json).slice(0, 12);
+            }
+
+            async getSong(id, { signal } = {}) {
+                for (const level of SONG_QUALITY_FALLBACKS) {
+                    const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
+                    const json = await requestJson(url, { signal });
+                    const song = normalizeSongPayload(json, level);
+                    if (song) return song;
+                }
                 throw new Error('ChKSz GetSong Failed');
             }
 
@@ -2144,6 +2183,7 @@
             initSettingsUI();
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
             loadDefaultPlaylist();
+            loadNewSongDiscovery();
             visualizer = initVisualizer();
             syncContinuousRendering();
             // checkSystemTheme(); // Removed
@@ -2195,6 +2235,7 @@
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
+            dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);
 
             // Desktop Tab Switching
             const desktopTabPlaylist = document.getElementById('desktopTabPlaylist');
@@ -2774,6 +2815,146 @@
                     desktopSearchController = null;
                 }
             }
+        }
+
+        let desktopDiscoveryController = null;
+
+        async function loadNewSongDiscovery() {
+            if (!dom.desktopDiscoveryList) return;
+
+            desktopDiscoveryController?.abort();
+            const requestController = new AbortController();
+            desktopDiscoveryController = requestController;
+            dom.desktopDiscoveryList.setAttribute('aria-busy', 'true');
+            if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = true;
+            setDiscoveryStatus('正在获取真实新歌榜...');
+
+            try {
+                const songs = await musicService.getNewSongs({
+                    signal: requestController.signal
+                });
+                if (!songs.length) throw new Error('New song chart was empty');
+                renderDiscoverySongs(songs);
+            } catch (error) {
+                if (error instanceof RequestCancelledError) return;
+                console.error('新歌榜加载失败:', error);
+                setDiscoveryStatus(`新歌榜加载失败：${requestErrorMessage(error)}`, { error: true });
+            } finally {
+                if (desktopDiscoveryController === requestController) {
+                    desktopDiscoveryController = null;
+                    dom.desktopDiscoveryList.setAttribute('aria-busy', 'false');
+                    if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = false;
+                }
+            }
+        }
+
+        function setDiscoveryStatus(message, { error = false } = {}) {
+            const status = document.createElement('div');
+            status.className = `discovery-status${error ? ' is-error' : ''}`;
+            status.setAttribute('role', 'status');
+
+            const icon = document.createElement('i');
+            icon.className = error ? 'fas fa-exclamation-circle' : 'fas fa-spinner fa-spin';
+            icon.setAttribute('aria-hidden', 'true');
+
+            const label = document.createElement('span');
+            label.textContent = message;
+            status.append(icon, label);
+            dom.desktopDiscoveryList.replaceChildren(status);
+        }
+
+        function renderDiscoverySongs(songs) {
+            const fragment = document.createDocumentFragment();
+            songs.forEach((song, index) => fragment.appendChild(createDiscoverySongRow(song, index)));
+            dom.desktopDiscoveryList.replaceChildren(fragment);
+        }
+
+        function createDiscoverySongRow(song, index) {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'discovery-song-row';
+            row.dataset.songId = String(song.id);
+            row.setAttribute('aria-label', `加入并播放 ${song.name} - ${song.artist}`);
+
+            const number = document.createElement('span');
+            number.className = 'discovery-song-index';
+            number.textContent = String(index + 1).padStart(2, '0');
+
+            const main = document.createElement('span');
+            main.className = 'discovery-song-main';
+
+            const cover = document.createElement('span');
+            cover.className = 'discovery-song-cover';
+            const coverUrl = normalizeMediaUrl(song.cover, { baseUrl: window.location.href });
+            if (coverUrl) {
+                const image = document.createElement('img');
+                image.alt = '';
+                image.width = 48;
+                image.height = 48;
+                image.loading = 'lazy';
+                image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                window.getCachedImage(`${coverUrl}?param=96y96`).then(cachedSrc => {
+                    if (image.isConnected && cachedSrc) image.src = cachedSrc;
+                });
+                cover.appendChild(image);
+            } else {
+                const coverIcon = document.createElement('i');
+                coverIcon.className = 'fas fa-music';
+                coverIcon.setAttribute('aria-hidden', 'true');
+                cover.appendChild(coverIcon);
+            }
+
+            const copy = document.createElement('span');
+            copy.className = 'discovery-song-copy';
+            const title = document.createElement('strong');
+            title.textContent = song.name || '未知歌曲';
+            const artist = document.createElement('span');
+            artist.textContent = song.artist || '未知艺术家';
+            copy.append(title, artist);
+            main.append(cover, copy);
+
+            const album = document.createElement('span');
+            album.className = 'discovery-song-album';
+            album.textContent = song.album || '单曲';
+
+            const action = document.createElement('span');
+            action.className = 'discovery-song-action';
+            const actionIcon = document.createElement('i');
+            actionIcon.className = 'fas fa-plus';
+            actionIcon.setAttribute('aria-hidden', 'true');
+            const actionLabel = document.createElement('span');
+            actionLabel.textContent = '加入播放';
+            action.append(actionIcon, actionLabel);
+
+            row.append(number, main, album, action);
+            row.addEventListener('click', () => addDiscoverySong(song));
+            return row;
+        }
+
+        function addDiscoverySong(song) {
+            const existingIndex = playlist.findIndex(item => String(item.id) === String(song.id));
+            if (existingIndex >= 0) {
+                window.playSongAtIndex(existingIndex);
+                showToast(`已在播放列表: ${song.name}`);
+                return;
+            }
+
+            const newSong = {
+                id: song.id,
+                name: song.name,
+                artist: song.artist,
+                cover: song.cover,
+                album: song.album || '',
+                source: 'new-song-chart'
+            };
+            const targetIndex = window.insertSongToPlaylist(newSong);
+            playlistTotalCount = playlist.length;
+            allSongsLoaded = true;
+            renderAllPlaylistItems();
+            if (mobileUI) mobileUI.loadPlaylist();
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+            window.playSongAtIndex(targetIndex);
+            showToast(`已添加并播放: ${newSong.name}`);
         }
 
         // ★ Helper for MediaSession

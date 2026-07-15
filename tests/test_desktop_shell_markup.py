@@ -135,6 +135,32 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertEqual(hover_color, "#fff !important")
         self.assertEqual(hover_background, "var(--shell-accent-strong)")
 
+    def test_discovery_section_supports_browsing_real_new_songs(self):
+        for element_id in (
+            "desktopDiscoverySection",
+            "desktopDiscoveryTitle",
+            "desktopDiscoveryList",
+            "desktopDiscoveryRefresh",
+        ):
+            self.assertIn(element_id, self.markup.by_id)
+
+        section = self.markup.by_id["desktopDiscoverySection"]
+        refresh = self.markup.by_id["desktopDiscoveryRefresh"]
+        self.assertEqual(section["tag"], "section")
+        self.assertEqual(section.get("aria-labelledby"), "desktopDiscoveryTitle")
+        self.assertEqual(refresh["tag"], "button")
+        self.assertEqual(refresh.get("type"), "button")
+        self.assertEqual(refresh.get("aria-label"), "刷新新歌速递")
+        self.assertIn("网易云新歌榜", self.source)
+
+    def test_discovery_rows_use_a_dense_table_like_layout(self):
+        selector = "#desktopLibraryView .discovery-song-row"
+        self.assertEqual(
+            self.css_property(selector, "grid-template-columns"),
+            "48px minmax(240px, 1.5fr) minmax(160px, 0.8fr) 112px",
+        )
+        self.assertEqual(self.css_property(selector, "min-height"), "72px")
+
     def test_player_and_volume_popover_stack_above_desktop_overlays(self):
         player_z = int(self.css_property("#desktopPlayerBar", "z-index"))
         immersive_z = int(self.css_property("#desktopLayout", "z-index"))

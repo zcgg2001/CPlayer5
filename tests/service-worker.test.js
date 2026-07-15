@@ -116,11 +116,11 @@ test('precaches the desktop shell assets', () => {
   assert.ok(coreAssets.includes('./js/app-shell.js'));
 });
 
-test('retires the v7 shell cache after the desktop shell upgrade', () => {
+test('retires the v8 shell cache after the discovery upgrade', () => {
   const { cacheNamesToDelete } = loadServiceWorker();
 
   assert.deepEqual(
-    Array.from(cacheNamesToDelete(['cplayer5-shell-v7', 'cplayer5-shell-v8'])),
-    ['cplayer5-shell-v7'],
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v8', 'cplayer5-shell-v9'])),
+    ['cplayer5-shell-v8'],
   );
 });
