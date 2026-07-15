@@ -79,6 +79,7 @@ function fakeShellSetup() {
     eventTarget: fakeElement(),
     documentElement: fakeElement(),
     destinationButtons: [libraryButton, queueButton],
+    navigationButtons: [libraryButton, queueButton],
   };
   elements.immersive.setAttribute('aria-hidden', 'true');
   elements.opener.setAttribute('aria-expanded', 'false');
@@ -149,6 +150,24 @@ test('immersive state defers focus until inert visibility updates settle', () =>
   assert.equal(immersive.getAttribute('aria-hidden'), 'true');
   assert.equal(opener.getAttribute('aria-expanded'), 'false');
   assert.equal(opener.focusCalled, true);
+});
+
+test('immersive state inerts only the injected browsing surfaces', () => {
+  const shell = fakeElement();
+  const immersive = fakeElement();
+  const opener = fakeElement();
+  const closeButton = fakeElement();
+  const inertTargets = [fakeElement(), fakeElement(), fakeElement()];
+
+  setImmersiveState({ shell, inertTargets, immersive, opener, closeButton }, true);
+
+  assert.equal(shell.inert, false);
+  inertTargets.forEach(target => assert.equal(target.inert, true));
+
+  setImmersiveState({ shell, inertTargets, immersive, opener, closeButton }, false);
+
+  assert.equal(shell.inert, false);
+  inertTargets.forEach(target => assert.equal(target.inert, false));
 });
 
 test('browser focus waits for a later task after the animation frame', () => {
@@ -268,6 +287,82 @@ test('app shell runs destination actions and updates local history controls', ()
   assert.deepEqual(actionCalls, ['queue', 'library', 'queue']);
   assert.equal(elements.backButton.disabled, false);
   assert.equal(elements.forwardButton.disabled, true);
+
+  controller.destroy();
+});
+
+test('aria-current is limited to injected navigation buttons', () => {
+  const { elements, libraryButton, queueButton } = fakeShellSetup();
+  const queueCardButton = fakeElement();
+  const actionCalls = [];
+  queueCardButton.dataset.shellDestination = 'queue';
+  elements.destinationButtons.push(queueCardButton);
+
+  const controller = initAppShell({
+    elements,
+    actions: { queue: () => actionCalls.push('queue') },
+  });
+
+  queueCardButton.dispatch('click');
+
+  assert.deepEqual(actionCalls, ['queue']);
+  assert.equal(queueCardButton.getAttribute('aria-current'), null);
+  assert.equal(queueButton.getAttribute('aria-current'), 'page');
+  assert.equal(libraryButton.getAttribute('aria-current'), null);
+
+  controller.destroy();
+});
+
+test('library navigation focuses its view while immersive close paths restore the opener', () => {
+  const { elements, libraryButton, queueButton } = fakeShellSetup();
+  const libraryView = fakeElement();
+  let focusedElement = null;
+  elements.opener.focus = () => {
+    elements.opener.focusCalled = true;
+    elements.opener.focusCalls += 1;
+    focusedElement = 'opener';
+  };
+  libraryView.focus = () => {
+    libraryView.focusCalled = true;
+    libraryView.focusCalls += 1;
+    focusedElement = 'library';
+  };
+  const controller = initAppShell({
+    elements,
+    actions: { library: () => libraryView.focus() },
+  });
+
+  queueButton.dispatch('click');
+  libraryButton.dispatch('click');
+  assert.equal(libraryView.focusCalls, 1);
+
+  controller.back();
+  controller.forward();
+  assert.equal(libraryView.focusCalls, 2);
+  assert.equal(focusedElement, 'library');
+
+  controller.setImmersive(true);
+  controller.back();
+  assert.equal(libraryView.focusCalls, 3);
+  assert.equal(focusedElement, 'library');
+
+  controller.setImmersive(true);
+  controller.setImmersive(false);
+  assert.equal(elements.opener.focusCalls, 2);
+  assert.equal(libraryView.focusCalls, 3);
+  assert.equal(focusedElement, 'opener');
+
+  controller.setImmersive(true);
+  elements.eventTarget.dispatch('keydown', { key: 'Escape' });
+  assert.equal(elements.opener.focusCalls, 3);
+  assert.equal(libraryView.focusCalls, 3);
+  assert.equal(focusedElement, 'opener');
+
+  controller.setImmersive(true);
+  elements.closeButton.dispatch('click');
+  assert.equal(elements.opener.focusCalls, 4);
+  assert.equal(libraryView.focusCalls, 3);
+  assert.equal(focusedElement, 'opener');
 
   controller.destroy();
 });

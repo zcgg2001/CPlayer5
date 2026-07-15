@@ -1245,7 +1245,7 @@
             </footer>
         </div>
 
-        <section id="desktopLayout" aria-hidden="true" role="dialog" aria-modal="true"
+        <section id="desktopLayout" aria-hidden="true" role="dialog"
             aria-label="沉浸式正在播放">
             <header class="immersive-header">
                 <div class="immersive-heading">
@@ -2103,11 +2103,20 @@
                     closeButton: dom.desktopImmersiveClose,
                     backButton: dom.desktopBackBtn,
                     forwardButton: dom.desktopForwardBtn,
+                    inertTargets: [
+                        document.querySelector('.app-skip-link'),
+                        dom.desktopShell.querySelector('.app-sidebar'),
+                        dom.desktopShell.querySelector('.app-topbar'),
+                        dom.desktopLibraryView,
+                        dom.floatingPlaylistPanel,
+                    ],
                     destinationButtons: Array.from(document.querySelectorAll('[data-shell-destination]')),
+                    navigationButtons: Array.from(document.querySelectorAll('.app-navigation [data-shell-destination]')),
                     eventTarget: document,
                     documentElement: document.documentElement,
                 },
                 actions: {
+                    library: () => dom.desktopLibraryView?.focus(),
                     queue: () => {
                         switchDesktopTab('playlist');
                         togglePlaylistPanel(true);

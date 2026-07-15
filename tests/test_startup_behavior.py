@@ -72,6 +72,30 @@ class StartupBehaviorTests(unittest.TestCase):
         ):
             self.assertIn(fragment, startup)
 
+    def test_desktop_shell_scopes_inertness_navigation_state_and_library_focus(self):
+        startup = function_block(
+            self.source,
+            "document.addEventListener('DOMContentLoaded', async () => {",
+            "function initEventListeners()",
+        )
+        shell_init = function_block(
+            startup,
+            "desktopShell = initAppShell({",
+            "restoreLastCover();",
+        )
+        for fragment in (
+            "inertTargets: [",
+            "document.querySelector('.app-skip-link')",
+            "dom.desktopShell.querySelector('.app-sidebar')",
+            "dom.desktopShell.querySelector('.app-topbar')",
+            "dom.desktopLibraryView",
+            "dom.floatingPlaylistPanel",
+            "navigationButtons: Array.from(document.querySelectorAll('.app-navigation [data-shell-destination]'))",
+            "library: () => dom.desktopLibraryView?.focus()",
+        ):
+            self.assertIn(fragment, shell_init)
+        self.assertNotIn("dom.desktopPlayerBar", shell_init)
+
     def test_shell_owned_destinations_do_not_keep_legacy_desktop_bindings(self):
         listeners = function_block(
             self.source,

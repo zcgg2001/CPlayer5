@@ -114,6 +114,11 @@ class AccessibilityMarkupTests(unittest.TestCase):
             self.assertEqual(dialog.get("aria-modal"), "true", element_id)
             self.assertTrue(dialog.get("aria-labelledby"), element_id)
 
+    def test_immersive_player_is_non_modal_with_external_controls(self):
+        immersive = parse_markup("index.html").by_id["desktopLayout"]
+        self.assertEqual(immersive.get("role"), "dialog")
+        self.assertNotIn("aria-modal", immersive)
+
     def test_file_drop_zone_is_keyboard_operable(self):
         drop_zone = parse_markup("index.html").by_id["settingsDropZone"]
         self.assertEqual(drop_zone.get("role"), "button")

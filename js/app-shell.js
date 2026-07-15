@@ -71,16 +71,18 @@ function deferElementFocus(callback) {
 
 export function setImmersiveState({
   shell,
+  inertTargets,
   immersive,
   opener,
   closeButton,
   deferFocus = deferElementFocus,
 }, open) {
-  if (!shell || !immersive || !opener) return;
+  if (!immersive || !opener) return;
   pendingImmersiveFocus.get(immersive)?.();
   pendingImmersiveFocus.delete(immersive);
   const wasOpen = immersive.getAttribute('aria-hidden') === 'false';
-  shell.inert = open;
+  const targets = Array.isArray(inertTargets) ? inertTargets : [shell];
+  targets.filter(Boolean).forEach(target => { target.inert = open; });
   immersive.classList.toggle('is-open', open);
   immersive.setAttribute('aria-hidden', String(!open));
   opener.setAttribute('aria-expanded', String(open));
@@ -120,7 +122,10 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
     if (elements.forwardButton) elements.forwardButton.disabled = !history.canForward();
   };
 
-  const applyDestination = (destination, { record = true, trigger = null } = {}) => {
+  const applyDestination = (
+    destination,
+    { record = true, trigger = null, runAction = true } = {},
+  ) => {
     if (record) history.push(destination);
     const immersiveOpen = destination === 'now-playing';
     if (immersiveOpen && trigger && trigger !== immersiveOpener) {
@@ -129,12 +134,12 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
     }
     setImmersiveState({ ...elements, opener: immersiveOpener }, immersiveOpen);
     elements.documentElement?.classList.toggle('desktop-immersive-open', immersiveOpen);
-    elements.destinationButtons?.forEach(button => {
+    (elements.navigationButtons ?? elements.destinationButtons)?.forEach(button => {
       const active = button.dataset.shellDestination === destination;
       if (active) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     });
-    if (!immersiveOpen) actions[destination]?.();
+    if (!immersiveOpen && runAction) actions[destination]?.();
     onImmersiveChange(immersiveOpen);
     updateHistoryButtons();
     return destination;
@@ -150,13 +155,16 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
     'now-playing',
     { trigger: elements.opener },
   ));
-  listen(elements.closeButton, 'click', () => applyDestination('library'));
+  listen(elements.closeButton, 'click', () => applyDestination(
+    'library',
+    { runAction: false },
+  ));
   listen(elements.backButton, 'click', () => applyDestination(history.back(), { record: false }));
   listen(elements.forwardButton, 'click', () => applyDestination(history.forward(), { record: false }));
   listen(elements.eventTarget, 'keydown', event => {
     if (event.key === 'Escape' && elements.immersive?.getAttribute('aria-hidden') === 'false') {
       event.preventDefault();
-      applyDestination('library');
+      applyDestination('library', { runAction: false });
     }
   });
   updateHistoryButtons();
@@ -165,7 +173,10 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
     navigate: applyDestination,
     back: () => applyDestination(history.back(), { record: false }),
     forward: () => applyDestination(history.forward(), { record: false }),
-    setImmersive: open => applyDestination(open ? 'now-playing' : 'library'),
+    setImmersive: open => applyDestination(
+      open ? 'now-playing' : 'library',
+      { runAction: open },
+    ),
     destroy: () => cleanups.splice(0).forEach(cleanup => cleanup()),
   };
 }

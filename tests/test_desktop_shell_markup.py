@@ -7,6 +7,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def contrast_ratio(foreground, background):
+    def luminance(color):
+        channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [
+            channel / 12.92
+            if channel <= 0.04045
+            else ((channel + 0.055) / 1.055) ** 2.4
+            for channel in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    foreground_luminance = luminance(foreground)
+    background_luminance = luminance(background)
+    lighter = max(foreground_luminance, background_luminance)
+    darker = min(foreground_luminance, background_luminance)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
 class MarkupParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -140,3 +158,25 @@ class DesktopShellMarkupTests(unittest.TestCase):
         selector = "#desktopShell .app-sidebar"
         self.assertEqual(self.css_property(selector, "min-height"), "0")
         self.assertEqual(self.css_property(selector, "overflow-y"), "auto")
+
+    def test_muted_navigation_and_placeholder_text_meet_aa_contrast(self):
+        muted = self.css_property("#desktopApp", "--shell-muted")
+        surface = self.css_property("#desktopApp", "--shell-surface")
+        input_background = self.css_property(
+            "#desktopContentSearch #searchInput",
+            "background",
+        )
+
+        self.assertEqual(
+            self.css_property("#desktopShell .app-nav-label", "color"),
+            "var(--shell-muted)",
+        )
+        self.assertEqual(
+            self.css_property(
+                "#desktopContentSearch #searchInput::placeholder",
+                "color",
+            ),
+            "var(--shell-muted)",
+        )
+        self.assertGreaterEqual(contrast_ratio(muted, surface), 4.5)
+        self.assertGreaterEqual(contrast_ratio(muted, input_background), 4.5)
