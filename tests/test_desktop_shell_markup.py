@@ -103,6 +103,14 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertGreater(player_z, immersive_z)
         self.assertGreater(player_z, queue_z)
 
+    def test_default_player_height_keeps_queue_drawer_clear(self):
+        self.assertEqual(self.css_property("#desktopPlayerBar", "min-height"), "80px")
+        self.assertEqual(self.css_property("#floatingPlaylistPanel", "bottom"), "80px")
+        self.assertEqual(
+            self.css_property("#desktopPlayerBar", "padding"),
+            "6px 20px calc(6px + env(safe-area-inset-bottom))",
+        )
+
     def test_closed_queue_drawer_is_hidden_and_non_interactive(self):
         selector = "#floatingPlaylistPanel.translate-x-full"
         self.assertEqual(self.css_property(selector, "visibility"), "hidden")

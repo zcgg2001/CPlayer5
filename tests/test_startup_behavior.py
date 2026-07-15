@@ -144,6 +144,32 @@ class StartupBehaviorTests(unittest.TestCase):
             r"(?s)@media \(max-width: 1023\.98px\)\s*\{\s*#fullscreenBtn\.mobile-hide\s*\{\s*display:\s*none !important;",
         )
 
+    def test_fullscreen_button_tracks_actual_document_state(self):
+        sync_marker = "function syncFullscreenButton()"
+        self.assertIn(sync_marker, self.source)
+        sync = function_block(
+            self.source,
+            sync_marker,
+            "function toggleFullScreen()",
+        )
+        self.assertIn("Boolean(document.fullscreenElement)", sync)
+        self.assertIn("icon.classList.toggle('fa-expand', !isFullscreen);", sync)
+        self.assertIn("icon.classList.toggle('fa-compress', isFullscreen);", sync)
+        self.assertEqual(
+            self.source.count(
+                "document.addEventListener('fullscreenchange', syncFullscreenButton);"
+            ),
+            1,
+        )
+        toggle = function_block(
+            self.source,
+            "function toggleFullScreen()",
+            "// 沉浸模式状态",
+        )
+        self.assertIn("await document.documentElement.requestFullscreen();", toggle)
+        self.assertIn("await document.exitFullscreen();", toggle)
+        self.assertNotIn("classList.replace", toggle)
+
     def test_desktop_browsing_pauses_continuous_renderers(self):
         predicate = function_block(
             self.source,

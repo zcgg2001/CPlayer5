@@ -111,7 +111,7 @@
   min-height: 80px;
   align-items: center;
   gap: 24px;
-  padding: 10px 20px calc(10px + env(safe-area-inset-bottom));
+  padding: 6px 20px calc(6px + env(safe-area-inset-bottom));
   color: #fff;
   background: rgba(40, 24, 59, 0.97);
   box-shadow: 0 -12px 30px rgba(31, 18, 46, 0.14);

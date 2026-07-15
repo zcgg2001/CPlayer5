@@ -4107,17 +4107,28 @@
             return { h: Math.round(h * 360), s, l };
         }
 
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    showToast(`无法启用全屏: ${err.message}`, true);
-                });
-                document.querySelector('#fullscreenBtn i').classList.replace('fa-expand', 'fa-compress');
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    document.querySelector('#fullscreenBtn i').classList.replace('fa-compress', 'fa-expand');
+        function syncFullscreenButton() {
+            const icon = document.querySelector('#fullscreenBtn i');
+            if (!icon) return;
+            const isFullscreen = Boolean(document.fullscreenElement);
+            icon.classList.toggle('fa-expand', !isFullscreen);
+            icon.classList.toggle('fa-compress', isFullscreen);
+        }
+
+        document.addEventListener('fullscreenchange', syncFullscreenButton);
+        syncFullscreenButton();
+
+        async function toggleFullScreen() {
+            const enteringFullscreen = !document.fullscreenElement;
+            try {
+                if (enteringFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.exitFullscreen) {
+                    await document.exitFullscreen();
                 }
+            } catch (err) {
+                showToast(`无法${enteringFullscreen ? '启用' : '退出'}全屏: ${err.message}`, true);
+                syncFullscreenButton();
             }
         }
 
