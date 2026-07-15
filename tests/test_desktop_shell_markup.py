@@ -26,6 +26,17 @@ class DesktopShellMarkupTests(unittest.TestCase):
         cls.markup = MarkupParser()
         cls.markup.feed(cls.source)
 
+    def css_rule(self, selector):
+        match = re.search(rf"{re.escape(selector)}\s*\{{([^}}]*)\}}", self.css)
+        self.assertIsNotNone(match, f"missing CSS rule for {selector}")
+        return match.group(1)
+
+    def css_property(self, selector, property_name):
+        declarations = self.css_rule(selector)
+        match = re.search(rf"{re.escape(property_name)}\s*:\s*([^;]+);", declarations)
+        self.assertIsNotNone(match, f"missing {property_name} in {selector}")
+        return match.group(1).strip()
+
     def test_shell_assets_and_1024_breakpoint_exist(self):
         self.assertIn('href="./css/app-shell.css"', self.source)
         self.assertIn("@media (min-width: 1024px)", self.css)
@@ -68,3 +79,56 @@ class DesktopShellMarkupTests(unittest.TestCase):
         )
         drawer_classes = self.markup.by_id["floatingPlaylistPanel"].get("class", "")
         self.assertIn("translate-x-full", drawer_classes.split())
+
+    def test_topbar_search_shortcut_keeps_an_accessible_name(self):
+        shortcut = self.markup.by_id["desktopSearchShortcut"]
+        self.assertEqual(shortcut.get("aria-label"), "搜索音乐")
+
+    def test_topbar_search_shortcut_overrides_legacy_anchor_colors(self):
+        normal_color = self.css_property(
+            "#desktopShell #desktopSearchShortcut",
+            "color",
+        )
+        hover_color = self.css_property(
+            "#desktopShell #desktopSearchShortcut:hover",
+            "color",
+        )
+        self.assertEqual(normal_color, "var(--shell-text) !important")
+        self.assertEqual(hover_color, "var(--shell-accent-strong) !important")
+
+    def test_player_and_volume_popover_stack_above_desktop_overlays(self):
+        player_z = int(self.css_property("#desktopPlayerBar", "z-index"))
+        immersive_z = int(self.css_property("#desktopLayout", "z-index"))
+        queue_z = int(self.css_property("#floatingPlaylistPanel", "z-index"))
+        self.assertGreater(player_z, immersive_z)
+        self.assertGreater(player_z, queue_z)
+
+    def test_closed_queue_drawer_is_hidden_and_non_interactive(self):
+        selector = "#floatingPlaylistPanel.translate-x-full"
+        self.assertEqual(self.css_property(selector, "visibility"), "hidden")
+        self.assertEqual(self.css_property(selector, "pointer-events"), "none")
+
+    def test_open_queue_drawer_restores_visibility_and_interaction(self):
+        selector = "#floatingPlaylistPanel"
+        self.assertEqual(self.css_property(selector, "visibility"), "visible")
+        self.assertEqual(self.css_property(selector, "pointer-events"), "auto")
+
+    def test_search_skeleton_blocks_are_visible_on_the_light_surface(self):
+        color = self.css_property(
+            r"#desktopContentSearch .bg-white\/10",
+            "background-color",
+        )
+        self.assertEqual(color, "rgba(102, 87, 217, 0.14) !important")
+
+    def test_search_skeleton_shimmer_is_visible_on_the_light_surface(self):
+        image = self.css_property(
+            "#desktopContentSearch .bg-gradient-to-r",
+            "background-image",
+        )
+        self.assertIn("rgba(102, 87, 217, 0.16)", image)
+        self.assertTrue(image.endswith("!important"))
+
+    def test_short_desktop_sidebar_can_scroll_to_tools(self):
+        selector = "#desktopShell .app-sidebar"
+        self.assertEqual(self.css_property(selector, "min-height"), "0")
+        self.assertEqual(self.css_property(selector, "overflow-y"), "auto")
