@@ -10,10 +10,12 @@ class MarkupParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.by_id = {}
+        self.elements = []
         self.viewport = None
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
+        self.elements.append({"tag": tag, **attributes})
         element_id = attributes.get("id")
         if element_id:
             self.by_id[element_id] = {"tag": tag, **attributes}
@@ -60,6 +62,42 @@ class AccessibilityMarkupTests(unittest.TestCase):
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
 
+    def test_desktop_shell_controls_have_accessible_names(self):
+        markup = parse_markup("index.html")
+        for element_id in (
+            "desktopMiniPlayer",
+            "desktopImmersiveClose",
+            "desktopBackBtn",
+            "desktopForwardBtn",
+            "desktopImportBtn",
+        ):
+            self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
+
+    def test_desktop_shell_skip_link_targets_a_real_region(self):
+        markup = parse_markup("index.html")
+        skip_link = next(
+            element
+            for element in markup.elements
+            if "app-skip-link" in element.get("class", "").split()
+        )
+        target_id = skip_link.get("href", "").removeprefix("#")
+        self.assertTrue(target_id)
+        self.assertIn(target_id, markup.by_id)
+        self.assertEqual(markup.by_id[target_id].get("tabindex"), "-1")
+
+    def test_desktop_progress_track_has_keyboard_slider_semantics(self):
+        markup = parse_markup("index.html")
+        progress = next(
+            element
+            for element in markup.elements
+            if "progress-bar-container" in element.get("class", "").split()
+        )
+        self.assertEqual(progress.get("role"), "slider")
+        self.assertEqual(progress.get("tabindex"), "0")
+        self.assertEqual(progress.get("aria-valuemin"), "0")
+        self.assertEqual(progress.get("aria-valuemax"), "100")
+        self.assertEqual(progress.get("aria-valuenow"), "0")
+
     def test_status_messages_are_announced(self):
         player_toast = parse_markup("index.html").by_id["copyToast"]
         downloader_toast = parse_markup("playlist-downloader.html").by_id["toast"]
@@ -75,6 +113,11 @@ class AccessibilityMarkupTests(unittest.TestCase):
             self.assertEqual(dialog.get("role"), "dialog", element_id)
             self.assertEqual(dialog.get("aria-modal"), "true", element_id)
             self.assertTrue(dialog.get("aria-labelledby"), element_id)
+
+    def test_immersive_player_is_non_modal_with_external_controls(self):
+        immersive = parse_markup("index.html").by_id["desktopLayout"]
+        self.assertEqual(immersive.get("role"), "dialog")
+        self.assertNotIn("aria-modal", immersive)
 
     def test_file_drop_zone_is_keyboard_operable(self):
         drop_zone = parse_markup("index.html").by_id["settingsDropZone"]

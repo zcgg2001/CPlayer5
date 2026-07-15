@@ -107,3 +107,20 @@ test('precaches the oneko pet runtime and sprite assets', () => {
   assert.ok(coreAssets.includes('./js/oneko-butterfly.js'));
   assert.ok(coreAssets.includes('./img/oneko-tora.gif'));
 });
+
+test('precaches the desktop shell assets', () => {
+  const context = loadServiceWorker();
+  const coreAssets = vm.runInContext('CORE_ASSETS', context);
+
+  assert.ok(coreAssets.includes('./css/app-shell.css'));
+  assert.ok(coreAssets.includes('./js/app-shell.js'));
+});
+
+test('retires the v9 shell cache after the standalone search upgrade', () => {
+  const { cacheNamesToDelete } = loadServiceWorker();
+
+  assert.deepEqual(
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v9', 'cplayer5-shell-v10'])),
+    ['cplayer5-shell-v9'],
+  );
+});
