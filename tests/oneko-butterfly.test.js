@@ -45,6 +45,16 @@ test('uses a compact resting layout on mobile and reduced motion', () => {
   assert.equal(reduced.size, 64);
 });
 
+test('uses the desktop shell boundary for compact and desktop pet layouts', () => {
+  const compact = getPetLayout(1023, 720, false);
+  const desktop = getPetLayout(1024, 720, false);
+
+  assert.equal(compact.mode, 'rest');
+  assert.equal(compact.size, 32);
+  assert.equal(desktop.mode, 'chase');
+  assert.equal(desktop.size, 64);
+});
+
 test('clamps targets to the configured safe rectangle', () => {
   assert.deepEqual(
     clampPoint(

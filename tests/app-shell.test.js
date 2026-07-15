@@ -55,6 +55,14 @@ function fakeElement() {
   };
 }
 
+function clickableElement(dataset = {}) {
+  const element = fakeElement();
+  element.dataset = dataset;
+  element.click = () => element.dispatch('click');
+  element.keydown = key => element.dispatch('keydown', { key });
+  return element;
+}
+
 function fakeShellSetup() {
   const libraryButton = fakeElement();
   const queueButton = fakeElement();
@@ -219,6 +227,53 @@ test('app shell destroy removes every registered listener', () => {
 
   queueButton.dispatch('click');
   assert.deepEqual(actionCalls, []);
+});
+
+test('shell destinations call injected actions and update history buttons', () => {
+  const shell = clickableElement();
+  const immersive = clickableElement();
+  immersive.setAttribute('aria-hidden', 'true');
+  const opener = clickableElement({ shellDestination: 'now-playing' });
+  const closeButton = clickableElement();
+  const backButton = clickableElement();
+  const forwardButton = clickableElement();
+  const queueButton = clickableElement({ shellDestination: 'queue' });
+  const eventTarget = clickableElement();
+  const calls = [];
+
+  const controller = initAppShell({
+    elements: {
+      shell,
+      immersive,
+      opener,
+      closeButton,
+      backButton,
+      forwardButton,
+      destinationButtons: [queueButton],
+      eventTarget,
+      documentElement: clickableElement(),
+    },
+    actions: { queue: () => calls.push('queue') },
+  });
+
+  queueButton.click();
+  assert.deepEqual(calls, ['queue']);
+  assert.equal(backButton.disabled, false);
+  controller.back();
+  assert.equal(forwardButton.disabled, false);
+});
+
+test('destroy removes shell listeners', () => {
+  const queueButton = clickableElement({ shellDestination: 'queue' });
+  const calls = [];
+  const controller = initAppShell({
+    elements: { destinationButtons: [queueButton] },
+    actions: { queue: () => calls.push('queue') },
+  });
+
+  controller.destroy();
+  queueButton.click();
+  assert.deepEqual(calls, []);
 });
 
 test('ordinary destinations do not restore focus reserved for immersive close', () => {

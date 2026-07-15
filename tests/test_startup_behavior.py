@@ -41,6 +41,115 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("Array.isArray(window.playlist)", preload)
         self.assertNotIn("window.playlist.length > 0", preload)
 
+    def test_desktop_shell_initializes_with_injected_elements_and_actions(self):
+        self.assertIn(
+            "import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';",
+            self.source,
+        )
+        startup = function_block(
+            self.source,
+            "document.addEventListener('DOMContentLoaded', async () => {",
+            "function initEventListeners()",
+        )
+        for fragment in (
+            "desktopShell = initAppShell({",
+            "shell: dom.desktopShell",
+            "immersive: dom.desktopLayout",
+            "opener: dom.desktopMiniPlayer",
+            "closeButton: dom.desktopImmersiveClose",
+            "backButton: dom.desktopBackBtn",
+            "forwardButton: dom.desktopForwardBtn",
+            "destinationButtons: Array.from(document.querySelectorAll('[data-shell-destination]'))",
+            "eventTarget: document",
+            "documentElement: document.documentElement",
+            "switchDesktopTab('playlist');",
+            "togglePlaylistPanel(true);",
+            "togglePlaylistPanel(false);",
+            "document.getElementById('searchInput')?.focus();",
+            "document.getElementById('playlistFile')?.click()",
+            "settings: openSettings",
+            "onImmersiveChange: syncContinuousRendering",
+        ):
+            self.assertIn(fragment, startup)
+
+    def test_shell_owned_destinations_do_not_keep_legacy_desktop_bindings(self):
+        listeners = function_block(
+            self.source,
+            "function initEventListeners()",
+            "function toggleSearchPanel(forceState)",
+        )
+        self.assertNotIn(
+            "document.getElementById('togglePlaylistBtn').addEventListener",
+            listeners,
+        )
+        self.assertNotIn("safeSettingsBtn", listeners)
+        self.assertIn("closest?.('[data-shell-destination=\"queue\"]')", listeners)
+        self.assertIn("closest?.('#desktopBackBtn, #desktopForwardBtn')", listeners)
+        self.assertIn("queueHistoryDestination", listeners)
+        self.assertIn("e.target === dom.playlistFile", listeners)
+        self.assertIn("closest?.('[data-shell-destination=\"import\"]')", listeners)
+
+    def test_desktop_mini_cover_tracks_restored_and_loaded_artwork(self):
+        restore = function_block(
+            self.source,
+            "function restoreLastCover()",
+            "let nativeIntegrationInitialized",
+        )
+        load_song = function_block(
+            self.source,
+            "async function loadAndPlaySong(id)",
+            "function updatePlayerState()",
+        )
+        self.assertIn("dom.desktopMiniCover.src = savedCover", restore)
+        self.assertIn("dom.desktopMiniCover.src = picUrl", load_song)
+        self.assertNotIn("MutationObserver", self.source)
+
+    def test_desktop_progress_supports_keyboard_seek_and_aria_updates(self):
+        listeners = function_block(
+            self.source,
+            "function initEventListeners()",
+            "function toggleSearchPanel(forceState)",
+        )
+        player_state = function_block(
+            self.source,
+            "function updatePlayerState()",
+            "// ================= 歌词逻辑",
+        )
+        self.assertIn(
+            "dom.progressBarContainer.addEventListener('keydown', seekAudioByKeyboard);",
+            listeners,
+        )
+        for key in ("ArrowLeft", "ArrowRight", "Home", "End"):
+            self.assertIn(key, player_state)
+        self.assertIn("event.preventDefault();", player_state)
+        self.assertIn("aria-valuenow", player_state)
+
+    def test_application_layout_decisions_use_the_shell_media_query(self):
+        self.assertIn(
+            "const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);",
+            self.source,
+        )
+        self.assertIn(
+            "const isCompactLayout = () => !desktopShellMedia.matches;",
+            self.source,
+        )
+        self.assertNotRegex(self.source, r"window\.innerWidth\s*(?:<|<=)\s*768")
+        self.assertGreaterEqual(self.source.count("isCompactLayout()"), 3)
+
+    def test_desktop_browsing_pauses_continuous_renderers(self):
+        predicate = function_block(
+            self.source,
+            "function shouldAnimateContinuously()",
+            "// ================= ★ FluidBackground",
+        )
+        self.assertIn("desktopShellMedia.matches", predicate)
+        self.assertIn("desktop-immersive-open", predicate)
+        self.assertIn("!desktopBrowsing", predicate)
+        self.assertIn(
+            "desktopShellMedia.addEventListener('change', syncContinuousRendering)",
+            self.source,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

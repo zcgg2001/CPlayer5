@@ -146,7 +146,7 @@ export function getSleepAnchorPoint(anchor, width, height, hitSize, gap = 8) {
 
 
 export function getPetLayout(width, height, reducedMotion = false) {
-  const mobile = width < 768;
+  const mobile = width < 1024;
   const size = mobile ? 32 : 64;
 
   if (mobile) {
@@ -286,7 +286,7 @@ export function initOnekoButterfly() {
   let dragState = null;
   let suppressClickUntil = 0;
 
-  const isMobile = () => window.innerWidth < 768;
+  const isMobile = () => window.innerWidth < 1024;
 
   const saveState = ({ preservePosition = false } = {}) => {
     if (!preservePosition) {

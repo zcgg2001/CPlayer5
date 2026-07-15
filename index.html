@@ -1217,7 +1217,8 @@
 
                     <div class="player-timeline">
                         <span id="currentTime">0:00</span>
-                        <div class="progress-bar-container" title="播放进度">
+                        <div class="progress-bar-container" title="播放进度" role="slider" tabindex="0"
+                            aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                             <div class="progress-track">
                                 <div id="progressBar" style="width: 0%;"></div>
                             </div>
@@ -1684,6 +1685,7 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
+        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';
         import { normalizeMediaUrl } from './js/security.js';
         import {
             RequestCancelledError,
@@ -1697,6 +1699,8 @@
             normalizeSongPayload
         } from './js/music-data.js';
 
+        const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
+        const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
 
         function persistentCoverUrl(value) {
@@ -1745,6 +1749,7 @@
 
             if (dom.albumArt) dom.albumArt.src = savedCover;
             if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
+            if (dom.desktopMiniCover) dom.desktopMiniCover.src = savedCover;
         }
 
         let nativeIntegrationInitialized = false;
@@ -2077,16 +2082,44 @@
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         let dom = {};
+        let desktopShell = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
             dom.lyricsContainer = document.querySelector('.lyrics-container');
+            dom.progressBarContainer = document.querySelector('.progress-bar-container');
             dom.playlistContainer = document.getElementById('playlistContainer');
             dom.playlistContent = document.getElementById('playlistContent');
             dom.uploadContainer = document.querySelector('.upload-container');
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            desktopShell = initAppShell({
+                elements: {
+                    shell: dom.desktopShell,
+                    immersive: dom.desktopLayout,
+                    opener: dom.desktopMiniPlayer,
+                    closeButton: dom.desktopImmersiveClose,
+                    backButton: dom.desktopBackBtn,
+                    forwardButton: dom.desktopForwardBtn,
+                    destinationButtons: Array.from(document.querySelectorAll('[data-shell-destination]')),
+                    eventTarget: document,
+                    documentElement: document.documentElement,
+                },
+                actions: {
+                    queue: () => {
+                        switchDesktopTab('playlist');
+                        togglePlaylistPanel(true);
+                    },
+                    search: () => {
+                        togglePlaylistPanel(false);
+                        document.getElementById('searchInput')?.focus();
+                    },
+                    import: () => document.getElementById('playlistFile')?.click(),
+                    settings: openSettings,
+                },
+                onImmersiveChange: syncContinuousRendering,
+            });
             restoreLastCover();
 
             // ★ 初始化 IndexedDB 缓存
@@ -2152,12 +2185,6 @@
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
 
-            // Floating Toggle Button - opens sidebar
-            document.getElementById('togglePlaylistBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                togglePlaylistPanel();
-            });
-
             // Desktop Tab Switching
             const desktopTabPlaylist = document.getElementById('desktopTabPlaylist');
             const desktopTabSearch = document.getElementById('desktopTabSearch');
@@ -2173,7 +2200,10 @@
             dom.nextBtn.addEventListener('click', playNextSong);
             dom.playModeBtn.addEventListener('click', togglePlayMode);
 
-            dom.progressBar.parentElement.parentElement.addEventListener('click', seekAudio);
+            if (dom.progressBarContainer) {
+                dom.progressBarContainer.addEventListener('click', seekAudio);
+                dom.progressBarContainer.addEventListener('keydown', seekAudioByKeyboard);
+            }
 
             audio.addEventListener('timeupdate', updatePlayerState);
             audio.addEventListener('play', onPlayStart);
@@ -2209,15 +2239,19 @@
 
                 // Close unified Sidebar
                 const playlistPanel = document.getElementById('floatingPlaylistPanel');
-                const playlistBtn = document.getElementById('togglePlaylistBtn');
+                const queueTrigger = e.target.closest?.('[data-shell-destination="queue"]');
+                const historyTrigger = e.target.closest?.('#desktopBackBtn, #desktopForwardBtn');
+                const queueHistoryDestination = historyTrigger
+                    && document.querySelector('[data-shell-destination="queue"][aria-current="page"]');
                 if (playlistPanel && !playlistPanel.classList.contains('translate-x-full') &&
-                    !playlistPanel.contains(e.target) && !playlistBtn.contains(e.target)) {
+                    !playlistPanel.contains(e.target) && !queueTrigger && !queueHistoryDestination) {
                     togglePlaylistPanel(false);
                 }
             });
 
             dom.playlistFile.addEventListener('change', handlePlaylistUpload);
             dom.uploadContainer.addEventListener('click', (e) => {
+                if (e.target === dom.playlistFile || e.target.closest?.('[data-shell-destination="import"]')) return;
                 if (e.target.tagName !== "LABEL") dom.playlistFile.click();
             });
             dom.uploadContainer.addEventListener('dragover', (e) => {
@@ -2236,15 +2270,6 @@
             // 滚动事件由 setupVirtualScroll 中的 onscroll 处理
 
             document.getElementById('fullscreenBtn').addEventListener('click', toggleFullScreen);
-
-            // --- Gemini修复: 设置按钮逻辑增强 ---
-            const safeSettingsBtn = document.getElementById('settingsBtn');
-            if (safeSettingsBtn) {
-                safeSettingsBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openSettings();
-                };
-            }
 
             // 移动端设置按钮
             const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
@@ -2281,7 +2306,7 @@
 
             const mobileSettingsButtons = document.getElementById('mobileSettingsButtons');
             const updateMobileButtonsVisibility = () => {
-                const isMobile = window.innerWidth <= 768;
+                const isMobile = isCompactLayout();
                 if (mobileSettingsButtons) {
                     if (isMobile) {
                         mobileSettingsButtons.classList.remove('hidden');
@@ -2771,6 +2796,7 @@
             if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.remove('opacity-0');
             if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.remove('opacity-0');
             dom.progressBar.style.width = '0%';
+            dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
             dom.currentTime.textContent = '0:00';
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
@@ -2841,6 +2867,7 @@
                     saveLastCover(picUrl);
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
+                    if (dom.desktopMiniCover) dom.desktopMiniCover.src = picUrl;
 
                     // 提取背景色（extractColorsFromImage 本身支持 URL）
                     if (fluidBg && typeof fluidBg.extractColorsFromImage === 'function') {
@@ -2893,6 +2920,7 @@
             if (!audio.duration) return;
             const pct = (audio.currentTime / audio.duration) * 100;
             dom.progressBar.style.width = `${pct}%`;
+            dom.progressBarContainer?.setAttribute('aria-valuenow', String(Math.round(pct)));
             dom.currentTime.textContent = formatTime(audio.currentTime);
 
             // ★ Mobile Update
@@ -2906,6 +2934,32 @@
             const rect = e.currentTarget.getBoundingClientRect();
             const pct = (e.clientX - rect.left) / rect.width;
             audio.currentTime = pct * audio.duration;
+        }
+
+        function seekAudioByKeyboard(event) {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+
+            let targetTime;
+            switch (event.key) {
+                case 'ArrowLeft':
+                    targetTime = audio.currentTime - 5;
+                    break;
+                case 'ArrowRight':
+                    targetTime = audio.currentTime + 5;
+                    break;
+                case 'Home':
+                    targetTime = 0;
+                    break;
+                case 'End':
+                    targetTime = audio.duration;
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+            audio.currentTime = Math.max(0, Math.min(audio.duration, targetTime));
+            updatePlayerState();
         }
 
         // ================= 歌词逻辑 =================
@@ -4120,7 +4174,7 @@
         // ================= ★ Mobile UI Manager (Updated) =================
         class MobileUIManager {
             constructor() {
-                this.isMobile = window.innerWidth < 768;
+                this.isMobile = isCompactLayout();
                 this.currentMode = 'cover';
                 this.activeSheetTab = 'playlist'; // playlist | search
                 this.searchController = null;
@@ -4664,7 +4718,7 @@
             }
 
             handleResize() {
-                const isNowMobile = window.innerWidth < 768;
+                const isNowMobile = isCompactLayout();
                 if (this.isMobile !== isNowMobile) {
                     this.isMobile = isNowMobile;
                     if (!this.isMobile) {
@@ -4765,7 +4819,9 @@
         const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 
         function shouldAnimateContinuously() {
-            return !document.hidden && !motionPreference.matches;
+            const desktopBrowsing = desktopShellMedia.matches
+                && !document.documentElement.classList.contains('desktop-immersive-open');
+            return !document.hidden && !motionPreference.matches && !desktopBrowsing;
         }
 
         // ================= ★ FluidBackground (复制 aura-music WebGL) =================
@@ -5341,6 +5397,11 @@
             motionPreference.addEventListener('change', syncContinuousRendering);
         } else {
             motionPreference.addListener(syncContinuousRendering);
+        }
+        if (typeof desktopShellMedia.addEventListener === 'function') {
+            desktopShellMedia.addEventListener('change', syncContinuousRendering);
+        } else {
+            desktopShellMedia.addListener(syncContinuousRendering);
         }
 
         // 在 DOMContentLoaded 后初始化
