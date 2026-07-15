@@ -591,7 +591,7 @@
         }
 
         /* 移动端特定 */
-        @media (max-width: 768px) {
+        @media (max-width: 1023.98px) {
             body {
                 overscroll-behavior: none;
             }
@@ -820,7 +820,7 @@
         }
 
         /* [需求4] 手机端隐藏顶部的全屏按钮 */
-        @media (max-width: 768px) {
+        @media (max-width: 1023.98px) {
             #fullscreenBtn.mobile-hide {
                 display: none !important;
             }
@@ -2083,6 +2083,7 @@
         const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         let dom = {};
         let desktopShell = null;
+        let visualizer = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
@@ -2134,7 +2135,8 @@
             initSettingsUI();
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
             loadDefaultPlaylist();
-            initVisualizer();
+            visualizer = initVisualizer();
+            syncContinuousRendering();
             // checkSystemTheme(); // Removed
             // enableGradientModeByDefault(); // Removed
 
@@ -3998,9 +4000,10 @@
             const dataArray = new Uint8Array(bufferLength);
 
             let frameCount = 0;
+            let animationFrame = null;
 
             function draw() {
-                requestAnimationFrame(draw);
+                animationFrame = requestAnimationFrame(draw);
 
                 // 1. 实验性功能：背景激荡逻辑 (已移除 isGradientMode 依赖)
                 // if (analyser && isPlaying && ++frameCount % 5 === 0) {
@@ -4070,7 +4073,19 @@
                 // 重置阴影，避免影响性能
                 ctx.shadowBlur = 0;
             }
-            draw();
+
+            function start() {
+                if (animationFrame !== null) return;
+                animationFrame = requestAnimationFrame(draw);
+            }
+
+            function stop() {
+                if (animationFrame === null) return;
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+
+            return { start, stop };
         }
 
         // rgbToHsl - 保留供流体背景使用
@@ -5384,9 +5399,11 @@
 
         function syncContinuousRendering() {
             if (shouldAnimateContinuously()) {
+                visualizer?.start();
                 fluidBg?.start();
                 lyricsCanvas?.start();
             } else {
+                visualizer?.stop();
                 fluidBg?.stop();
                 lyricsCanvas?.stop();
             }

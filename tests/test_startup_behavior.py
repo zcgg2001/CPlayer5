@@ -135,6 +135,14 @@ class StartupBehaviorTests(unittest.TestCase):
         )
         self.assertNotRegex(self.source, r"window\.innerWidth\s*(?:<|<=)\s*768")
         self.assertGreaterEqual(self.source.count("isCompactLayout()"), 3)
+        self.assertRegex(
+            self.source,
+            r"(?s)@media \(max-width: 1023\.98px\)\s*\{\s*body\s*\{\s*overscroll-behavior:\s*none;",
+        )
+        self.assertRegex(
+            self.source,
+            r"(?s)@media \(max-width: 1023\.98px\)\s*\{\s*#fullscreenBtn\.mobile-hide\s*\{\s*display:\s*none !important;",
+        )
 
     def test_desktop_browsing_pauses_continuous_renderers(self):
         predicate = function_block(
@@ -149,6 +157,31 @@ class StartupBehaviorTests(unittest.TestCase):
             "desktopShellMedia.addEventListener('change', syncContinuousRendering)",
             self.source,
         )
+
+    def test_visualizer_uses_an_idempotent_continuous_render_controller(self):
+        visualizer = function_block(
+            self.source,
+            "function initVisualizer()",
+            "// rgbToHsl - 保留供流体背景使用",
+        )
+        sync = function_block(
+            self.source,
+            "function syncContinuousRendering()",
+            "document.addEventListener('visibilitychange'",
+        )
+        for fragment in (
+            "let animationFrame = null;",
+            "if (animationFrame !== null) return;",
+            "animationFrame = requestAnimationFrame(draw);",
+            "if (animationFrame === null) return;",
+            "cancelAnimationFrame(animationFrame);",
+            "return { start, stop };",
+        ):
+            self.assertIn(fragment, visualizer)
+        self.assertNotRegex(visualizer, r"\n\s*draw\(\);\s*\n")
+        self.assertIn("visualizer = initVisualizer();", self.source)
+        self.assertIn("visualizer?.start();", sync)
+        self.assertIn("visualizer?.stop();", sync)
 
 
 if __name__ == "__main__":

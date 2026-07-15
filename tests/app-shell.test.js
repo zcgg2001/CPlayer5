@@ -113,20 +113,37 @@ test('progress percent clamps invalid and out-of-range values', () => {
   assert.equal(progressPercent(1, 0), 0);
 });
 
-test('immersive state updates visibility, inertness and accessibility', () => {
+test('immersive state defers focus until inert visibility updates settle', () => {
   const shell = fakeElement();
   const immersive = fakeElement();
   const opener = fakeElement();
   const closeButton = fakeElement();
+  const deferredFocus = [];
 
-  setImmersiveState({ shell, immersive, opener, closeButton }, true);
+  setImmersiveState({
+    shell,
+    immersive,
+    opener,
+    closeButton,
+    deferFocus: callback => deferredFocus.push(callback),
+  }, true);
   assert.equal(shell.inert, true);
   assert.equal(immersive.classList.contains('is-open'), true);
   assert.equal(immersive.getAttribute('aria-hidden'), 'false');
   assert.equal(opener.getAttribute('aria-expanded'), 'true');
+  assert.equal(closeButton.focusCalled, false);
+  assert.equal(deferredFocus.length, 1);
+
+  deferredFocus.shift()();
   assert.equal(closeButton.focusCalled, true);
 
-  setImmersiveState({ shell, immersive, opener, closeButton }, false);
+  setImmersiveState({
+    shell,
+    immersive,
+    opener,
+    closeButton,
+    deferFocus: callback => deferredFocus.push(callback),
+  }, false);
   assert.equal(shell.inert, false);
   assert.equal(immersive.classList.contains('is-open'), false);
   assert.equal(immersive.getAttribute('aria-hidden'), 'true');
@@ -168,9 +185,10 @@ test('app shell runs destination actions and updates local history controls', ()
   controller.destroy();
 });
 
-test('app shell closes immersive on Escape and reports immersive changes', () => {
+test('app shell closes immersive on Escape and reports immersive changes', async () => {
   const { elements } = fakeShellSetup();
   const immersiveChanges = [];
+  elements.deferFocus = queueMicrotask;
   const controller = initAppShell({
     elements,
     onImmersiveChange: open => immersiveChanges.push(open),
@@ -179,6 +197,8 @@ test('app shell closes immersive on Escape and reports immersive changes', () =>
   elements.opener.dispatch('click');
   assert.equal(elements.immersive.getAttribute('aria-hidden'), 'false');
   assert.equal(elements.documentElement.classList.contains('desktop-immersive-open'), true);
+  assert.equal(elements.closeButton.focusCalls, 0);
+  await Promise.resolve();
   assert.equal(elements.closeButton.focusCalls, 1);
 
   const escapeEvent = elements.eventTarget.dispatch('keydown', { key: 'Escape' });
@@ -191,14 +211,17 @@ test('app shell closes immersive on Escape and reports immersive changes', () =>
   controller.destroy();
 });
 
-test('app shell close button restores focus after immersive opens', () => {
+test('app shell close button restores focus after immersive opens', async () => {
   const { elements } = fakeShellSetup();
+  elements.deferFocus = queueMicrotask;
   const controller = initAppShell({ elements });
 
   elements.opener.dispatch('click');
   elements.closeButton.dispatch('click');
+  await Promise.resolve();
 
   assert.equal(elements.immersive.getAttribute('aria-hidden'), 'true');
+  assert.equal(elements.closeButton.focusCalls, 0);
   assert.equal(elements.opener.focusCalls, 1);
 
   controller.destroy();
@@ -276,8 +299,9 @@ test('destroy removes shell listeners', () => {
   assert.deepEqual(calls, []);
 });
 
-test('ordinary destinations do not restore focus reserved for immersive close', () => {
+test('ordinary destinations do not restore focus reserved for immersive close', async () => {
   const { elements } = fakeShellSetup();
+  elements.deferFocus = queueMicrotask;
   const controller = initAppShell({ elements });
 
   controller.navigate('queue');
@@ -286,6 +310,8 @@ test('ordinary destinations do not restore focus reserved for immersive close', 
   assert.equal(elements.opener.focusCalls, 0);
 
   controller.setImmersive(true);
+  assert.equal(elements.closeButton.focusCalls, 0);
+  await Promise.resolve();
   assert.equal(elements.closeButton.focusCalls, 1);
   controller.setImmersive(false);
   assert.equal(elements.opener.focusCalls, 1);
@@ -293,6 +319,38 @@ test('ordinary destinations do not restore focus reserved for immersive close', 
   controller.navigate('queue');
   controller.setImmersive(false);
   assert.equal(elements.opener.focusCalls, 1);
+
+  controller.destroy();
+});
+
+test('immersive mode restores focus to the destination button that opened it', async () => {
+  const { elements } = fakeShellSetup();
+  const sidebarOpener = fakeElement();
+  sidebarOpener.dataset.shellDestination = 'now-playing';
+  sidebarOpener.setAttribute('aria-expanded', 'false');
+  elements.destinationButtons.push(sidebarOpener);
+  elements.deferFocus = queueMicrotask;
+  const controller = initAppShell({ elements });
+
+  sidebarOpener.dispatch('click');
+  assert.equal(sidebarOpener.getAttribute('aria-expanded'), 'true');
+  assert.equal(elements.opener.getAttribute('aria-expanded'), 'false');
+  assert.equal(elements.closeButton.focusCalls, 0);
+
+  await Promise.resolve();
+  assert.equal(elements.closeButton.focusCalls, 1);
+
+  elements.eventTarget.dispatch('keydown', { key: 'Escape' });
+  assert.equal(sidebarOpener.getAttribute('aria-expanded'), 'false');
+  assert.equal(sidebarOpener.focusCalls, 1);
+  assert.equal(elements.opener.focusCalls, 0);
+
+  sidebarOpener.dispatch('click');
+  await Promise.resolve();
+  controller.back();
+  assert.equal(sidebarOpener.getAttribute('aria-expanded'), 'false');
+  assert.equal(sidebarOpener.focusCalls, 2);
+  assert.equal(elements.opener.focusCalls, 0);
 
   controller.destroy();
 });
