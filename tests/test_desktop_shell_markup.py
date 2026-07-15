@@ -102,17 +102,38 @@ class DesktopShellMarkupTests(unittest.TestCase):
         shortcut = self.markup.by_id["desktopSearchShortcut"]
         self.assertEqual(shortcut.get("aria-label"), "搜索音乐")
 
-    def test_topbar_search_shortcut_overrides_legacy_anchor_colors(self):
+    def test_desktop_brand_uses_505_music_home_name(self):
+        self.assertRegex(
+            self.source,
+            r'(?s)<span class="app-brand-copy">\s*<strong>505音乐之家</strong>',
+        )
+
+    def test_topbar_search_shortcut_has_a_distinct_visible_surface(self):
         normal_color = self.css_property(
             "#desktopShell #desktopSearchShortcut",
             "color",
+        )
+        background = self.css_property(
+            "#desktopShell #desktopSearchShortcut",
+            "background",
+        )
+        border_color = self.css_property(
+            "#desktopShell #desktopSearchShortcut",
+            "border-color",
         )
         hover_color = self.css_property(
             "#desktopShell #desktopSearchShortcut:hover",
             "color",
         )
-        self.assertEqual(normal_color, "var(--shell-text) !important")
-        self.assertEqual(hover_color, "var(--shell-accent-strong) !important")
+        hover_background = self.css_property(
+            "#desktopShell #desktopSearchShortcut:hover",
+            "background",
+        )
+        self.assertEqual(normal_color, "var(--shell-accent-strong) !important")
+        self.assertEqual(background, "var(--shell-active)")
+        self.assertEqual(border_color, "#d9d4f4")
+        self.assertEqual(hover_color, "#fff !important")
+        self.assertEqual(hover_background, "var(--shell-accent-strong)")
 
     def test_player_and_volume_popover_stack_above_desktop_overlays(self):
         player_z = int(self.css_property("#desktopPlayerBar", "z-index"))

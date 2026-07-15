@@ -403,11 +403,15 @@
 }
 
 #desktopShell #desktopSearchShortcut {
-  color: var(--shell-text) !important;
+  color: var(--shell-accent-strong) !important;
+  background: var(--shell-active);
+  border-color: #d9d4f4;
 }
 
 #desktopShell #desktopSearchShortcut:hover {
-  color: var(--shell-accent-strong) !important;
+  color: #fff !important;
+  background: var(--shell-accent-strong);
+  border-color: var(--shell-accent-strong);
 }
 
 #desktopLibraryView .library-content {
