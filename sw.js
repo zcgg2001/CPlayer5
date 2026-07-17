@@ -19,6 +19,7 @@ const CORE_ASSETS = [
   './js/http.js',
   './js/music-data.js',
   './js/music-download.js',
+  './js/download-session.js',
   './js/oneko-butterfly.js',
   './img/icon.svg',
   './img/icon.png',

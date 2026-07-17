@@ -116,11 +116,12 @@ test('precaches the desktop shell assets', () => {
   assert.ok(coreAssets.includes('./js/app-shell.js'));
 });
 
-test('precaches the music download runtime without precaching audio files', () => {
+test('precaches both music download runtime modules without precaching audio files', () => {
   const context = loadServiceWorker();
   const coreAssets = vm.runInContext('CORE_ASSETS', context);
 
   assert.ok(coreAssets.includes('./js/music-download.js'));
+  assert.ok(coreAssets.includes('./js/download-session.js'));
   assert.ok(!coreAssets.some(asset => asset.endsWith('.mp3') || asset.endsWith('.flac')));
 });
 
