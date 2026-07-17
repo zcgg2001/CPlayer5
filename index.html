@@ -3003,7 +3003,8 @@
             album.className = 'discovery-song-album';
             album.textContent = song.album || '单曲';
 
-            const action = document.createElement('span');
+            const action = document.createElement('button');
+            action.type = 'button';
             action.className = 'discovery-song-action';
             const actionIcon = document.createElement('i');
             actionIcon.className = 'fas fa-plus';
@@ -3011,6 +3012,7 @@
             const actionLabel = document.createElement('span');
             actionLabel.textContent = '加入播放';
             action.append(actionIcon, actionLabel);
+            action.addEventListener('click', () => addDiscoverySong(song));
 
             const actions = document.createElement('div');
             actions.className = 'discovery-song-actions';
