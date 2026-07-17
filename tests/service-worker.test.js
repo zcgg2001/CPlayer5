@@ -125,11 +125,11 @@ test('precaches both music download runtime modules without precaching audio fil
   assert.ok(!coreAssets.some(asset => asset.endsWith('.mp3') || asset.endsWith('.flac')));
 });
 
-test('retires the v10 shell cache after the music download upgrade', () => {
+test('retires older shell caches after the liquid quality selector upgrade', () => {
   const { cacheNamesToDelete } = loadServiceWorker();
 
   assert.deepEqual(
-    Array.from(cacheNamesToDelete(['cplayer5-shell-v9', 'cplayer5-shell-v10'])),
-    ['cplayer5-shell-v9', 'cplayer5-shell-v10'],
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v10', 'cplayer5-shell-v11', 'cplayer5-shell-v12'])),
+    ['cplayer5-shell-v10', 'cplayer5-shell-v11'],
   );
 });
