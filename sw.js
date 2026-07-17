@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v10';
+const SHELL_CACHE = 'cplayer5-shell-v11';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -18,6 +18,7 @@ const CORE_ASSETS = [
   './js/security.js',
   './js/http.js',
   './js/music-data.js',
+  './js/music-download.js',
   './js/oneko-butterfly.js',
   './img/icon.svg',
   './img/icon.png',
