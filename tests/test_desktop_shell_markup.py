@@ -202,12 +202,17 @@ class DesktopShellMarkupTests(unittest.TestCase):
     def test_desktop_download_controls_and_dialog_are_exposed(self):
         for element_id in (
             "desktopDownloadBtn", "downloadDialog", "downloadDialogTitle",
-            "downloadSongName", "downloadQuality", "downloadConfirm", "downloadStatus",
+            "downloadSongName", "downloadQuality", "downloadQualityTrigger",
+            "downloadQualityList", "downloadConfirm", "downloadStatus",
+            "desktopPlaybackQualityBtn", "playbackQualityDialog", "playbackQualityList",
         ):
             self.assertIn(element_id, self.markup.by_id)
         self.assertEqual(self.markup.by_id["desktopDownloadBtn"].get("aria-label"), "下载当前歌曲")
         self.assertEqual(self.markup.by_id["downloadDialog"]["tag"], "dialog")
         self.assertEqual(self.markup.by_id["downloadDialog"].get("aria-labelledby"), "downloadDialogTitle")
+        self.assertEqual(self.markup.by_id["downloadQualityList"].get("role"), "listbox")
+        self.assertEqual(self.markup.by_id["playbackQualityList"].get("role"), "listbox")
+        self.assertEqual(self.markup.by_id["downloadQualityTrigger"].get("aria-haspopup"), "listbox")
         self.assertEqual(self.markup.by_id["downloadStatus"].get("role"), "status")
         self.assertEqual(self.markup.by_id["downloadStatus"].get("aria-live"), "polite")
 

@@ -202,18 +202,39 @@ class StartupBehaviorTests(unittest.TestCase):
             self.assertIn(fragment, discovery)
 
     def test_song_resolution_falls_back_across_supported_quality_levels(self):
-        self.assertIn(
-            "const SONG_QUALITY_FALLBACKS = ['jymaster', 'lossless', 'exhigh', 'standard'];",
-            self.source,
-        )
+        self.assertIn("downloadFallbackLevels", self.source)
         service = function_block(
             self.source,
             "class MusicService",
             "class LyricService",
         )
-        self.assertIn("for (const level of SONG_QUALITY_FALLBACKS)", service)
+        self.assertIn("level = this.config.quality", service)
+        self.assertIn("for (const candidate of downloadFallbackLevels(supportedQuality(level)))", service)
         self.assertIn("normalizeSongPayload(json, level)", service)
         self.assertIn("if (song) return song;", service)
+
+    def test_playback_quality_is_selectable_and_preserves_progress(self):
+        for fragment in (
+            "function openPlaybackQualityDialog(opener)",
+            "async function applyPlaybackQuality(level)",
+            "musicService.saveSettings('quality'",
+            "const resumeAt = audio.currentTime || 0;",
+            "const shouldResume = !audio.paused;",
+            "await replaceAudioSource(mediaUrl, resumeAt, shouldResume, version);",
+            "syncPlaybackQualityDisplay(resolvedLevel);",
+        ):
+            self.assertIn(fragment, self.source)
+
+    def test_download_quality_uses_custom_accessible_listbox(self):
+        for fragment in (
+            "function createQualitySelector(",
+            "option.setAttribute('role', 'option');",
+            "option.setAttribute('aria-selected'",
+            "dom.downloadQualityList",
+            "dom.downloadQualityTrigger",
+            "saveDownloadQuality(level)",
+        ):
+            self.assertIn(fragment, self.source)
 
     def test_downloads_reuse_song_resolution_and_connect_all_desktop_entry_points(self):
         service = function_block(self.source, "class MusicService", "class LyricService")

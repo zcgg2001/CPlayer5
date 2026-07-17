@@ -60,6 +60,8 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "closeSheetBtn",
             "closeSettingsBtn",
             "downloadCancel",
+            "playbackQualityCancel",
+            "mobilePlaybackQualityBtn",
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
 
@@ -72,6 +74,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "desktopForwardBtn",
             "desktopImportBtn",
             "desktopDownloadBtn",
+            "desktopPlaybackQualityBtn",
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
 
@@ -140,6 +143,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "closeSheetBtn",
             "sheetTabPlaylist",
             "sheetTabSearch",
+            "mobilePlaybackQualityBtn",
         ):
             classes = markup.by_id[element_id].get("class", "")
             self.assertIn("min-w-11", classes, element_id)

@@ -1280,6 +1280,12 @@
                 </div>
 
                 <div class="player-actions">
+                    <button id="desktopPlaybackQualityBtn" class="playback-quality-trigger" type="button"
+                        aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
+                        <span class="playback-quality-dot" aria-hidden="true"></span>
+                        <span id="desktopPlaybackQualityLabel">无损</span>
+                        <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                    </button>
                     <button id="desktopPlayerQueueBtn" class="player-action-button" type="button"
                         data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
                         <i class="fas fa-list-ul" aria-hidden="true"></i>
@@ -1429,7 +1435,13 @@
                             class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current cursor-pointer hover:opacity-100 transition-all select-none"
                             title="长按复制ID">ID: 0413</div>
 
-                        <div id="mobileQualityBadge" class="quality-badge quality-lossless">💎JyMaster</div>
+                        <button id="mobilePlaybackQualityBtn" type="button"
+                            class="mobile-playback-quality min-w-11 min-h-11"
+                            aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
+                            <span class="playback-quality-dot" aria-hidden="true"></span>
+                            <span id="mobileQualityBadge" class="quality-badge quality-lossless">无损</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -1740,20 +1752,66 @@
 
     <dialog id="downloadDialog" aria-labelledby="downloadDialogTitle">
         <form id="downloadDialogForm" method="dialog" class="download-dialog-card">
-            <header class="download-dialog-header">
-                <div>
-                    <p class="download-dialog-kicker">DOWNLOAD</p>
-                    <h2 id="downloadDialogTitle">下载歌曲</h2>
+            <img id="downloadBackdropArt" class="download-backdrop-art" src="./img/icon.png" alt="" aria-hidden="true">
+            <div class="liquid-glass-glow" aria-hidden="true"></div>
+            <div class="download-dialog-content">
+                <header class="download-dialog-header">
+                    <div>
+                        <p class="download-dialog-kicker">DOWNLOAD</p>
+                        <h2 id="downloadDialogTitle">下载歌曲</h2>
+                    </div>
+                    <button id="downloadCancel" value="cancel" type="submit" aria-label="关闭下载窗口">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
+                <p id="downloadSongName" class="download-song-name"></p>
+                <div id="downloadQualityPicker" class="liquid-quality-picker">
+                    <input id="downloadQuality" type="hidden" value="lossless">
+                    <button id="downloadQualityTrigger" class="liquid-quality-trigger" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="downloadQualityList">
+                        <span class="liquid-quality-trigger-copy">
+                            <span class="liquid-quality-trigger-label">选择音质</span>
+                            <span id="downloadQualityValue" class="liquid-quality-trigger-value">无损 · FLAC</span>
+                        </span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="liquid-quality-menu-wrap">
+                        <div class="liquid-quality-menu-clip">
+                            <div id="downloadQualityList" class="liquid-quality-menu" role="listbox"
+                                aria-label="下载音质" tabindex="-1"></div>
+                        </div>
+                    </div>
                 </div>
-                <button id="downloadCancel" value="cancel" type="submit" aria-label="关闭下载窗口">
-                    <i class="fas fa-times" aria-hidden="true"></i>
+                <p id="downloadStatus" class="download-status" role="status" aria-live="polite" aria-atomic="true">
+                    若当前音质不可用，将自动逐级降档。
+                </p>
+                <button id="downloadConfirm" class="liquid-primary-button" type="button">
+                    <i class="fas fa-download" aria-hidden="true"></i><span>下载</span>
                 </button>
-            </header>
-            <p id="downloadSongName" class="download-song-name"></p>
-            <label for="downloadQuality">选择音质</label>
-            <select id="downloadQuality" aria-label="下载音质"></select>
-            <p id="downloadStatus" role="status" aria-live="polite" aria-atomic="true"></p>
-            <button id="downloadConfirm" type="button"><i class="fas fa-download" aria-hidden="true"></i>下载</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="playbackQualityDialog" class="liquid-choice-dialog" aria-labelledby="playbackQualityTitle">
+        <form method="dialog" class="liquid-choice-card">
+            <div class="liquid-glass-glow" aria-hidden="true"></div>
+            <div class="liquid-choice-content">
+                <header class="download-dialog-header">
+                    <div>
+                        <p class="download-dialog-kicker">PLAYBACK</p>
+                        <h2 id="playbackQualityTitle">播放音质</h2>
+                    </div>
+                    <button id="playbackQualityCancel" value="cancel" type="submit" aria-label="关闭播放音质窗口">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
+                <p class="liquid-choice-description">选择后立即应用到当前歌曲，并作为后续播放的默认音质。</p>
+                <input id="playbackQuality" type="hidden" value="lossless">
+                <div id="playbackQualityList" class="liquid-quality-menu liquid-quality-menu-static"
+                    role="listbox" aria-label="播放音质" tabindex="-1"></div>
+                <p id="playbackQualityStatus" class="download-status" role="status" aria-live="polite"
+                    aria-atomic="true">若所选音质不可用，将自动逐级降档。</p>
+            </div>
         </form>
     </dialog>
 
@@ -1774,6 +1832,7 @@
         } from './js/music-data.js';
         import {
             DOWNLOAD_QUALITY_OPTIONS,
+            downloadFallbackLevels,
             downloadFilename,
             resolveDownloadSong,
             saveAudioBlob
@@ -1784,7 +1843,22 @@
         const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
         const NEW_SONGS_PLAYLIST_ID = '3779629';
-        const SONG_QUALITY_FALLBACKS = ['jymaster', 'lossless', 'exhigh', 'standard'];
+        const DEFAULT_QUALITY = 'lossless';
+        const QUALITY_DETAILS = Object.freeze({
+            standard: { name: '标准', summary: '标准 · 128K', meta: '128K · MP3', className: 'quality-standard' },
+            exhigh: { name: '极高', summary: '极高 · 320K', meta: '320K · MP3', className: 'quality-high' },
+            lossless: { name: '无损', summary: '无损 · FLAC', meta: 'FLAC · CD 级', className: 'quality-lossless' },
+            hires: { name: 'Hi-Res', summary: 'Hi-Res · 高解析度', meta: '高解析度 · FLAC', className: 'quality-hires' },
+            jymaster: { name: '超清母带', summary: '超清母带', meta: 'MASTER · 最高品质', className: 'quality-lossless' },
+        });
+
+        function supportedQuality(level, fallback = DEFAULT_QUALITY) {
+            return QUALITY_DETAILS[level] ? level : fallback;
+        }
+
+        function qualityDetails(level) {
+            return QUALITY_DETAILS[supportedQuality(level)];
+        }
 
         function persistentCoverUrl(value) {
             const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
@@ -1871,15 +1945,25 @@
             }
 
             loadSettings() {
+                let quality = DEFAULT_QUALITY;
+                try {
+                    quality = supportedQuality(localStorage.getItem('cp_quality'));
+                } catch (error) {
+                    console.warn('无法读取播放音质偏好:', error);
+                }
                 this.config = {
-                    quality: localStorage.getItem('cp_quality') || 'lossless'
+                    quality
                 };
             }
 
             saveSettings(key, value) {
                 if (key === 'source') return;
                 this.config[key] = value;
-                localStorage.setItem(`cp_${key}`, value);
+                try {
+                    localStorage.setItem(`cp_${key}`, value);
+                } catch (error) {
+                    console.warn('无法保存播放器设置:', error);
+                }
             }
 
             async search(query, { signal } = {}) {
@@ -1900,9 +1984,9 @@
                 return normalizeSongPayload(json, level);
             }
 
-            async getSong(id, { signal } = {}) {
-                for (const level of SONG_QUALITY_FALLBACKS) {
-                    const song = await this.getSongAtLevel(id, level, { signal });
+            async getSong(id, { signal, level = this.config.quality } = {}) {
+                for (const candidate of downloadFallbackLevels(supportedQuality(level))) {
+                    const song = await this.getSongAtLevel(id, candidate, { signal });
                     if (song) return song;
                 }
                 throw new Error('ChKSz GetSong Failed');
@@ -2137,22 +2221,39 @@
         }
 
         // ================= 音质分级识别 =================
-        function getQualityBadge(url, bitrate) {
+        function getQualityBadge(url, bitrate, level) {
+            if (QUALITY_DETAILS[level]) {
+                const detail = qualityDetails(level);
+                return { level, text: detail.name, className: detail.className };
+            }
             if (!url) return null;
 
-            // 通过 URL 或 bitrate 判断音质
             const urlLower = url.toLowerCase();
-
             if (urlLower.includes('flac') || bitrate >= 900000) {
-                return { text: 'JyMaster', class: 'quality-lossless', icon: '💎' };
-            } else if (urlLower.includes('320') || bitrate >= 320000) {
-                return { text: 'Hi-Res', class: 'quality-hires', icon: '✨' };
-            } else if (bitrate >= 192000) {
-                return { text: 'High', class: 'quality-high', icon: '🎵' };
-            } else if (bitrate >= 128000) {
-                return { text: 'Standard', class: 'quality-standard', icon: '🎶' };
+                return { level: 'lossless', text: '无损', className: 'quality-lossless' };
             }
-            return null;
+            if (urlLower.includes('320') || bitrate >= 320000) {
+                return { level: 'exhigh', text: '极高', className: 'quality-high' };
+            }
+            return { level: 'standard', text: '标准', className: 'quality-standard' };
+        }
+
+        function syncPlaybackQualityDisplay(level) {
+            const resolvedLevel = supportedQuality(level);
+            const detail = qualityDetails(resolvedLevel);
+            dom.qualityBadge.textContent = detail.name;
+            dom.qualityBadge.className = `quality-badge ${detail.className}`;
+            if (dom.mobileQualityBadge) {
+                dom.mobileQualityBadge.textContent = detail.name;
+                dom.mobileQualityBadge.className = `quality-badge ${detail.className}`;
+            }
+            if (dom.desktopPlaybackQualityLabel) dom.desktopPlaybackQualityLabel.textContent = detail.name;
+            if (dom.desktopPlaybackQualityBtn) {
+                dom.desktopPlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
+            }
+            if (dom.mobilePlaybackQualityBtn) {
+                dom.mobilePlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
+            }
         }
 
         let compressorNode = null;
@@ -2181,6 +2282,9 @@
         let currentPlaybackSong = null;
         const downloadSession = createDownloadSession();
         let downloadState = { song: null, opener: null, session: null };
+        let downloadQualitySelector = null;
+        let playbackQualitySelector = null;
+        let playbackQualityState = { opener: null, controller: null, version: 0 };
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
@@ -2320,24 +2424,143 @@
             if (dom.desktopLibraryView) dom.desktopLibraryView.scrollTop = 0;
         }
 
-        function initDownloadControls() {
-            const options = DOWNLOAD_QUALITY_OPTIONS.map(({ level, label }) => {
-                const option = document.createElement('option');
-                option.value = level;
-                option.textContent = label;
-                return option;
-            });
-            dom.downloadQuality.replaceChildren(...options);
-
-            let savedQuality = '';
+        function readSavedQuality(key, fallback = DEFAULT_QUALITY) {
             try {
-                savedQuality = localStorage.getItem('cp_download_quality') || '';
+                return supportedQuality(localStorage.getItem(key), fallback);
             } catch (error) {
-                console.warn('无法读取下载音质偏好:', error);
+                console.warn('无法读取音质偏好:', error);
+                return fallback;
             }
-            dom.downloadQuality.value = DOWNLOAD_QUALITY_OPTIONS.some(option => option.level === savedQuality)
-                ? savedQuality
-                : 'lossless';
+        }
+
+        function createQualityOption({ level }) {
+            const detail = qualityDetails(level);
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'liquid-quality-option';
+            option.dataset.quality = level;
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', 'false');
+            option.tabIndex = -1;
+
+            const copy = document.createElement('span');
+            copy.className = 'liquid-quality-option-copy';
+            const name = document.createElement('span');
+            name.className = 'liquid-quality-option-name';
+            name.textContent = detail.name;
+            const meta = document.createElement('span');
+            meta.className = 'liquid-quality-option-meta';
+            meta.textContent = detail.meta;
+            copy.append(name, meta);
+
+            const check = document.createElement('span');
+            check.className = 'liquid-quality-check';
+            check.setAttribute('aria-hidden', 'true');
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-check';
+            check.append(icon);
+            option.append(copy, check);
+            return option;
+        }
+
+        function createQualitySelector({ picker, trigger, list, valueInput, valueLabel, initialValue, onSelect }) {
+            const options = DOWNLOAD_QUALITY_OPTIONS.map(createQualityOption);
+            list.replaceChildren(...options);
+
+            const selectedOption = () => options.find(option => option.getAttribute('aria-selected') === 'true');
+
+            function setValue(level, { notify = false } = {}) {
+                const nextLevel = supportedQuality(level);
+                valueInput.value = nextLevel;
+                options.forEach(option => {
+                    const selected = option.dataset.quality === nextLevel;
+                    option.setAttribute('aria-selected', String(selected));
+                    option.tabIndex = selected ? 0 : -1;
+                });
+                if (valueLabel) valueLabel.textContent = qualityDetails(nextLevel).summary;
+                if (notify) onSelect?.(nextLevel);
+                return nextLevel;
+            }
+
+            function setOpen(open, { focusSelected = false } = {}) {
+                if (!trigger || !picker) return;
+                picker.classList.toggle('is-open', open);
+                trigger.setAttribute('aria-expanded', String(open));
+                if (open && focusSelected) selectedOption()?.focus();
+            }
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    setValue(option.dataset.quality, { notify: true });
+                    if (trigger) {
+                        setOpen(false);
+                        trigger.focus();
+                    }
+                });
+            });
+
+            list.addEventListener('keydown', event => {
+                const option = event.target.closest?.('.liquid-quality-option');
+                if (!option) return;
+                const currentIndex = options.indexOf(option);
+                const targets = {
+                    ArrowDown: Math.min(currentIndex + 1, options.length - 1),
+                    ArrowUp: Math.max(currentIndex - 1, 0),
+                    Home: 0,
+                    End: options.length - 1,
+                };
+                if (event.key in targets) {
+                    event.preventDefault();
+                    options[targets[event.key]].focus();
+                } else if (event.key === 'Escape' && trigger) {
+                    event.preventDefault();
+                    setOpen(false);
+                    trigger.focus();
+                }
+            });
+
+            if (trigger) {
+                trigger.addEventListener('click', () => {
+                    setOpen(trigger.getAttribute('aria-expanded') !== 'true');
+                });
+                trigger.addEventListener('keydown', event => {
+                    if (event.key !== 'ArrowDown') return;
+                    event.preventDefault();
+                    setOpen(true, { focusSelected: true });
+                });
+                document.addEventListener('pointerdown', event => {
+                    if (!picker.contains(event.target)) setOpen(false);
+                });
+            }
+
+            setValue(initialValue);
+            return {
+                setValue,
+                setOpen,
+                focusSelected: () => selectedOption()?.focus(),
+            };
+        }
+
+        function initDownloadControls() {
+            const savedDownloadQuality = readSavedQuality('cp_download_quality');
+            downloadQualitySelector = createQualitySelector({
+                picker: dom.downloadQualityPicker,
+                trigger: dom.downloadQualityTrigger,
+                list: dom.downloadQualityList,
+                valueInput: dom.downloadQuality,
+                valueLabel: dom.downloadQualityValue,
+                initialValue: savedDownloadQuality,
+                onSelect: level => saveDownloadQuality(level),
+            });
+
+            const savedPlaybackQuality = supportedQuality(musicService.config.quality);
+            playbackQualitySelector = createQualitySelector({
+                list: dom.playbackQualityList,
+                valueInput: dom.playbackQuality,
+                initialValue: savedPlaybackQuality,
+                onSelect: level => applyPlaybackQuality(level),
+            });
+            syncPlaybackQualityDisplay(savedPlaybackQuality);
         }
 
         function saveDownloadQuality(level) {
@@ -2348,14 +2571,124 @@
             }
         }
 
+        function savePlaybackQuality(level) {
+            musicService.saveSettings('quality', supportedQuality(level));
+        }
+
+        function openPlaybackQualityDialog(opener) {
+            playbackQualityState.opener = opener;
+            playbackQualitySelector.setValue(musicService.config.quality);
+            dom.playbackQualityStatus.textContent = currentPlaybackSong?.id
+                ? '选择后将保留当前进度并切换音源。'
+                : '当前未播放歌曲，选择会保存为默认音质。';
+            if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
+            requestAnimationFrame(() => playbackQualitySelector.focusSelected());
+        }
+
+        function replaceAudioSource(mediaUrl, resumeAt, shouldResume, version) {
+            return new Promise((resolve, reject) => {
+                let settled = false;
+                const timeoutId = setTimeout(() => finish(new Error('Audio metadata timed out')), 10_000);
+                const cleanup = () => {
+                    clearTimeout(timeoutId);
+                    audio.removeEventListener('loadedmetadata', handleLoaded);
+                    audio.removeEventListener('error', handleError);
+                };
+                const finish = error => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    if (error) reject(error);
+                    else resolve();
+                };
+                const handleLoaded = async () => {
+                    if (version !== playbackQualityState.version) return finish();
+                    if (Number.isFinite(audio.duration) && resumeAt > 0) {
+                        audio.currentTime = Math.min(resumeAt, Math.max(0, audio.duration - 0.25));
+                    }
+                    if (shouldResume) {
+                        try {
+                            await audio.play();
+                        } catch (error) {
+                            console.warn('切换音质后恢复播放失败:', error);
+                        }
+                    }
+                    finish();
+                };
+                const handleError = () => finish(new Error('Audio source failed'));
+                audio.addEventListener('loadedmetadata', handleLoaded);
+                audio.addEventListener('error', handleError);
+                audio.src = mediaUrl;
+                audio.load();
+            });
+        }
+
+        async function applyPlaybackQuality(level) {
+            const requestedLevel = supportedQuality(level);
+            savePlaybackQuality(requestedLevel);
+            playbackQualitySelector.setValue(requestedLevel);
+
+            if (!currentPlaybackSong?.id) {
+                syncPlaybackQualityDisplay(requestedLevel);
+                dom.playbackQualityStatus.textContent = `已将 ${qualityDetails(requestedLevel).name} 设为默认播放音质。`;
+                return;
+            }
+
+            playbackQualityState.controller?.abort();
+            const controller = new AbortController();
+            const version = playbackQualityState.version + 1;
+            playbackQualityState.controller = controller;
+            playbackQualityState.version = version;
+            const songId = currentPlaybackSong.id;
+            const previousSrc = audio.src;
+            const resumeAt = audio.currentTime || 0;
+            const shouldResume = !audio.paused;
+            dom.playbackQualityDialog.setAttribute('aria-busy', 'true');
+            dom.playbackQualityStatus.textContent = `正在匹配${qualityDetails(requestedLevel).name}音源…`;
+
+            try {
+                const data = await musicService.getSong(songId, { signal: controller.signal, level: requestedLevel });
+                if (version !== playbackQualityState.version || String(currentPlaybackSong.id) !== String(songId)) return;
+                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
+                if (!mediaUrl) throw new Error('Invalid media URL');
+                await replaceAudioSource(mediaUrl, resumeAt, shouldResume, version);
+                if (version !== playbackQualityState.version) return;
+
+                const resolvedLevel = supportedQuality(data.level, requestedLevel);
+                currentPlaybackSong = { ...currentPlaybackSong, ...data, cover: currentPlaybackSong.cover };
+                syncPlaybackQualityDisplay(resolvedLevel);
+                dom.playbackQualityStatus.textContent = resolvedLevel === requestedLevel
+                    ? `已切换为${qualityDetails(resolvedLevel).name}，播放进度已保留。`
+                    : `${qualityDetails(requestedLevel).name}不可用，已自动切换为${qualityDetails(resolvedLevel).name}。`;
+            } catch (error) {
+                if (error instanceof RequestCancelledError || version !== playbackQualityState.version) return;
+                console.error('切换播放音质失败:', error);
+                if (previousSrc && audio.src !== previousSrc) {
+                    try {
+                        await replaceAudioSource(previousSrc, resumeAt, shouldResume, version);
+                    } catch (restoreError) {
+                        console.warn('恢复原播放音源失败:', restoreError);
+                    }
+                }
+                dom.playbackQualityStatus.textContent = '切换失败，已保留原音质，请稍后重试。';
+            } finally {
+                if (version === playbackQualityState.version) {
+                    dom.playbackQualityDialog.removeAttribute('aria-busy');
+                    playbackQualityState.controller = null;
+                }
+            }
+        }
+
         function openDownloadDialog(song, opener) {
             if (!song?.id) return showToast('当前歌曲无法下载', true);
             const session = downloadSession.open();
             downloadState = { song, opener, session };
             dom.downloadSongName.textContent = (song.name || '未知歌曲') + ' · ' + (song.artist || '未知艺术家');
-            dom.downloadStatus.textContent = '';
+            dom.downloadBackdropArt.src = persistentCoverUrl(song.cover) || './img/icon.png';
+            dom.downloadStatus.textContent = '若当前音质不可用，将自动逐级降档。';
             dom.downloadConfirm.disabled = false;
             dom.downloadCancel.disabled = false;
+            downloadQualitySelector.setOpen(false);
             if (!dom.downloadDialog.open) dom.downloadDialog.showModal();
         }
 
@@ -2383,7 +2716,7 @@
                 });
                 if (!downloadSession.isCurrent(session)) return;
                 dom.downloadDialog.close();
-                showToast('已开始下载：' + resolved.resolvedLevel);
+                showToast('已开始下载：' + qualityDetails(resolved.resolvedLevel).name);
             } catch (error) {
                 if (!downloadSession.isCurrent(session)) return;
                 console.error('歌曲下载失败:', error);
@@ -2403,15 +2736,26 @@
             dom.desktopDownloadBtn.addEventListener('click', () => {
                 openDownloadDialog(currentPlaybackSong, dom.desktopDownloadBtn);
             });
-            dom.downloadQuality.addEventListener('change', () => saveDownloadQuality(dom.downloadQuality.value));
+            dom.desktopPlaybackQualityBtn.addEventListener('click', () => {
+                openPlaybackQualityDialog(dom.desktopPlaybackQualityBtn);
+            });
+            dom.mobilePlaybackQualityBtn.addEventListener('click', () => {
+                openPlaybackQualityDialog(dom.mobilePlaybackQualityBtn);
+            });
             dom.downloadConfirm.addEventListener('click', downloadSelectedSong);
             dom.downloadDialog.addEventListener('cancel', event => {
                 if (downloadSession.isPending(downloadState.session)) event.preventDefault();
             });
             dom.downloadDialog.addEventListener('close', () => {
+                downloadQualitySelector.setOpen(false);
                 const { opener, session } = downloadState;
                 if (!downloadSession.isCurrent(session)) return;
                 downloadState = { song: null, opener: null, session: null };
+                if (opener?.isConnected) opener.focus();
+            });
+            dom.playbackQualityDialog.addEventListener('close', () => {
+                const opener = playbackQualityState.opener;
+                playbackQualityState.opener = null;
                 if (opener?.isConnected) opener.focus();
             });
 
@@ -3212,9 +3556,7 @@
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
             dom.songIdTag.textContent = 'ID: Load...';
-            // 加载期间保持金黄色，避免视觉降级闪烁
-            dom.qualityBadge.textContent = '💎JyMaster';
-            dom.qualityBadge.className = 'quality-badge quality-lossless';
+            syncPlaybackQualityDisplay(musicService.config.quality);
 
             try {
                 // ★ 优先级调整：音频最高优先级
@@ -3257,10 +3599,9 @@
                 dom.songIdTag.textContent = `ID: ${data.id}`;
 
                 // ★ 显示音质标识
-                const qualityInfo = getQualityBadge(data.url, data.br || data.bitrate);
+                const qualityInfo = getQualityBadge(data.url, data.br || data.bitrate, data.level);
                 if (qualityInfo) {
-                    dom.qualityBadge.textContent = `${qualityInfo.icon} ${qualityInfo.text}`;
-                    dom.qualityBadge.className = `quality-badge ${qualityInfo.class}`;
+                    syncPlaybackQualityDisplay(qualityInfo.level);
                 }
 
                 // ★ 立即更新 MediaSession (确保锁屏有文字信息)
