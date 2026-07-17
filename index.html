@@ -1772,6 +1772,12 @@
             normalizeSearchPayload,
             normalizeSongPayload
         } from './js/music-data.js';
+        import {
+            DOWNLOAD_QUALITY_OPTIONS,
+            downloadFilename,
+            resolveDownloadSong,
+            saveAudioBlob
+        } from './js/music-download.js';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -1887,11 +1893,15 @@
                 return normalizePlaylistPayload(json).slice(0, 12);
             }
 
+            async getSongAtLevel(id, level, { signal } = {}) {
+                const url = this.baseUrl + '/163_music?id=' + id + '&level=' + level;
+                const json = await requestJson(url, { signal });
+                return normalizeSongPayload(json, level);
+            }
+
             async getSong(id, { signal } = {}) {
                 for (const level of SONG_QUALITY_FALLBACKS) {
-                    const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
-                    const json = await requestJson(url, { signal });
-                    const song = normalizeSongPayload(json, level);
+                    const song = await this.getSongAtLevel(id, level, { signal });
                     if (song) return song;
                 }
                 throw new Error('ChKSz GetSong Failed');
@@ -2167,6 +2177,8 @@
         let dom = {};
         let desktopShell = null;
         let visualizer = null;
+        let currentPlaybackSong = null;
+        let downloadState = { song: null, opener: null };
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
@@ -2228,6 +2240,7 @@
                 console.warn('IndexedDB 初始化失败:', e);
             }
 
+            initDownloadControls();
             initEventListeners();
             initSettingsUI();
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
@@ -2305,10 +2318,85 @@
             if (dom.desktopLibraryView) dom.desktopLibraryView.scrollTop = 0;
         }
 
+        function initDownloadControls() {
+            const options = DOWNLOAD_QUALITY_OPTIONS.map(({ level, label }) => {
+                const option = document.createElement('option');
+                option.value = level;
+                option.textContent = label;
+                return option;
+            });
+            dom.downloadQuality.replaceChildren(...options);
+
+            let savedQuality = '';
+            try {
+                savedQuality = localStorage.getItem('cp_download_quality') || '';
+            } catch (error) {
+                console.warn('无法读取下载音质偏好:', error);
+            }
+            dom.downloadQuality.value = DOWNLOAD_QUALITY_OPTIONS.some(option => option.level === savedQuality)
+                ? savedQuality
+                : 'lossless';
+        }
+
+        function saveDownloadQuality(level) {
+            try {
+                localStorage.setItem('cp_download_quality', level);
+            } catch (error) {
+                console.warn('无法保存下载音质偏好:', error);
+            }
+        }
+
+        function openDownloadDialog(song, opener) {
+            if (!song?.id) return showToast('当前歌曲无法下载', true);
+            downloadState = { song, opener };
+            dom.downloadSongName.textContent = (song.name || '未知歌曲') + ' · ' + (song.artist || '未知艺术家');
+            dom.downloadStatus.textContent = '';
+            dom.downloadDialog.showModal();
+        }
+
+        async function downloadSelectedSong() {
+            const song = downloadState.song;
+            if (!song?.id) return;
+            const level = dom.downloadQuality.value;
+            saveDownloadQuality(level);
+            dom.downloadConfirm.disabled = true;
+            dom.downloadStatus.textContent = '正在解析下载地址...';
+            try {
+                const resolved = await resolveDownloadSong({
+                    id: song.id,
+                    level,
+                    baseUrl: window.location.href,
+                    requestSong: (id, candidate) => musicService.getSongAtLevel(id, candidate),
+                });
+                dom.downloadStatus.textContent = '正在准备文件...';
+                await saveAudioBlob({
+                    url: resolved.url,
+                    filename: downloadFilename({ ...song, url: resolved.url }, resolved.resolvedLevel)
+                });
+                dom.downloadDialog.close();
+                showToast('已开始下载：' + resolved.resolvedLevel);
+            } catch (error) {
+                console.error('歌曲下载失败:', error);
+                dom.downloadStatus.textContent = '下载失败：浏览器或网络阻止了音频文件读取';
+            } finally {
+                dom.downloadConfirm.disabled = false;
+            }
+        }
+
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
             dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);
+            dom.desktopDownloadBtn.addEventListener('click', () => {
+                openDownloadDialog(currentPlaybackSong, dom.desktopDownloadBtn);
+            });
+            dom.downloadQuality.addEventListener('change', () => saveDownloadQuality(dom.downloadQuality.value));
+            dom.downloadConfirm.addEventListener('click', downloadSelectedSong);
+            dom.downloadDialog.addEventListener('close', () => {
+                const opener = downloadState.opener;
+                downloadState = { song: null, opener: null };
+                if (opener?.isConnected) opener.focus();
+            });
 
             // Desktop Tab Switching
             const desktopTabPlaylist = document.getElementById('desktopTabPlaylist');
@@ -2868,6 +2956,13 @@
                         downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
                         downloadButton.addEventListener('click', event => {
                             event.stopPropagation();
+                            openDownloadDialog({
+                                id: song.id,
+                                name: song.name,
+                                artist: song.artist,
+                                album: song.album || '',
+                                cover: song.cover
+                            }, downloadButton);
                         });
                         div.appendChild(downloadButton);
 
@@ -3021,6 +3116,15 @@
             downloadButton.className = 'discovery-download';
             downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
             downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+            downloadButton.addEventListener('click', () => {
+                openDownloadDialog({
+                    id: song.id,
+                    name: song.name,
+                    artist: song.artist,
+                    album: song.album || '',
+                    cover: song.cover
+                }, downloadButton);
+            });
             actions.append(action, downloadButton);
 
             playButton.append(number, main, album);
@@ -3112,6 +3216,8 @@
                     || normalizeMediaUrl(data.cover, { baseUrl: window.location.href })
                     || '';
                 const playbackData = { ...data, cover: picUrl, album: queuedSong?.album || data.album || '' };
+                currentPlaybackSong = playbackData;
+                dom.desktopDownloadBtn.disabled = !currentPlaybackSong.id;
 
                 const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
                 if (!mediaUrl) throw new Error('Invalid media URL');
