@@ -59,6 +59,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "mobileSettingsBtn",
             "closeSheetBtn",
             "closeSettingsBtn",
+            "downloadCancel",
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
 
@@ -70,6 +71,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "desktopBackBtn",
             "desktopForwardBtn",
             "desktopImportBtn",
+            "desktopDownloadBtn",
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)
 

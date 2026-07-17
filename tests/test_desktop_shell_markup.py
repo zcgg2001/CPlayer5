@@ -199,6 +199,32 @@ class DesktopShellMarkupTests(unittest.TestCase):
             "6px 20px calc(6px + env(safe-area-inset-bottom))",
         )
 
+    def test_desktop_download_controls_and_dialog_are_exposed(self):
+        for element_id in (
+            "desktopDownloadBtn", "downloadDialog", "downloadDialogTitle",
+            "downloadSongName", "downloadQuality", "downloadConfirm", "downloadStatus",
+        ):
+            self.assertIn(element_id, self.markup.by_id)
+        self.assertEqual(self.markup.by_id["desktopDownloadBtn"].get("aria-label"), "下载当前歌曲")
+        self.assertEqual(self.markup.by_id["downloadDialog"]["tag"], "dialog")
+        self.assertEqual(self.markup.by_id["downloadDialog"].get("aria-labelledby"), "downloadDialogTitle")
+        self.assertEqual(self.markup.by_id["downloadStatus"].get("role"), "status")
+        self.assertEqual(self.markup.by_id["downloadStatus"].get("aria-live"), "polite")
+
+    def test_discovery_row_uses_sibling_operable_play_and_download_controls(self):
+        factory = re.search(
+            r"(?s)function createDiscoverySongRow\(song, index\) \{(.*?)\n        \}\n\n        function addDiscoverySong",
+            self.source,
+        )
+        self.assertIsNotNone(factory)
+        source = factory.group(1)
+        self.assertIn("const action = document.createElement('button');", source)
+        self.assertIn("action.className = 'discovery-song-action';", source)
+        self.assertIn("action.addEventListener('click', () => addDiscoverySong(song));", source)
+        self.assertIn("actions.append(action, downloadButton);", source)
+        self.assertIn("row.append(playButton, actions);", source)
+        self.assertNotIn("playButton.append(number, main, album, action);", source)
+
     def test_closed_queue_drawer_is_hidden_and_non_interactive(self):
         selector = "#floatingPlaylistPanel.translate-x-full"
         self.assertEqual(self.css_property(selector, "visibility"), "hidden")

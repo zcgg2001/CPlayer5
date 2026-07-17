@@ -215,6 +215,17 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("normalizeSongPayload(json, level)", service)
         self.assertIn("if (song) return song;", service)
 
+    def test_downloads_reuse_song_resolution_and_connect_all_desktop_entry_points(self):
+        service = function_block(self.source, "class MusicService", "class LyricService")
+        self.assertIn("async getSongAtLevel(id, level", service)
+        self.assertIn("normalizeSongPayload(json, level)", service)
+        self.assertIn("resolveDownloadSong({", self.source)
+        self.assertIn("saveAudioBlob({", self.source)
+        self.assertIn("openDownloadDialog(song,", self.source)
+        self.assertIn("dom.desktopDownloadBtn", self.source)
+        self.assertIn("downloadButton.addEventListener('click'", self.source)
+        self.assertIn("currentPlaybackSong =", self.source)
+
     def test_desktop_progress_supports_keyboard_seek_and_aria_updates(self):
         listeners = function_block(
             self.source,
