@@ -1778,6 +1778,7 @@
             resolveDownloadSong,
             saveAudioBlob
         } from './js/music-download.js';
+        import { createDownloadSession } from './js/download-session.js';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -2178,7 +2179,8 @@
         let desktopShell = null;
         let visualizer = null;
         let currentPlaybackSong = null;
-        let downloadState = { song: null, opener: null };
+        const downloadSession = createDownloadSession();
+        let downloadState = { song: null, opener: null, session: null };
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
@@ -2348,18 +2350,23 @@
 
         function openDownloadDialog(song, opener) {
             if (!song?.id) return showToast('当前歌曲无法下载', true);
-            downloadState = { song, opener };
+            const session = downloadSession.open();
+            downloadState = { song, opener, session };
             dom.downloadSongName.textContent = (song.name || '未知歌曲') + ' · ' + (song.artist || '未知艺术家');
             dom.downloadStatus.textContent = '';
-            dom.downloadDialog.showModal();
+            dom.downloadConfirm.disabled = false;
+            dom.downloadCancel.disabled = false;
+            if (!dom.downloadDialog.open) dom.downloadDialog.showModal();
         }
 
         async function downloadSelectedSong() {
             const song = downloadState.song;
-            if (!song?.id) return;
+            const session = downloadState.session;
+            if (!song?.id || !downloadSession.start(session)) return;
             const level = dom.downloadQuality.value;
             saveDownloadQuality(level);
             dom.downloadConfirm.disabled = true;
+            dom.downloadCancel.disabled = true;
             dom.downloadStatus.textContent = '正在解析下载地址...';
             try {
                 const resolved = await resolveDownloadSong({
@@ -2368,18 +2375,24 @@
                     baseUrl: window.location.href,
                     requestSong: (id, candidate) => musicService.getSongAtLevel(id, candidate),
                 });
+                if (!downloadSession.isCurrent(session)) return;
                 dom.downloadStatus.textContent = '正在准备文件...';
                 await saveAudioBlob({
                     url: resolved.url,
                     filename: downloadFilename({ ...song, url: resolved.url }, resolved.resolvedLevel)
                 });
+                if (!downloadSession.isCurrent(session)) return;
                 dom.downloadDialog.close();
                 showToast('已开始下载：' + resolved.resolvedLevel);
             } catch (error) {
+                if (!downloadSession.isCurrent(session)) return;
                 console.error('歌曲下载失败:', error);
                 dom.downloadStatus.textContent = '下载失败：浏览器或网络阻止了音频文件读取';
             } finally {
-                dom.downloadConfirm.disabled = false;
+                if (downloadSession.finish(session)) {
+                    dom.downloadConfirm.disabled = false;
+                    dom.downloadCancel.disabled = false;
+                }
             }
         }
 
@@ -2392,9 +2405,13 @@
             });
             dom.downloadQuality.addEventListener('change', () => saveDownloadQuality(dom.downloadQuality.value));
             dom.downloadConfirm.addEventListener('click', downloadSelectedSong);
+            dom.downloadDialog.addEventListener('cancel', event => {
+                if (downloadSession.isPending(downloadState.session)) event.preventDefault();
+            });
             dom.downloadDialog.addEventListener('close', () => {
-                const opener = downloadState.opener;
-                downloadState = { song: null, opener: null };
+                const { opener, session } = downloadState;
+                if (!downloadSession.isCurrent(session)) return;
+                downloadState = { song: null, opener: null, session: null };
                 if (opener?.isConnected) opener.focus();
             });
 
