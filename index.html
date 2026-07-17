@@ -1284,6 +1284,9 @@
                         data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
                         <i class="fas fa-list-ul" aria-hidden="true"></i>
                     </button>
+                    <button id="desktopDownloadBtn" class="player-action-button" type="button" aria-label="下载当前歌曲" disabled>
+                        <i class="fas fa-download" aria-hidden="true"></i>
+                    </button>
                     <div class="volume-control-group">
                         <button id="volumeBtn" class="player-action-button" type="button" aria-label="调整音量">
                             <i id="volumeIcon" class="fas fa-volume-up" aria-hidden="true"></i>
@@ -1734,6 +1737,25 @@
             </div>
         </div>
     </div>
+
+    <dialog id="downloadDialog" aria-labelledby="downloadDialogTitle">
+        <form id="downloadDialogForm" method="dialog" class="download-dialog-card">
+            <header class="download-dialog-header">
+                <div>
+                    <p class="download-dialog-kicker">DOWNLOAD</p>
+                    <h2 id="downloadDialogTitle">下载歌曲</h2>
+                </div>
+                <button id="downloadCancel" value="cancel" type="submit" aria-label="关闭下载窗口">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
+            <p id="downloadSongName" class="download-song-name"></p>
+            <label for="downloadQuality">选择音质</label>
+            <select id="downloadQuality" aria-label="下载音质"></select>
+            <p id="downloadStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+            <button id="downloadConfirm" type="button"><i class="fas fa-download" aria-hidden="true"></i>下载</button>
+        </form>
+    </dialog>
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
@@ -2839,6 +2861,16 @@
                         div.appendChild(coverDiv);
                         div.appendChild(infoDiv);
 
+                        const downloadButton = document.createElement('button');
+                        downloadButton.type = 'button';
+                        downloadButton.className = 'discovery-download';
+                        downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
+                        downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+                        downloadButton.addEventListener('click', event => {
+                            event.stopPropagation();
+                        });
+                        div.appendChild(downloadButton);
+
                         div.onclick = () => {
                             const newSong = {
                                 id: song.id, name: song.name, artist: song.artist,
@@ -2921,11 +2953,14 @@
         }
 
         function createDiscoverySongRow(song, index) {
-            const row = document.createElement('button');
-            row.type = 'button';
+            const row = document.createElement('article');
             row.className = 'discovery-song-row';
             row.dataset.songId = String(song.id);
-            row.setAttribute('aria-label', `加入并播放 ${song.name} - ${song.artist}`);
+
+            const playButton = document.createElement('button');
+            playButton.type = 'button';
+            playButton.className = 'discovery-song-play';
+            playButton.setAttribute('aria-label', `加入并播放 ${song.name} - ${song.artist}`);
 
             const number = document.createElement('span');
             number.className = 'discovery-song-index';
@@ -2977,8 +3012,18 @@
             actionLabel.textContent = '加入播放';
             action.append(actionIcon, actionLabel);
 
-            row.append(number, main, album, action);
-            row.addEventListener('click', () => addDiscoverySong(song));
+            const actions = document.createElement('div');
+            actions.className = 'discovery-song-actions';
+            const downloadButton = document.createElement('button');
+            downloadButton.type = 'button';
+            downloadButton.className = 'discovery-download';
+            downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
+            downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+            actions.append(action, downloadButton);
+
+            playButton.append(number, main, album);
+            row.append(playButton, actions);
+            playButton.addEventListener('click', () => addDiscoverySong(song));
             return row;
         }
 
