@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
-    <meta name="description" content="沉浸式 Web 音乐播放器，让哆啦A梦 GIF 随播放进度走路、兴奋和大笑。">
+    <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦 GIF 随播放进度走路、兴奋和大笑。">
     <meta property="og:type" content="website">
     <meta property="og:title" content="CPlayer 5｜让音乐有表情">
-    <meta property="og:description" content="会跟随歌曲进度变化的哆啦A梦动画播放器。">
-    <meta property="og:image" content="__SITE_ORIGIN__/img/og.png">
+    <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta property="og:image" content="__SITE_ORIGIN__/img/og-liquid.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
-    <meta name="twitter:description" content="会跟随歌曲进度变化的哆啦A梦动画播放器。">
-    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og.png">
+    <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-liquid.png">
 
     <!-- Favicon -->
     <link rel="icon"
@@ -22,9 +22,9 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#28183B">
+    <meta name="theme-color" content="#dceeff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="CPlayer 5">
     <link rel="apple-touch-icon" href="img/icon.png">
 
@@ -54,26 +54,26 @@
              */
 
             /* 主色（白色系） */
-            --primary-color: #ffffff;
-            --on-primary-color: #000000;
+            --primary-color: #5b5bd6;
+            --on-primary-color: #ffffff;
 
             /* 背景 */
-            --bg-color: #28183B;
-            --on-bg-color: #ffffff;
+            --bg-color: #dceeff;
+            --on-bg-color: #172033;
 
             /* 表面（磨砂玻璃效果） */
-            --surface-color: rgba(255, 255, 255, 0.08);
-            --on-surface-color: #ffffff;
-            --surface-container-color: rgba(255, 255, 255, 0.05);
-            --surface-container-high-color: rgba(255, 255, 255, 0.12);
+            --surface-color: rgba(255, 255, 255, 0.56);
+            --on-surface-color: #172033;
+            --surface-container-color: rgba(255, 255, 255, 0.38);
+            --surface-container-high-color: rgba(255, 255, 255, 0.72);
 
             /* 轮廓和阴影 */
-            --outline-color: rgba(255, 255, 255, 0.1);
-            --shadow-color: rgba(0, 0, 0, 0.5);
+            --outline-color: rgba(255, 255, 255, 0.7);
+            --shadow-color: rgba(46, 57, 112, 0.16);
 
             /* 封面阴影 */
-            --cover-shadow-color: rgba(0, 0, 0, 0.6);
-            --progress-bar-bg: rgba(255, 255, 255, 0.2);
+            --cover-shadow-color: rgba(45, 56, 110, 0.28);
+            --progress-bar-bg: rgba(91, 91, 214, 0.18);
 
             /* 尺寸定义 */
             --cover-size: clamp(260px, min(45vh, 30vw), 380px);
@@ -82,9 +82,20 @@
             --m3-radius-l: 28px;
             --m3-radius-xl: 32px;
             --m3-radius-full: 9999px;
+
+            /* Liquid Glass visual system */
+            --liquid-ink: #172033;
+            --liquid-muted: #536078;
+            --liquid-sky: #7bc7ff;
+            --liquid-lavender: #9f8cff;
+            --liquid-glass: rgba(255, 255, 255, 0.52);
+            --liquid-glass-strong: rgba(255, 255, 255, 0.72);
+            --liquid-border: rgba(255, 255, 255, 0.76);
+            --liquid-shadow: 0 24px 60px rgba(55, 65, 128, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+            --liquid-ease: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        /* html.dark 与 :root 一致，无需重复定义 */
+        /* 默认使用高对比度浅色液态玻璃主题 */
 
         html,
         body {
@@ -1096,6 +1107,418 @@
             }
         }
 
+        /* ================= Liquid Glass 2026 ================= */
+        body {
+            color: var(--liquid-ink);
+            background:
+                radial-gradient(circle at 12% 16%, rgba(113, 204, 255, 0.7), transparent 36%),
+                radial-gradient(circle at 88% 12%, rgba(184, 165, 255, 0.64), transparent 38%),
+                radial-gradient(circle at 70% 88%, rgba(116, 220, 244, 0.5), transparent 34%),
+                linear-gradient(135deg, #cfeaff 0%, #e9e4ff 52%, #d7f3ff 100%);
+            transition: color 0.3s var(--liquid-ease);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.24;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 82%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 82%);
+        }
+
+        #fluidBg {
+            opacity: 0.34;
+            filter: brightness(1.78) saturate(0.72) contrast(0.72);
+        }
+
+        #fluidNoise {
+            z-index: 1 !important;
+            opacity: 0.035 !important;
+            mix-blend-mode: soft-light !important;
+        }
+
+        #desktopLayout {
+            gap: 18px;
+            padding: 18px;
+            isolation: isolate;
+        }
+
+        .player-shell,
+        .lyrics-shell,
+        #floatingPlaylistPanel,
+        #mobileLayout > header,
+        #mobileMainView,
+        .mobile-control-deck,
+        #mobilePlaylistSheet,
+        .modal-card,
+        #welcomeCard,
+        #copyToast {
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.34)) !important;
+            border: 1px solid var(--liquid-border) !important;
+            box-shadow: var(--liquid-shadow) !important;
+            backdrop-filter: blur(30px) saturate(165%) !important;
+            -webkit-backdrop-filter: blur(30px) saturate(165%) !important;
+        }
+
+        .player-shell,
+        .lyrics-shell {
+            height: auto !important;
+            min-height: 0;
+            border-radius: 32px;
+            overflow: hidden;
+        }
+
+        .player-shell {
+            width: clamp(440px, 35vw, 550px) !important;
+        }
+
+        .player-shell::before,
+        .lyrics-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 40%;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent);
+            border-radius: inherit;
+        }
+
+        .lyrics-card {
+            color: var(--liquid-ink);
+            background: transparent !important;
+        }
+
+        .lrc-line {
+            color: rgba(23, 32, 51, 0.68);
+        }
+
+        .lrc-line.active,
+        #mobileLyricsScroller .lrc-line.active,
+        #mobileLyricsScroller .lrc-line.active .lrc-text {
+            color: var(--liquid-ink);
+            text-shadow: 0 8px 26px rgba(91, 91, 214, 0.15);
+        }
+
+        #mobileLyricsScroller .lrc-line {
+            color: rgba(23, 32, 51, 0.68);
+        }
+
+        .custom-controls-wrapper {
+            max-width: 460px;
+            margin-top: 12px;
+            padding: 14px 16px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.28)) !important;
+            box-shadow: 0 14px 32px rgba(63, 72, 137, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(24px) saturate(155%);
+            -webkit-backdrop-filter: blur(24px) saturate(155%);
+        }
+
+        .top-btn,
+        .control-buttons-row button,
+        #togglePlaylistBtn,
+        #mobileLayout button,
+        #closeSettingsBtn {
+            color: var(--liquid-ink);
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 220ms var(--liquid-ease), background-color 220ms var(--liquid-ease),
+                box-shadow 220ms var(--liquid-ease), opacity 220ms var(--liquid-ease) !important;
+        }
+
+        .top-btn,
+        .control-buttons-row button:not(#playPauseBtn),
+        #mobileLayout button:not(#mobilePlayBtn) {
+            background: rgba(255, 255, 255, 0.34) !important;
+            border: 1px solid rgba(255, 255, 255, 0.62);
+            box-shadow: 0 7px 18px rgba(57, 68, 129, 0.1);
+        }
+
+        #playPauseBtn,
+        #mobilePlayBtn,
+        #togglePlaylistBtn,
+        #searchButton {
+            color: #fff !important;
+            background: linear-gradient(135deg, #287bb8 0%, #5148bd 72%, #6d55b8 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: 0 12px 28px rgba(90, 95, 205, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+        }
+
+        .top-btn:hover,
+        .control-buttons-row button:hover,
+        #togglePlaylistBtn:hover {
+            transform: translateY(-2px) scale(1.03);
+            background-color: rgba(255, 255, 255, 0.74) !important;
+            box-shadow: 0 12px 26px rgba(57, 68, 129, 0.16);
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        [role="slider"]:focus-visible {
+            outline: 3px solid rgba(91, 91, 214, 0.42) !important;
+            outline-offset: 3px;
+        }
+
+        .album-art-wrapper {
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow:
+                0 22px 52px rgba(44, 52, 106, 0.23),
+                0 0 0 10px rgba(255, 255, 255, 0.2),
+                inset 0 0 24px rgba(0, 0, 0, 0.72);
+        }
+
+        .album-art-wrapper.playing {
+            box-shadow:
+                0 24px 64px rgba(93, 101, 211, 0.3),
+                0 0 0 12px rgba(255, 255, 255, 0.24),
+                0 0 42px rgba(105, 197, 255, 0.5),
+                inset 0 0 24px rgba(0, 0, 0, 0.72);
+        }
+
+        .progress-track,
+        .mobile-progress-track {
+            background: rgba(255, 255, 255, 0.52) !important;
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            box-shadow: inset 0 2px 8px rgba(66, 77, 141, 0.13), 0 3px 12px rgba(255, 255, 255, 0.54);
+        }
+
+        #progressBar,
+        #mobileProgressBar {
+            background: linear-gradient(90deg, #62c9ff, #6a6be6 62%, #a08cff) !important;
+            box-shadow: 0 0 16px rgba(100, 112, 235, 0.48);
+        }
+
+        .doraemon-mood {
+            color: #4c4ca6;
+            background: rgba(255, 255, 255, 0.56);
+            border-color: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 8px 22px rgba(75, 85, 154, 0.12);
+        }
+
+        .doraemon-progress-thumb,
+        #mobileProgressBarContainer .doraemon-progress-thumb {
+            width: 66px;
+            height: 66px;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.48) 44%, rgba(113, 202, 255, 0.26));
+            box-shadow:
+                0 13px 28px rgba(49, 64, 124, 0.24),
+                0 0 0 7px rgba(255, 255, 255, 0.22),
+                0 0 30px rgba(94, 193, 255, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px) saturate(165%);
+            -webkit-backdrop-filter: blur(16px) saturate(165%);
+            transition: left 80ms linear, transform 220ms var(--liquid-ease), box-shadow 220ms var(--liquid-ease);
+        }
+
+        .doraemon-gif {
+            border-radius: 50%;
+            background: #eaf8ff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+        }
+
+        .progress-scrubber.is-dragging .doraemon-progress-thumb {
+            transform: translate(-50%, -50%) scale(1.12);
+            box-shadow:
+                0 16px 34px rgba(49, 64, 124, 0.28),
+                0 0 0 9px rgba(255, 255, 255, 0.3),
+                0 0 36px rgba(94, 193, 255, 0.62);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"],
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            border-color: rgba(255, 255, 255, 0.96);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"] {
+            box-shadow: 0 14px 30px rgba(49, 64, 124, 0.25), 0 0 0 8px rgba(106, 207, 255, 0.24), 0 0 34px rgba(77, 190, 255, 0.66);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            box-shadow: 0 14px 32px rgba(49, 64, 124, 0.26), 0 0 0 9px rgba(168, 145, 255, 0.24), 0 0 38px rgba(127, 112, 241, 0.68);
+        }
+
+        #floatingPlaylistPanel {
+            top: 18px !important;
+            right: 18px !important;
+            bottom: 18px !important;
+            height: auto !important;
+            width: min(400px, calc(100vw - 36px)) !important;
+            color: var(--liquid-ink);
+            border-radius: 32px 0 0 32px;
+            overflow: hidden;
+        }
+
+        #floatingPlaylistPanel input,
+        #mobilePlaylistSheet input,
+        .modal-card input,
+        .modal-card select {
+            color: var(--liquid-ink) !important;
+            background: rgba(255, 255, 255, 0.48) !important;
+            border: 1px solid rgba(255, 255, 255, 0.74) !important;
+            box-shadow: inset 0 2px 8px rgba(64, 74, 133, 0.08);
+        }
+
+        input::placeholder {
+            color: rgba(23, 32, 51, 0.48);
+            opacity: 1;
+        }
+
+        .playlist-item {
+            margin-bottom: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.56);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+            transition: transform 220ms var(--liquid-ease), background-color 220ms var(--liquid-ease), box-shadow 220ms var(--liquid-ease) !important;
+        }
+
+        .playlist-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.76) !important;
+            box-shadow: 0 12px 28px rgba(55, 66, 129, 0.14), inset 0 1px 0 #fff;
+        }
+
+        .volume-popup {
+            color: var(--liquid-ink);
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            box-shadow: 0 16px 34px rgba(54, 64, 123, 0.18);
+        }
+
+        .modal-backdrop {
+            background: rgba(51, 60, 104, 0.28);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .modal-card,
+        #welcomeCard {
+            color: var(--liquid-ink);
+        }
+
+        #playlistSourceCard,
+        #settingsCard [class*="bg-white/"] {
+            background: rgba(255, 255, 255, 0.34) !important;
+            border-color: rgba(255, 255, 255, 0.68) !important;
+        }
+
+        #mobileLayout {
+            color: var(--liquid-ink);
+        }
+
+        #mobileLayout > header {
+            margin: 10px 10px 0;
+            border-radius: 22px;
+        }
+
+        #mobileMainView {
+            margin: 10px;
+            width: auto;
+            border-radius: 30px;
+        }
+
+        .mobile-control-deck {
+            margin: 0 10px 10px;
+            padding: 14px 14px max(8px, env(safe-area-inset-bottom));
+            border-radius: 30px;
+        }
+
+        #mobilePlaylistSheet {
+            color: var(--liquid-ink);
+            border-radius: 32px 32px 0 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        #sheetDragHandle > div {
+            background: rgba(57, 67, 119, 0.28) !important;
+        }
+
+        #mobileLyricsScroller > div:not(.lrc-line) {
+            color: rgba(23, 32, 51, 0.46) !important;
+        }
+
+        @supports not (backdrop-filter: blur(1px)) {
+            .player-shell,
+            .lyrics-shell,
+            #floatingPlaylistPanel,
+            #mobilePlaylistSheet,
+            .modal-card {
+                background: rgba(242, 247, 255, 0.94) !important;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            #desktopLayout {
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .player-shell {
+                width: 440px !important;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 900px) {
+            .player-shell {
+                width: 380px !important;
+                padding-inline: 24px !important;
+            }
+
+            .lyrics-shell {
+                min-width: 250px !important;
+            }
+
+            .custom-controls-wrapper {
+                padding-inline: 12px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            body::before {
+                background-size: 36px 36px;
+                opacity: 0.16;
+            }
+
+            #fluidBg {
+                opacity: 0.24;
+            }
+
+            #mobileLayout > header,
+            #mobileMainView,
+            .mobile-control-deck,
+            #mobilePlaylistSheet,
+            .modal-card {
+                backdrop-filter: blur(16px) saturate(145%) !important;
+                -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
+            }
+
+            #mobileProgressBarContainer .doraemon-progress-thumb {
+                width: 58px;
+                height: 58px;
+                padding: 4px;
+            }
+
+            .mobile-control-deck button {
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             html:focus-within {
                 scroll-behavior: auto;
@@ -1140,7 +1563,7 @@
 
         <!-- 左侧：播放器控制区 (Fixed width or percentage) -->
         <div
-            class="flex-none w-[480px] lg:w-[550px] h-full flex flex-col justify-center items-center relative z-20 px-8 pt-16 pb-6">
+            class="player-shell flex-none w-[480px] lg:w-[550px] h-full flex flex-col justify-center items-center relative z-20 px-8 pt-16 pb-6">
             <!-- 顶部栏：Logo + 功能按钮 -->
             <header class="absolute top-6 left-8 right-8 flex items-center justify-between">
                 <h1 class="text-2xl font-bold theme-text-primary flex items-center gap-2 drop-shadow-sm">
@@ -1268,7 +1691,7 @@
         </div>
 
         <!-- 右侧：歌词区 (Flexible width) -->
-        <div class="flex-1 h-full relative z-10 flex flex-col justify-center overflow-hidden min-w-[300px]">
+        <div class="lyrics-shell flex-1 h-full relative z-10 flex flex-col justify-center overflow-hidden min-w-[300px]">
             <div class="lyrics-card w-full h-full bg-transparent relative">
                 <!-- DOM Scroller (Plan B) -->
                 <div id="lyricsScroller" class="lyrics-scroller">
@@ -1432,7 +1855,7 @@
         </div>
 
         <!-- 3. Bottom Controls -->
-        <div class="flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
+        <div class="mobile-control-deck flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
             <!-- Progress - 增大触摸区域 -->
             <div id="mobileDoraemonMood" class="doraemon-mood text-center" aria-live="polite" aria-atomic="true">准备出发 ✨</div>
             <div class="flex items-center gap-2 mb-4">
@@ -4925,10 +5348,10 @@
 
                 // 默认颜色 (aura-music)
                 this.colors = [
-                    'rgb(60, 20, 80)',
-                    'rgb(100, 40, 60)',
-                    'rgb(20, 20, 40)',
-                    'rgb(40, 40, 90)'
+                    'rgb(151, 215, 255)',
+                    'rgb(193, 177, 255)',
+                    'rgb(218, 240, 255)',
+                    'rgb(166, 225, 245)'
                 ];
 
                 this.initShader();
@@ -5016,10 +5439,11 @@
                         if (palette && palette.length >= 4) {
                             // 确保格式正确：rgb(r, g, b) 带空格
                             this.colors = palette.map(([r, g, b]) => {
-                                const factor = 0.8;
-                                const nr = Math.round(r * factor);
-                                const ng = Math.round(g * factor);
-                                const nb = Math.round(b * factor);
+                                const factor = 0.32;
+                                const lift = 168;
+                                const nr = Math.min(255, Math.round(r * factor + lift));
+                                const ng = Math.min(255, Math.round(g * factor + lift));
+                                const nb = Math.min(255, Math.round(b * factor + lift));
                                 return `rgb(${nr}, ${ng}, ${nb})`;
                             });
                             console.log('🎨 更新后的背景颜色:', this.colors);
@@ -5037,11 +5461,12 @@
                     ctx.drawImage(img, 0, 0, 2, 2);
                     const data = ctx.getImageData(0, 0, 2, 2).data;
 
+                    const toPastel = value => Math.min(255, Math.round(value * 0.32 + 168));
                     this.colors = [
-                        `rgb(${Math.round(data[0] * 0.8)}, ${Math.round(data[1] * 0.8)}, ${Math.round(data[2] * 0.8)})`,
-                        `rgb(${Math.round(data[4] * 0.8)}, ${Math.round(data[5] * 0.8)}, ${Math.round(data[6] * 0.8)})`,
-                        `rgb(${Math.round(data[8] * 0.8)}, ${Math.round(data[9] * 0.8)}, ${Math.round(data[10] * 0.8)})`,
-                        `rgb(${Math.round(data[12] * 0.8)}, ${Math.round(data[13] * 0.8)}, ${Math.round(data[14] * 0.8)})`
+                        `rgb(${toPastel(data[0])}, ${toPastel(data[1])}, ${toPastel(data[2])})`,
+                        `rgb(${toPastel(data[4])}, ${toPastel(data[5])}, ${toPastel(data[6])})`,
+                        `rgb(${toPastel(data[8])}, ${toPastel(data[9])}, ${toPastel(data[10])})`,
+                        `rgb(${toPastel(data[12])}, ${toPastel(data[13])}, ${toPastel(data[14])})`
                     ];
                     console.log('🎨 降级采样的背景颜色:', this.colors);
                 } catch (e) {
