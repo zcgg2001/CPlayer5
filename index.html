@@ -5,6 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
+    <meta name="description" content="沉浸式 Web 音乐播放器，让哆啦A梦 GIF 随播放进度走路、兴奋和大笑。">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CPlayer 5｜让音乐有表情">
+    <meta property="og:description" content="会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta property="og:image" content="__SITE_ORIGIN__/img/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
+    <meta name="twitter:description" content="会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og.png">
 
     <!-- Favicon -->
     <link rel="icon"
@@ -610,6 +619,8 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            touch-action: none;
+            user-select: none;
         }
 
         .progress-track {
@@ -618,7 +629,7 @@
             background-color: var(--progress-bar-bg);
             border-radius: 3px;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             transition: background-color 0.3s ease, height 0.15s ease;
         }
 
@@ -633,6 +644,123 @@
             border-radius: 3px;
             transition: width 0.1s linear, background-color 0.5s ease;
             box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .progress-scrubber:focus-visible {
+            outline: none;
+        }
+
+        .progress-scrubber:focus-visible .progress-track,
+        .progress-scrubber:focus-visible .mobile-progress-track {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color), white 35%);
+        }
+
+        .doraemon-mood {
+            max-width: 58%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 3px 10px;
+            border: 1px solid color-mix(in srgb, var(--primary-color), transparent 62%);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--primary-color), transparent 86%);
+            color: color-mix(in srgb, var(--primary-color), white 30%);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(12px);
+        }
+
+        .doraemon-progress-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 76px;
+            height: 62px;
+            padding: 3px;
+            border: 2px solid rgba(255, 255, 255, 0.92);
+            border-radius: 18px;
+            background: #07182c;
+            box-shadow:
+                0 9px 24px rgba(0, 0, 0, 0.3),
+                0 0 0 3px color-mix(in srgb, var(--primary-color), transparent 35%),
+                0 0 22px color-mix(in srgb, var(--primary-color), transparent 28%);
+            transform: translate(-50%, -50%);
+            transition: left 0.08s linear, transform 0.16s ease, box-shadow 0.2s ease;
+            pointer-events: none;
+            z-index: 5;
+            will-change: left;
+        }
+
+        .progress-scrubber.is-dragging .doraemon-progress-thumb {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow:
+                0 12px 28px rgba(0, 0, 0, 0.38),
+                0 0 0 4px color-mix(in srgb, var(--primary-color), transparent 20%),
+                0 0 28px color-mix(in srgb, var(--primary-color), transparent 15%);
+        }
+
+        .doraemon-gif {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 14px;
+            background: #07182c;
+            transform-origin: center;
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="walking"] .doraemon-gif {
+            object-position: center 48%;
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"] {
+            border-color: rgba(151, 231, 255, 0.95);
+            box-shadow:
+                0 10px 26px rgba(0, 0, 0, 0.32),
+                0 0 0 3px rgba(0, 191, 255, 0.42),
+                0 0 24px rgba(0, 191, 255, 0.46);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            border-color: rgba(111, 225, 255, 0.98);
+            box-shadow:
+                0 10px 28px rgba(0, 0, 0, 0.34),
+                0 0 0 3px rgba(0, 191, 255, 0.55),
+                0 0 28px rgba(0, 191, 255, 0.62);
+        }
+
+        body.is-audio-playing .doraemon-gif {
+            animation: doraemonGroove 1.05s ease-in-out infinite;
+        }
+
+        @keyframes doraemonGroove {
+            0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+            50% { transform: translateY(-2px) rotate(1.5deg); }
+        }
+
+        .mobile-progress-track {
+            position: relative;
+            overflow: visible;
+        }
+
+        #mobileProgressBar {
+            border-radius: 999px;
+            box-shadow: 0 0 10px color-mix(in srgb, var(--primary-color), transparent 20%);
+        }
+
+        #mobileProgressBarContainer .doraemon-progress-thumb {
+            width: 64px;
+            height: 54px;
+            border-radius: 16px;
+        }
+
+        #mobileDoraemonMood {
+            max-width: calc(100vw - 2rem);
+            margin: 0 auto -2px;
+            font-size: 0.65rem;
         }
 
         .btn-theme-adaptive {
@@ -1081,13 +1209,21 @@
 
                 <!-- 控件区 - 紧贴歌曲信息 -->
                 <div class="custom-controls-wrapper w-full mt-2">
-                    <div class="flex justify-between text-xs font-mono theme-text-on-surface opacity-70 mb-1 px-2">
+                    <div class="flex justify-between items-center gap-2 text-xs font-mono theme-text-on-surface opacity-70 mb-1 px-2">
                         <span id="currentTime">0:00</span>
+                        <span id="doraemonMood" class="doraemon-mood" aria-live="polite" aria-atomic="true">准备出发 ✨</span>
                         <span id="totalTime">0:00</span>
                     </div>
-                    <div class="progress-bar-container group mb-4 px-2">
+                    <div id="desktopProgressBarContainer" class="progress-bar-container progress-scrubber group mb-4 px-2"
+                        role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100"
+                        aria-valuenow="0" aria-valuetext="0:00 / 0:00">
                         <div class="progress-track bg-white/10">
                             <div id="progressBar" style="width: 0%;"></div>
+                            <div id="doraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking" style="left: 0%;" aria-hidden="true">
+                                <img class="doraemon-gif"
+                                    src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
+                                    alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
+                            </div>
                         </div>
                     </div>
 
@@ -1298,15 +1434,18 @@
         <!-- 3. Bottom Controls -->
         <div class="flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
             <!-- Progress - 增大触摸区域 -->
+            <div id="mobileDoraemonMood" class="doraemon-mood text-center" aria-live="polite" aria-atomic="true">准备出发 ✨</div>
             <div class="flex items-center gap-2 mb-4">
                 <span id="mobileCurrentTime" class="text-xs font-mono opacity-70 w-10 text-right">0:00</span>
-                <div class="flex-1 h-12 flex items-center group relative cursor-pointer"
-                    id="mobileProgressBarContainer">
-                    <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden transition-all group-active:h-3">
-                        <div id="mobileProgressBar" class="h-full bg-primary-color w-0 relative">
-                            <div
-                                class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg scale-0 group-active:scale-100 transition-transform">
-                            </div>
+                <div class="flex-1 h-12 flex items-center group relative cursor-pointer progress-scrubber"
+                    id="mobileProgressBarContainer" role="slider" tabindex="0" aria-label="播放进度"
+                    aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
+                    <div class="mobile-progress-track w-full h-1.5 bg-white/20 rounded-full transition-all group-active:h-3">
+                        <div id="mobileProgressBar" class="h-full bg-primary-color w-0"></div>
+                        <div id="mobileDoraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking" style="left: 0%;" aria-hidden="true">
+                            <img class="doraemon-gif"
+                                src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
+                                alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
                         </div>
                     </div>
                 </div>
@@ -2002,6 +2141,7 @@
             // initMobileSettingsButtons(); // Removed
 
             updateVolumeIcon(0.5);
+            updateDoraemonProgress(0, 0, 0);
 
             // ★ MediaSession API (锁屏控制)
             if ('mediaSession' in navigator) {
@@ -2041,6 +2181,117 @@
 
         });
 
+        function getDoraemonMood(progress) {
+            if (progress < 0.12) return '准备出发 ✨';
+            if (progress < 0.32) return '开始享受音乐 😊';
+            if (progress < 0.58) return '沉浸在旋律中 🎶';
+            if (progress < 0.82) return '兴奋起来！🎉';
+            return '完美收尾！🌟';
+        }
+
+        const DORAEMON_GIFS = {
+            walking: 'https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif',
+            laughing: 'https://media1.tenor.com/m/kVoXh1XMS2AAAAAd/doraemon-crying-laugh.gif'
+        };
+
+        function updateDoraemonExpression(progress, thumb, moodElement) {
+            if (!thumb) return;
+
+            const normalized = Math.max(0, Math.min(1, Number(progress) || 0));
+            const stage = normalized < 0.32 ? 'walking' : normalized < 0.82 ? 'excited' : 'laughing';
+            const image = thumb.querySelector('.doraemon-gif');
+            const nextSource = stage === 'walking' ? DORAEMON_GIFS.walking : DORAEMON_GIFS.laughing;
+
+            if (thumb.dataset.gifStage !== stage) thumb.dataset.gifStage = stage;
+            if (image && image.src !== nextSource) image.src = nextSource;
+
+            if (moodElement) {
+                const mood = getDoraemonMood(normalized);
+                if (moodElement.textContent !== mood) moodElement.textContent = mood;
+            }
+        }
+
+        function updateDoraemonProgress(progressPercent, currentTime = 0, duration = 0) {
+            const safePercent = Math.max(0, Math.min(100, Number(progressPercent) || 0));
+            const normalized = safePercent / 100;
+            const progressPairs = [
+                [dom.doraemonThumb, dom.doraemonMood, dom.desktopProgressBarContainer],
+                [dom.mobileDoraemonThumb, dom.mobileDoraemonMood, dom.mobileProgressBarContainer]
+            ];
+
+            progressPairs.forEach(([thumb, mood, container]) => {
+                if (thumb) thumb.style.left = `${safePercent}%`;
+                updateDoraemonExpression(normalized, thumb, mood);
+                if (container) {
+                    container.setAttribute('aria-valuenow', String(Math.round(safePercent)));
+                    container.setAttribute('aria-valuetext', `${formatTime(currentTime)} / ${formatTime(duration)}`);
+                }
+            });
+        }
+
+        function seekToProgress(progress) {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const normalized = Math.max(0, Math.min(1, progress));
+            audio.currentTime = normalized * audio.duration;
+            updatePlayerState();
+        }
+
+        function bindProgressScrubber(container) {
+            if (!container || container.dataset.progressBound === 'true') return;
+            container.dataset.progressBound = 'true';
+            let activePointerId = null;
+
+            const seekFromClientX = (clientX) => {
+                const track = container.querySelector('.progress-track, .mobile-progress-track');
+                const rect = (track || container).getBoundingClientRect();
+                if (!rect.width) return;
+                seekToProgress((clientX - rect.left) / rect.width);
+            };
+
+            const finishDragging = (event) => {
+                if (activePointerId === null || (event && event.pointerId !== activePointerId)) return;
+                if (container.hasPointerCapture?.(activePointerId)) {
+                    container.releasePointerCapture(activePointerId);
+                }
+                activePointerId = null;
+                container.classList.remove('is-dragging');
+            };
+
+            container.addEventListener('pointerdown', (event) => {
+                if (event.pointerType === 'mouse' && event.button !== 0) return;
+                activePointerId = event.pointerId;
+                container.setPointerCapture?.(event.pointerId);
+                container.classList.add('is-dragging');
+                container.focus({ preventScroll: true });
+                seekFromClientX(event.clientX);
+                event.preventDefault();
+            });
+
+            container.addEventListener('pointermove', (event) => {
+                if (event.pointerId !== activePointerId) return;
+                seekFromClientX(event.clientX);
+                event.preventDefault();
+            });
+
+            container.addEventListener('pointerup', finishDragging);
+            container.addEventListener('pointercancel', finishDragging);
+
+            container.addEventListener('keydown', (event) => {
+                if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+                const step = event.shiftKey ? 10 : 5;
+                let nextTime = null;
+
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextTime = audio.currentTime - step;
+                if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextTime = audio.currentTime + step;
+                if (event.key === 'Home') nextTime = 0;
+                if (event.key === 'End') nextTime = audio.duration;
+                if (nextTime === null) return;
+
+                event.preventDefault();
+                seekToProgress(nextTime / audio.duration);
+            });
+        }
+
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
@@ -2066,7 +2317,7 @@
             dom.nextBtn.addEventListener('click', playNextSong);
             dom.playModeBtn.addEventListener('click', togglePlayMode);
 
-            dom.progressBar.parentElement.parentElement.addEventListener('click', seekAudio);
+            bindProgressScrubber(dom.desktopProgressBarContainer);
 
             audio.addEventListener('timeupdate', updatePlayerState);
             audio.addEventListener('play', onPlayStart);
@@ -2074,6 +2325,9 @@
             audio.addEventListener('ended', handleSongEnd);
             audio.addEventListener('loadedmetadata', () => {
                 dom.totalTime.textContent = formatTime(audio.duration);
+                const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+                if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, progress);
+                updateDoraemonProgress(progress, audio.currentTime, audio.duration);
             });
 
             dom.volumeSlider.addEventListener('input', (e) => {
@@ -2438,6 +2692,7 @@
 
         function onPlayStart() {
             isPlaying = true;
+            document.body.classList.add('is-audio-playing');
             dom.playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl text-on-primary-color"></i>';
             dom.albumArtWrapper.classList.add('playing');
             if (mobileUI) mobileUI.updatePlayState(true); // ★ Mobile
@@ -2451,6 +2706,7 @@
 
         function onPlayPause() {
             isPlaying = false;
+            document.body.classList.remove('is-audio-playing');
             dom.playPauseBtn.innerHTML = '<i class="fas fa-play text-2xl ml-1 text-on-primary-color"></i>';
             dom.albumArtWrapper.classList.remove('playing');
             if (mobileUI) mobileUI.updatePlayState(false); // ★ Mobile
@@ -2665,6 +2921,8 @@
             if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.remove('opacity-0');
             dom.progressBar.style.width = '0%';
             dom.currentTime.textContent = '0:00';
+            updateDoraemonProgress(0, 0, 0);
+            if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
             dom.songIdTag.textContent = 'ID: Load...';
@@ -2787,18 +3045,12 @@
             const pct = (audio.currentTime / audio.duration) * 100;
             dom.progressBar.style.width = `${pct}%`;
             dom.currentTime.textContent = formatTime(audio.currentTime);
+            updateDoraemonProgress(pct, audio.currentTime, audio.duration);
 
             // ★ Mobile Update
             if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, pct);
 
             updateLyrics(audio.currentTime);
-        }
-
-        function seekAudio(e) {
-            if (!audio.duration) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const pct = (e.clientX - rect.left) / rect.width;
-            audio.currentTime = pct * audio.duration;
         }
 
         // ================= 歌词逻辑 =================
@@ -4149,15 +4401,8 @@
                 this.dom.nextBtn?.addEventListener('click', playNextSong);
                 this.dom.modeBtn?.addEventListener('click', togglePlayMode);
 
-                // Progress
-                this.dom.progressContainer?.addEventListener('click', (e) => {
-                    const rect = this.dom.progressContainer.getBoundingClientRect();
-                    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                    if (audio.duration) {
-                        audio.currentTime = percent * audio.duration;
-                        updateProgress();
-                    }
-                });
+                // Progress (鼠标、触摸、键盘统一处理)
+                bindProgressScrubber(this.dom.progressContainer);
             }
 
             bindSheetEvents() {

@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v7';
+const SHELL_CACHE = 'cplayer5-shell-v8';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;

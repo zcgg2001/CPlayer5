@@ -100,6 +100,33 @@ class AccessibilityMarkupTests(unittest.TestCase):
             self.assertIn("min-w-11", classes, element_id)
             self.assertIn("min-h-11", classes, element_id)
 
+    def test_progress_scrubbers_are_keyboard_operable_sliders(self):
+        markup = parse_markup("index.html")
+        for element_id in ("desktopProgressBarContainer", "mobileProgressBarContainer"):
+            scrubber = markup.by_id[element_id]
+            self.assertEqual(scrubber.get("role"), "slider", element_id)
+            self.assertEqual(scrubber.get("tabindex"), "0", element_id)
+            self.assertEqual(scrubber.get("aria-valuemin"), "0", element_id)
+            self.assertEqual(scrubber.get("aria-valuemax"), "100", element_id)
+            self.assertTrue(scrubber.get("aria-label"), element_id)
+
+    def test_doraemon_progress_has_desktop_and_mobile_feedback(self):
+        markup = parse_markup("index.html")
+        for element_id in (
+            "doraemonThumb",
+            "doraemonMood",
+            "mobileDoraemonThumb",
+            "mobileDoraemonMood",
+        ):
+            self.assertIn(element_id, markup.by_id)
+
+        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.assertIn("function updateDoraemonExpression", source)
+        self.assertIn("bindProgressScrubber", source)
+        self.assertIn("doraemon-walking-trippy.gif", source)
+        self.assertIn("doraemon-crying-laugh.gif", source)
+        self.assertNotIn('class="doraemon-head"', source)
+
     def test_pages_define_reduced_motion_styles(self):
         for filename in ("index.html", "playlist-downloader.html"):
             source = (ROOT / filename).read_text(encoding="utf-8")
