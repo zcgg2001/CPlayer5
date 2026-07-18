@@ -611,7 +611,7 @@
         }
 
         /* 移动端特定 */
-        @media (max-width: 768px) {
+        @media (max-width: 1023.98px) {
             body {
                 overscroll-behavior: none;
             }
@@ -959,7 +959,7 @@
         }
 
         /* [需求4] 手机端隐藏顶部的全屏按钮 */
-        @media (max-width: 768px) {
+        @media (max-width: 1023.98px) {
             #fullscreenBtn.mobile-hide {
                 display: none !important;
             }
@@ -1107,7 +1107,8 @@
             }
         }
 
-        /* ================= Liquid Glass 2026 ================= */
+        /* ================= Liquid Glass 2026（移动端） ================= */
+        @media (max-width: 1023.98px) {
         body {
             color: var(--liquid-ink);
             background:
@@ -1518,6 +1519,7 @@
                 min-height: 44px;
             }
         }
+        }
 
         @media (prefers-reduced-motion: reduce) {
             html:focus-within {
@@ -1538,6 +1540,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="./css/app-shell.css">
     <script src="playlist.js"></script>
 </head>
 
@@ -1558,225 +1561,393 @@
         <span class="font-bold text-sm">已复制到剪贴板</span>
     </div>
 
-    <!-- 主容器 (Desktop Layout) - 全屏重构版 -->
-    <div id="desktopLayout" class="hidden md:flex flex-row h-screen w-screen overflow-hidden bg-transparent">
+    <!-- Desktop application shell -->
+    <div id="desktopApp">
+        <a class="app-skip-link" href="#desktopLibraryView">跳到音乐库</a>
 
-        <!-- 左侧：播放器控制区 (Fixed width or percentage) -->
-        <div
-            class="player-shell flex-none w-[480px] lg:w-[550px] h-full flex flex-col justify-center items-center relative z-20 px-8 pt-16 pb-6">
-            <!-- 顶部栏：Logo + 功能按钮 -->
-            <header class="absolute top-6 left-8 right-8 flex items-center justify-between">
-                <h1 class="text-2xl font-bold theme-text-primary flex items-center gap-2 drop-shadow-sm">
-                    <svg class="w-8 h-8 theme-fill-primary animate-pulse" xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24">
-                        <path fill-rule="evenodd"
-                            d="m10.09 11.963l9.273-3.332L21 7.952v-.46c0-1.12 0-2.059-.088-2.807a7 7 0 0 0-.043-.31c-.085-.51-.234-.988-.523-1.386a2.2 2.2 0 0 0-.675-.617l-.01-.005c-.77-.461-1.638-.428-2.532-.224c-.864.198-1.935.6-3.249 1.095l-2.284.859c-.616.231-1.138.427-1.547.63c-.436.216-.811.471-1.092.851s-.399.79-.452 1.234c-.05.418-.05.926-.05 1.525v4.265z"
-                            clip-rule="evenodd"></path>
-                        <path
-                            d="M8.455 16.13a3.8 3.8 0 0 0-1.91-.5C4.587 15.63 3 17.056 3 18.815S4.587 22 6.545 22c1.959 0 3.546-1.426 3.546-3.185v-6.852l-1.636.638zm10.909-7.5v5.54a3.8 3.8 0 0 0-1.91-.5c-1.958 0-3.545 1.426-3.545 3.185s1.587 3.185 3.545 3.185c1.959 0 3.546-1.426 3.546-3.185V7.952z"
-                            opacity=".5"></path>
-                    </svg>
-                    CPlayer 5
-                </h1>
-                <!-- 设置 & 全屏按钮（从右上角固定位置移入此处） -->
-                <div class="flex items-center gap-2">
-                    <button id="settingsBtn" title="设置" aria-label="打开设置"
-                        class="top-btn w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
-                        <i class="fas fa-cog text-sm opacity-70"></i>
+        <div id="desktopShell">
+            <aside class="app-sidebar" aria-label="桌面应用导航">
+                <div class="app-brand">
+                    <span class="app-brand-mark" aria-hidden="true">
+                        <i class="fas fa-music"></i>
+                    </span>
+                    <span class="app-brand-copy">
+                        <strong>505音乐之家</strong>
+                        <span>Music workspace</span>
+                    </span>
+                </div>
+
+                <nav class="app-navigation" aria-label="主导航">
+                    <p class="app-nav-label">浏览</p>
+                    <button id="desktopNavLibrary" class="app-nav-item" type="button"
+                        data-shell-destination="library" aria-controls="desktopLibraryView" aria-current="page">
+                        <i class="fas fa-compact-disc" aria-hidden="true"></i>
+                        <span>发现音乐</span>
                     </button>
-                    <button id="fullscreenBtn" title="全屏模式" aria-label="切换全屏模式"
-                        class="top-btn mobile-hide w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110">
-                        <i class="fas fa-expand text-sm opacity-70"></i>
+                    <button id="desktopNavSearch" class="app-nav-item" type="button"
+                        data-shell-destination="search" aria-controls="desktopSearchView">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span>搜索音乐</span>
+                    </button>
+                    <button id="desktopImmersiveToggle" class="app-nav-item" type="button"
+                        data-shell-destination="now-playing" aria-controls="desktopLayout" aria-expanded="false">
+                        <i class="fas fa-headphones" aria-hidden="true"></i>
+                        <span>正在播放</span>
+                    </button>
+                    <button id="togglePlaylistBtn" class="app-nav-item" type="button"
+                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel"
+                        aria-label="打开播放队列">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                        <span>播放队列</span>
+                    </button>
+                    <button id="desktopImportBtn" class="app-nav-item" type="button"
+                        data-shell-destination="import" aria-controls="playlistFile" aria-label="导入本地 JSON 歌单">
+                        <i class="fas fa-file-import" aria-hidden="true"></i>
+                        <span>本地导入</span>
+                    </button>
+                </nav>
+
+                <div class="app-sidebar-tools">
+                    <p class="app-nav-label">工具</p>
+                    <a class="app-nav-item" href="./playlist-downloader.html">
+                        <i class="fas fa-cloud-download-alt" aria-hidden="true"></i>
+                        <span>歌单工具</span>
+                    </a>
+                    <button id="settingsBtn" class="app-nav-item" type="button"
+                        data-shell-destination="settings" aria-controls="settingsModal" aria-label="打开设置">
+                        <i class="fas fa-cog" aria-hidden="true"></i>
+                        <span>设置</span>
+                    </button>
+                </div>
+            </aside>
+
+            <header class="app-topbar">
+                <div class="app-history" aria-label="浏览历史">
+                    <button id="desktopBackBtn" class="app-icon-button" type="button" aria-label="后退" disabled>
+                        <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button id="desktopForwardBtn" class="app-icon-button" type="button" aria-label="前进" disabled>
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="app-topbar-copy">
+                    <strong id="desktopTopbarTitle">发现音乐</strong>
+                    <span id="desktopTopbarDescription">浏览新歌并管理当前播放内容</span>
+                </div>
+
+                <div class="app-topbar-actions">
+                    <a id="desktopSearchShortcut" class="app-topbar-action" href="#searchInput"
+                        data-shell-destination="search" aria-controls="searchInput" aria-label="搜索音乐">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                        <span>搜索</span>
+                    </a>
+                    <button id="fullscreenBtn" class="app-topbar-action mobile-hide" type="button"
+                        title="全屏模式" aria-label="切换全屏模式">
+                        <i class="fas fa-expand" aria-hidden="true"></i>
+                        <span>全屏</span>
                     </button>
                 </div>
             </header>
 
-            <!-- 播放器卡片内容 - 紧凑居中布局 -->
-            <div class="w-full flex flex-col items-center justify-center gap-0">
-                <!-- 视觉化 & 封面 -->
-                <div class="visualizer-container">
-                    <canvas id="audioVisualizer"></canvas>
-                    <div class="album-art-wrapper" id="albumArtWrapper">
-                        <img id="albumArt"
-                            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23333;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23111;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='150' cy='150' r='148' fill='url(%23grad)' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='150' cy='150' r='50' fill='%2300C853' opacity='0.8'/%3E%3Ccircle cx='150' cy='150' r='5' fill='%23000'/%3E%3Cpath fill='none' stroke='%23444' stroke-width='1' d='M150,10 A140,140 0 1,1 149.9,10' stroke-dasharray='5,5'/%3E%3C/svg%3E"
-                            alt="专辑封面" crossOrigin="anonymous" draggable="true">
-                        <!-- 精美内嵌加载动画 -->
-                        <div id="desktopLoaderOverlay"
-                            class="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300 z-10 text-primary-color">
-                            <div
-                                class="w-16 h-16 rounded-full border-4 border-white/20 border-t-current animate-spin shadow-[0_0_15px_currentColor]">
+            <main id="desktopLibraryView" tabindex="-1" aria-labelledby="desktopLibraryTitle">
+                <div class="library-content">
+                    <div id="desktopDiscoveryView" class="desktop-main-view" aria-hidden="false">
+                        <header class="library-heading">
+                            <div>
+                                <p class="library-kicker">DISCOVER</p>
+                                <h1 id="desktopLibraryTitle">发现音乐</h1>
+                                <p class="library-description">
+                                    浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
+                                </p>
                             </div>
-                        </div>
+                        </header>
+
+                        <section id="desktopDiscoverySection" class="discovery-panel"
+                            aria-labelledby="desktopDiscoveryTitle">
+                            <header class="discovery-heading">
+                                <div class="discovery-heading-copy">
+                                    <div class="discovery-title-row">
+                                        <h2 id="desktopDiscoveryTitle">新歌速递</h2>
+                                        <span class="discovery-source">网易云新歌榜</span>
+                                    </div>
+                                    <p>真实榜单数据 · 每次展示最新 12 首</p>
+                                </div>
+                                <button id="desktopDiscoveryRefresh" class="discovery-refresh" type="button"
+                                    aria-label="刷新新歌速递">
+                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                    <span>刷新</span>
+                                </button>
+                            </header>
+                            <div class="discovery-list-header" aria-hidden="true">
+                                <span>#</span>
+                                <span>标题</span>
+                                <span class="discovery-column-album">专辑</span>
+                                <span>操作</span>
+                            </div>
+                            <div id="desktopDiscoveryList" class="discovery-list" aria-live="polite"
+                                aria-busy="true">
+                                <div class="discovery-status" role="status">
+                                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                    <span>正在获取新歌榜...</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="capability-grid" aria-label="音乐库工具">
+                            <article class="capability-card">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-list-ul"></i>
+                                </span>
+                                <h2>当前播放列表</h2>
+                                <p>查看已经载入的真实曲目，并从现有虚拟列表继续播放。</p>
+                                <div class="capability-actions">
+                                    <span id="playlistCount" class="capability-status"
+                                        aria-live="polite">等待载入</span>
+                                    <button id="desktopLibraryQueueBtn" class="capability-action" type="button"
+                                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel">
+                                        查看队列
+                                    </button>
+                                </div>
+                            </article>
+
+                            <article class="capability-card upload-container">
+                                <input type="file" id="playlistFile" accept=".json" class="hidden"
+                                    aria-label="导入 JSON 歌单">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-file-import"></i>
+                                </span>
+                                <h2>本地导入</h2>
+                                <p>选择项目支持的 JSON 歌单文件，继续使用当前播放器和缓存流程。</p>
+                                <div class="capability-actions">
+                                    <span class="capability-status">JSON 歌单</span>
+                                    <button id="desktopImportCardBtn" class="capability-action" type="button"
+                                        data-shell-destination="import" aria-controls="playlistFile">
+                                        选择文件
+                                    </button>
+                                </div>
+                            </article>
+
+                            <article class="capability-card">
+                                <span class="capability-icon" aria-hidden="true">
+                                    <i class="fas fa-cloud-download-alt"></i>
+                                </span>
+                                <h2>歌单工具</h2>
+                                <p>打开项目自带的歌单下载工具，准备可供 CPlayer 5 使用的内容。</p>
+                                <div class="capability-actions">
+                                    <span class="capability-status">内置工具</span>
+                                    <a class="capability-action" href="./playlist-downloader.html">
+                                        打开工具
+                                    </a>
+                                </div>
+                            </article>
+                        </section>
+                    </div>
+
+                    <section id="desktopSearchView" class="desktop-main-view" aria-hidden="true"
+                        aria-labelledby="desktopSearchPageTitle" hidden>
+                        <header class="library-heading">
+                            <div>
+                                <p class="library-kicker">SEARCH</p>
+                                <h1 id="desktopSearchPageTitle">搜索音乐</h1>
+                                <p class="library-description">
+                                    按歌曲名、歌手或歌曲 ID 查找内容，并直接加入当前播放队列。
+                                </p>
+                            </div>
+                        </header>
+
+                        <section id="desktopContentSearch" aria-labelledby="desktopSearchTitle">
+                            <div class="search-heading">
+                                <span class="search-heading-icon" aria-hidden="true">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <div>
+                                    <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
+                                    <p>支持歌曲名、歌手或歌曲 ID，结果会加入同一播放队列。</p>
+                                </div>
+                            </div>
+                            <div class="search-box">
+                                <div class="search-input-wrap">
+                                    <i class="fas fa-search" aria-hidden="true"></i>
+                                    <label class="sr-only" for="searchInput">搜索歌曲或歌手</label>
+                                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手或输入歌曲 ID"
+                                        aria-label="搜索歌曲或歌手" autocomplete="off">
+                                </div>
+                                <button id="searchButton" type="button">
+                                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                    <span>搜索</span>
+                                </button>
+                            </div>
+                            <p class="search-help">搜索结果使用项目现有服务；网络不可用时会沿用已有错误提示。</p>
+                            <div id="searchResults" class="hidden" aria-live="polite"></div>
+                        </section>
+                    </section>
+                </div>
+            </main>
+
+            <footer id="desktopPlayerBar" aria-label="桌面播放控制">
+                <div class="player-meta">
+                    <button id="desktopMiniPlayer" type="button" aria-label="打开正在播放"
+                        aria-controls="desktopLayout" aria-expanded="false">
+                        <img id="desktopMiniCover" src="./img/icon.png" alt="" width="48" height="48">
+                        <span class="player-meta-copy">
+                            <span id="songTitle" class="player-song-title"
+                                title="右键或长按复制">CPlayer 5</span>
+                            <span id="artistName" title="右键或长按复制">ChKSz</span>
+                        </span>
+                    </button>
+                    <div class="player-tags" aria-label="当前曲目信息">
+                        <span id="sourceTag">未加载</span>
+                        <span id="songIdTag" title="右键或长按复制">ID: --</span>
+                        <span id="qualityBadge" class="quality-badge quality-standard">音质 --</span>
                     </div>
                 </div>
 
-                <!-- 歌曲信息 - 紧贴唱片 -->
-                <div class="song-info text-center w-full z-10 mt-0 mb-0">
-                    <div id="songTitle"
-                        class="text-2xl font-bold theme-text-on-surface truncate px-4 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="右键或长按复制">CPlayer 5</div>
-                    <div id="artistName"
-                        class="text-xl theme-text-on-surface opacity-60 truncate px-4 mt-1 cursor-pointer hover:opacity-80 transition-opacity"
-                        title="右键或长按复制">ChKSz</div>
-
-                    <div class="flex justify-center items-center gap-2 mt-2">
-                        <div id="sourceTag"
-                            class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current">CHKSZ API
-                        </div>
-                        <div id="songIdTag"
-                            class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current cursor-pointer hover:opacity-100 transition-all">
-                            ID: 0413</div>
-                        <div id="qualityBadge" class="quality-badge quality-lossless">💎JyMaster</div>
+                <div class="player-controls">
+                    <div class="transport-controls">
+                        <button id="playModeBtn" class="player-control-button" type="button"
+                            title="播放模式" aria-label="切换播放模式">
+                            <i class="fas fa-random" aria-hidden="true"></i>
+                        </button>
+                        <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲">
+                            <i class="fas fa-backward" aria-hidden="true"></i>
+                        </button>
+                        <button id="playPauseBtn" class="player-control-button" type="button" aria-label="播放/暂停">
+                            <i class="fas fa-play" aria-hidden="true"></i>
+                        </button>
+                        <button id="nextBtn" class="player-control-button" type="button" aria-label="下一曲">
+                            <i class="fas fa-forward" aria-hidden="true"></i>
+                        </button>
                     </div>
-                </div>
 
-                <!-- 控件区 - 紧贴歌曲信息 -->
-                <div class="custom-controls-wrapper w-full mt-2">
-                    <div class="flex justify-between items-center gap-2 text-xs font-mono theme-text-on-surface opacity-70 mb-1 px-2">
+                    <div class="player-timeline">
                         <span id="currentTime">0:00</span>
-                        <span id="doraemonMood" class="doraemon-mood" aria-live="polite" aria-atomic="true">准备出发 ✨</span>
+                        <div id="desktopProgressBarContainer" class="progress-bar-container progress-scrubber"
+                            title="播放进度" role="slider" tabindex="0" aria-label="播放进度"
+                            aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
+                            <div class="progress-track">
+                                <div id="progressBar" style="width: 0%;"></div>
+                                <div id="doraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking"
+                                    style="left: 0%;" aria-hidden="true">
+                                    <img class="doraemon-gif"
+                                        src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
+                                        alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
+                                </div>
+                            </div>
+                            <span id="doraemonMood" class="sr-only" aria-live="polite" aria-atomic="true">准备出发 ✨</span>
+                        </div>
                         <span id="totalTime">0:00</span>
                     </div>
-                    <div id="desktopProgressBarContainer" class="progress-bar-container progress-scrubber group mb-4 px-2"
-                        role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="100"
-                        aria-valuenow="0" aria-valuetext="0:00 / 0:00">
-                        <div class="progress-track bg-white/10">
-                            <div id="progressBar" style="width: 0%;"></div>
-                            <div id="doraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking" style="left: 0%;" aria-hidden="true">
-                                <img class="doraemon-gif"
-                                    src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
-                                    alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
-                            </div>
-                        </div>
-                    </div>
+                </div>
 
-                    <div class="control-buttons-row justify-center gap-6">
-                        <button id="playModeBtn" title="播放模式" aria-label="切换播放模式"
-                            class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
-                            <i class="fas fa-random text-lg"></i>
+                <div class="player-actions">
+                    <button id="desktopPlaybackQualityBtn" class="playback-quality-trigger" type="button"
+                        aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
+                        <span class="playback-quality-dot" aria-hidden="true"></span>
+                        <span id="desktopPlaybackQualityLabel">无损</span>
+                        <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                    </button>
+                    <button id="desktopPlayerQueueBtn" class="player-action-button" type="button"
+                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                    </button>
+                    <button id="desktopDownloadBtn" class="player-action-button" type="button" aria-label="下载当前歌曲" disabled>
+                        <i class="fas fa-download" aria-hidden="true"></i>
+                    </button>
+                    <div class="volume-control-group">
+                        <button id="volumeBtn" class="player-action-button" type="button" aria-label="调整音量">
+                            <i id="volumeIcon" class="fas fa-volume-up" aria-hidden="true"></i>
                         </button>
-
-                        <div class="flex items-center gap-6">
-                            <button id="prevBtn" aria-label="上一曲"
-                                class="w-12 h-12 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-95">
-                                <i class="fas fa-backward text-xl"></i>
-                            </button>
-
-                            <button id="playPauseBtn" aria-label="播放/暂停"
-                                class="w-16 h-16 rounded-full bg-primary-color text-on-primary-color flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
-                                <i class="fas fa-play text-2xl ml-1"></i>
-                            </button>
-
-                            <button id="nextBtn" aria-label="下一曲"
-                                class="w-12 h-12 rounded-full hover:bg-white/10 flex items-center justify-center transition-all active:scale-95">
-                                <i class="fas fa-forward text-xl"></i>
-                            </button>
+                        <div id="volumePopover" class="volume-popup">
+                            <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
+                                step="0.01" value="0.5" aria-label="音量">
                         </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
 
-                        <div class="volume-control-group">
-                            <button id="volumeBtn" aria-label="调整音量"
-                                class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-80 hover:opacity-100">
-                                <i id="volumeIcon" class="fas fa-volume-up text-lg"></i>
-                            </button>
-                            <div id="volumePopover" class="volume-popup">
-                                <input type="range" id="volumeSlider" class="volume-slider-vertical" min="0" max="1"
-                                    step="0.01" value="0.5" aria-label="音量">
+        <section id="desktopLayout" aria-hidden="true" role="dialog"
+            aria-label="沉浸式正在播放">
+            <header class="immersive-header">
+                <div class="immersive-heading">
+                    <strong>CPlayer 5</strong>
+                    <span>IMMERSIVE PLAYER</span>
+                </div>
+                <button id="desktopImmersiveClose" type="button" aria-label="关闭沉浸式播放器">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </header>
+
+            <div class="immersive-stage">
+                <div class="immersive-cover-pane">
+                    <div class="visualizer-container">
+                        <canvas id="audioVisualizer"></canvas>
+                        <div class="album-art-wrapper" id="albumArtWrapper">
+                            <img id="albumArt"
+                                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23333;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23111;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='150' cy='150' r='148' fill='url(%23grad)' stroke='%23222' stroke-width='4'/%3E%3Ccircle cx='150' cy='150' r='50' fill='%2300C853' opacity='0.8'/%3E%3Ccircle cx='150' cy='150' r='5' fill='%23000'/%3E%3Cpath fill='none' stroke='%23444' stroke-width='1' d='M150,10 A140,140 0 1,1 149.9,10' stroke-dasharray='5,5'/%3E%3C/svg%3E"
+                                alt="专辑封面" crossorigin="anonymous" draggable="true">
+                            <div id="desktopLoaderOverlay"
+                                class="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-[2px] opacity-0 pointer-events-none transition-opacity duration-300 z-10 text-primary-color">
+                                <div
+                                    class="w-16 h-16 rounded-full border-4 border-white/20 border-t-current animate-spin shadow-[0_0_15px_currentColor]">
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- loader 移至 albumArtWrapper 内作为 overlay -->
-            </div>
-        </div>
-
-        <!-- 右侧：歌词区 (Flexible width) -->
-        <div class="lyrics-shell flex-1 h-full relative z-10 flex flex-col justify-center overflow-hidden min-w-[300px]">
-            <div class="lyrics-card w-full h-full bg-transparent relative">
-                <!-- DOM Scroller (Plan B) -->
-                <div id="lyricsScroller" class="lyrics-scroller">
-                    <div class="lrc-line active">
-                        <span class="lrc-text">CPlayer 5</span>
-                        <span class="lrc-trans">Music for Everyone</span>
-                    </div>
-                </div>
-
-                <!-- Legacy Canvas (Hidden/Removed) -->
-                <!-- <canvas id="lyricsCanvas" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing hidden"></canvas> -->
-
-                <div class="lyrics-container custom-scrollbar hidden">
-                    <div class="lyric-line opacity-50 my-auto">等待播放...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 右下角浮动按钮 - 统一侧边栏 -->
-        <div class="fixed bottom-8 right-8 z-50 flex flex-col gap-4 items-end">
-            <button id="togglePlaylistBtn" aria-label="打开播放列表和搜索"
-                class="w-14 h-14 rounded-full bg-primary-color text-on-primary-color shadow-xl flex items-center justify-center hover:scale-110 transition-all z-50"
-                title="播放列表 / 搜索">
-                <i class="fas fa-list-ul text-xl"></i>
-            </button>
-        </div>
-
-        <!-- ★ 统一侧边栏 (播放列表 + 搜索) -->
-        <div id="floatingPlaylistPanel"
-            class="fixed top-0 right-0 bottom-0 h-screen w-[400px] bg-black/40 backdrop-blur-md shadow-2xl transition-transform duration-300 translate-x-full z-40 flex flex-col border-l border-white/10"
-            style="isolation: isolate;">
-
-
-
-            <!-- Tab 切换头部 -->
-            <div class="flex-none pt-5 pb-0 px-5">
-                <div class="flex items-center gap-5 border-b border-white/10 pb-3" role="tablist" aria-label="侧边栏内容">
-                    <button id="desktopTabPlaylist"
-                        role="tab" aria-selected="true" aria-controls="desktopContentPlaylist"
-                        class="text-base font-bold border-b-2 border-primary-color pb-1 transition-all opacity-100">
-                        <i class="fas fa-list-ul mr-1.5 text-primary-color"></i>当前播放
-                        <span id="playlistCount" class="text-xs opacity-50 font-normal ml-1"></span>
-                    </button>
-                    <button id="desktopTabSearch"
-                        role="tab" aria-selected="false" aria-controls="desktopContentSearch"
-                        class="text-base font-bold border-b-2 border-transparent pb-1 transition-all opacity-50">
-                        <i class="fas fa-search mr-1.5"></i>搜索添加
-                    </button>
-                    <!-- Upload Area hidden by default -->
-                    <div class="upload-container soft-upload-area hidden ml-auto">
-                        <input type="file" id="playlistFile" accept=".json" class="hidden" aria-label="导入 JSON 歌单">
+                <div class="immersive-lyrics-pane">
+                    <div class="lyrics-card">
+                        <div id="lyricsScroller" class="lyrics-scroller">
+                            <div class="lrc-line active">
+                                <span class="lrc-text">CPlayer 5</span>
+                                <span class="lrc-trans">Music for Everyone</span>
+                            </div>
+                        </div>
+                        <div class="lyrics-container custom-scrollbar hidden">
+                            <div class="lyric-line opacity-50 my-auto">等待播放...</div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Content: 播放列表 -->
-            <div id="desktopContentPlaylist" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-                <div class="playlist-songs custom-scrollbar flex-1 overflow-y-auto px-4 pb-4 pt-2"
-                    id="playlistContainer">
+        <aside id="floatingPlaylistPanel"
+            class="translate-x-full"
+            style="isolation: isolate;" aria-label="播放队列">
+            <div class="queue-header">
+                <div class="queue-heading">
+                    <strong>播放队列</strong>
+                    <span>当前播放器的真实曲目列表</span>
+                </div>
+                <div role="tablist" aria-label="队列内容">
+                    <button id="desktopTabPlaylist" type="button" role="tab" aria-selected="true"
+                        aria-controls="desktopContentPlaylist">
+                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                        当前播放
+                    </button>
+                    <button id="desktopTabSearch" class="hidden" type="button" role="tab" aria-selected="false"
+                        aria-controls="desktopContentSearch" tabindex="-1">
+                        搜索添加
+                    </button>
+                </div>
+            </div>
+
+            <div id="desktopContentPlaylist">
+                <div class="playlist-songs custom-scrollbar" id="playlistContainer">
                     <div id="playlistContent"></div>
                     <div id="playlistLoader" class="text-center py-4 text-xs opacity-50 hidden">加载更多...</div>
                 </div>
             </div>
+        </aside>
 
-            <!-- Content: 搜索 -->
-            <div id="desktopContentSearch" class="flex-1 min-h-0 hidden flex-col overflow-hidden p-4 pt-2">
-                <div class="relative flex items-center group mb-3 flex-none">
-                    <input type="text" id="searchInput" placeholder="搜索歌曲、歌手..." aria-label="搜索歌曲或歌手"
-                        class="w-full pl-10 pr-14 py-2.5 rounded-full bg-white/10 border-transparent focus:border-primary-color outline-none transition-all text-sm font-medium">
-                    <i class="fas fa-search absolute left-3.5 opacity-50"></i>
-                    <button id="searchButton"
-                        class="absolute right-1.5 px-3 py-1.5 rounded-full bg-primary-color text-on-primary-color text-xs font-bold hover:scale-105 transition-transform">Go</button>
-                </div>
-                <div id="searchResults" class="flex-1 overflow-y-auto no-scrollbar hidden space-y-1"></div>
-            </div>
-        </div>
-
-        <!-- 隐藏的兼容元素 (保留旧ID供JS不报错) -->
         <div id="floatingSearchPanel" class="hidden"></div>
-        <button id="toggleSearchBtn" class="hidden" aria-label="打开搜索"></button>
-
+        <button id="toggleSearchBtn" class="hidden" type="button" aria-label="打开搜索"></button>
     </div>
 
     <!-- ★ Mobile Layout (Visible < md) -->
-    <div id="mobileLayout" class="md:hidden flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
+    <div id="mobileLayout" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
@@ -1825,7 +1996,13 @@
                             class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current cursor-pointer hover:opacity-100 transition-all select-none"
                             title="长按复制ID">ID: 0413</div>
 
-                        <div id="mobileQualityBadge" class="quality-badge quality-lossless">💎JyMaster</div>
+                        <button id="mobilePlaybackQualityBtn" type="button"
+                            class="mobile-playback-quality min-w-11 min-h-11"
+                            aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
+                            <span class="playback-quality-dot" aria-hidden="true"></span>
+                            <span id="mobileQualityBadge" class="quality-badge quality-lossless">无损</span>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -2137,8 +2314,74 @@
         </div>
     </div>
 
+    <dialog id="downloadDialog" aria-labelledby="downloadDialogTitle">
+        <form id="downloadDialogForm" method="dialog" class="download-dialog-card">
+            <img id="downloadBackdropArt" class="download-backdrop-art" src="./img/icon.png" alt="" aria-hidden="true">
+            <div class="liquid-glass-glow" aria-hidden="true"></div>
+            <div class="download-dialog-content">
+                <header class="download-dialog-header">
+                    <div>
+                        <p class="download-dialog-kicker">DOWNLOAD</p>
+                        <h2 id="downloadDialogTitle">下载歌曲</h2>
+                    </div>
+                    <button id="downloadCancel" value="cancel" type="submit" aria-label="关闭下载窗口">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
+                <p id="downloadSongName" class="download-song-name"></p>
+                <div id="downloadQualityPicker" class="liquid-quality-picker">
+                    <input id="downloadQuality" type="hidden" value="lossless">
+                    <button id="downloadQualityTrigger" class="liquid-quality-trigger" type="button"
+                        aria-haspopup="listbox" aria-expanded="false" aria-controls="downloadQualityList">
+                        <span class="liquid-quality-trigger-copy">
+                            <span class="liquid-quality-trigger-label">选择音质</span>
+                            <span id="downloadQualityValue" class="liquid-quality-trigger-value">无损 · FLAC</span>
+                        </span>
+                        <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="liquid-quality-menu-wrap">
+                        <div class="liquid-quality-menu-clip">
+                            <div id="downloadQualityList" class="liquid-quality-menu" role="listbox"
+                                aria-label="下载音质" tabindex="-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <p id="downloadStatus" class="download-status" role="status" aria-live="polite" aria-atomic="true">
+                    若当前音质不可用，将自动逐级降档。
+                </p>
+                <button id="downloadConfirm" class="liquid-primary-button" type="button">
+                    <i class="fas fa-download" aria-hidden="true"></i><span>下载</span>
+                </button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="playbackQualityDialog" class="liquid-choice-dialog" aria-labelledby="playbackQualityTitle">
+        <form method="dialog" class="liquid-choice-card">
+            <div class="liquid-glass-glow" aria-hidden="true"></div>
+            <div class="liquid-choice-content">
+                <header class="download-dialog-header">
+                    <div>
+                        <p class="download-dialog-kicker">PLAYBACK</p>
+                        <h2 id="playbackQualityTitle">播放音质</h2>
+                    </div>
+                    <button id="playbackQualityCancel" value="cancel" type="submit" aria-label="关闭播放音质窗口">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </header>
+                <p class="liquid-choice-description">选择后立即应用到当前歌曲，并作为后续播放的默认音质。</p>
+                <input id="playbackQuality" type="hidden" value="lossless">
+                <div id="playbackQualityList" class="liquid-quality-menu liquid-quality-menu-static"
+                    role="listbox" aria-label="播放音质" tabindex="-1"></div>
+                <p id="playbackQualityStatus" class="download-status" role="status" aria-live="polite"
+                    aria-atomic="true">若所选音质不可用，将自动逐级降档。</p>
+            </div>
+        </form>
+    </dialog>
+
     <!-- JavaScript 逻辑 -->
     <script type="module">
+        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';
         import { normalizeMediaUrl } from './js/security.js';
         import {
             RequestCancelledError,
@@ -2151,8 +2394,35 @@
             normalizeSearchPayload,
             normalizeSongPayload
         } from './js/music-data.js';
+        import {
+            DOWNLOAD_QUALITY_OPTIONS,
+            downloadFallbackLevels,
+            downloadFilename,
+            resolveDownloadSong,
+            saveAudioBlob
+        } from './js/music-download.js';
+        import { createDownloadSession } from './js/download-session.js';
 
+        const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
+        const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
+        const NEW_SONGS_PLAYLIST_ID = '3779629';
+        const DEFAULT_QUALITY = 'lossless';
+        const QUALITY_DETAILS = Object.freeze({
+            standard: { name: '标准', summary: '标准 · 128K', meta: '128K · MP3', className: 'quality-standard' },
+            exhigh: { name: '极高', summary: '极高 · 320K', meta: '320K · MP3', className: 'quality-high' },
+            lossless: { name: '无损', summary: '无损 · FLAC', meta: 'FLAC · CD 级', className: 'quality-lossless' },
+            hires: { name: 'Hi-Res', summary: 'Hi-Res · 高解析度', meta: '高解析度 · FLAC', className: 'quality-hires' },
+            jymaster: { name: '超清母带', summary: '超清母带', meta: 'MASTER · 最高品质', className: 'quality-lossless' },
+        });
+
+        function supportedQuality(level, fallback = DEFAULT_QUALITY) {
+            return QUALITY_DETAILS[level] ? level : fallback;
+        }
+
+        function qualityDetails(level) {
+            return QUALITY_DETAILS[supportedQuality(level)];
+        }
 
         function persistentCoverUrl(value) {
             const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
@@ -2200,6 +2470,7 @@
 
             if (dom.albumArt) dom.albumArt.src = savedCover;
             if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
+            if (dom.desktopMiniCover) dom.desktopMiniCover.src = savedCover;
         }
 
         let nativeIntegrationInitialized = false;
@@ -2238,15 +2509,25 @@
             }
 
             loadSettings() {
+                let quality = DEFAULT_QUALITY;
+                try {
+                    quality = supportedQuality(localStorage.getItem('cp_quality'));
+                } catch (error) {
+                    console.warn('无法读取播放音质偏好:', error);
+                }
                 this.config = {
-                    quality: localStorage.getItem('cp_quality') || 'lossless'
+                    quality
                 };
             }
 
             saveSettings(key, value) {
                 if (key === 'source') return;
                 this.config[key] = value;
-                localStorage.setItem(`cp_${key}`, value);
+                try {
+                    localStorage.setItem(`cp_${key}`, value);
+                } catch (error) {
+                    console.warn('无法保存播放器设置:', error);
+                }
             }
 
             async search(query, { signal } = {}) {
@@ -2255,12 +2536,23 @@
                 return normalizeSearchPayload(json);
             }
 
-            async getSong(id, { signal } = {}) {
-                const level = 'jymaster';
-                const url = `${this.baseUrl}/163_music?id=${id}&level=${level}`;
+            async getNewSongs({ signal } = {}) {
+                const url = `${this.baseUrl}/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}`;
                 const json = await requestJson(url, { signal });
-                const song = normalizeSongPayload(json, level);
-                if (song) return song;
+                return normalizePlaylistPayload(json).slice(0, 12);
+            }
+
+            async getSongAtLevel(id, level, { signal } = {}) {
+                const url = this.baseUrl + '/163_music?id=' + id + '&level=' + level;
+                const json = await requestJson(url, { signal });
+                return normalizeSongPayload(json, level);
+            }
+
+            async getSong(id, { signal, level = this.config.quality } = {}) {
+                for (const candidate of downloadFallbackLevels(supportedQuality(level))) {
+                    const song = await this.getSongAtLevel(id, candidate, { signal });
+                    if (song) return song;
+                }
                 throw new Error('ChKSz GetSong Failed');
             }
 
@@ -2493,22 +2785,39 @@
         }
 
         // ================= 音质分级识别 =================
-        function getQualityBadge(url, bitrate) {
+        function getQualityBadge(url, bitrate, level) {
+            if (QUALITY_DETAILS[level]) {
+                const detail = qualityDetails(level);
+                return { level, text: detail.name, className: detail.className };
+            }
             if (!url) return null;
 
-            // 通过 URL 或 bitrate 判断音质
             const urlLower = url.toLowerCase();
-
             if (urlLower.includes('flac') || bitrate >= 900000) {
-                return { text: 'JyMaster', class: 'quality-lossless', icon: '💎' };
-            } else if (urlLower.includes('320') || bitrate >= 320000) {
-                return { text: 'Hi-Res', class: 'quality-hires', icon: '✨' };
-            } else if (bitrate >= 192000) {
-                return { text: 'High', class: 'quality-high', icon: '🎵' };
-            } else if (bitrate >= 128000) {
-                return { text: 'Standard', class: 'quality-standard', icon: '🎶' };
+                return { level: 'lossless', text: '无损', className: 'quality-lossless' };
             }
-            return null;
+            if (urlLower.includes('320') || bitrate >= 320000) {
+                return { level: 'exhigh', text: '极高', className: 'quality-high' };
+            }
+            return { level: 'standard', text: '标准', className: 'quality-standard' };
+        }
+
+        function syncPlaybackQualityDisplay(level) {
+            const resolvedLevel = supportedQuality(level);
+            const detail = qualityDetails(resolvedLevel);
+            dom.qualityBadge.textContent = detail.name;
+            dom.qualityBadge.className = `quality-badge ${detail.className}`;
+            if (dom.mobileQualityBadge) {
+                dom.mobileQualityBadge.textContent = detail.name;
+                dom.mobileQualityBadge.className = `quality-badge ${detail.className}`;
+            }
+            if (dom.desktopPlaybackQualityLabel) dom.desktopPlaybackQualityLabel.textContent = detail.name;
+            if (dom.desktopPlaybackQualityBtn) {
+                dom.desktopPlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
+            }
+            if (dom.mobilePlaybackQualityBtn) {
+                dom.mobilePlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
+            }
         }
 
         let compressorNode = null;
@@ -2532,17 +2841,66 @@
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         let dom = {};
+        let desktopShell = null;
+        let visualizer = null;
+        let currentPlaybackSong = null;
+        const downloadSession = createDownloadSession();
+        let downloadState = { song: null, opener: null, session: null };
+        let downloadQualitySelector = null;
+        let playbackQualitySelector = null;
+        let playbackQualityState = { opener: null, controller: null, version: 0 };
 
         document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('[id]').forEach(el => dom[el.id] = el);
             dom.lyricsContainer = document.querySelector('.lyrics-container');
+            dom.progressBarContainer = document.querySelector('.progress-bar-container');
             dom.playlistContainer = document.getElementById('playlistContainer');
             dom.playlistContent = document.getElementById('playlistContent');
             dom.uploadContainer = document.querySelector('.upload-container');
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            desktopShell = initAppShell({
+                elements: {
+                    shell: dom.desktopShell,
+                    immersive: dom.desktopLayout,
+                    opener: dom.desktopMiniPlayer,
+                    closeButton: dom.desktopImmersiveClose,
+                    backButton: dom.desktopBackBtn,
+                    forwardButton: dom.desktopForwardBtn,
+                    inertTargets: [
+                        document.querySelector('.app-skip-link'),
+                        dom.desktopShell.querySelector('.app-sidebar'),
+                        dom.desktopShell.querySelector('.app-topbar'),
+                        dom.desktopLibraryView,
+                        dom.floatingPlaylistPanel,
+                    ],
+                    destinationButtons: Array.from(document.querySelectorAll('[data-shell-destination]')),
+                    navigationButtons: Array.from(document.querySelectorAll('.app-navigation [data-shell-destination]')),
+                    eventTarget: document,
+                    documentElement: document.documentElement,
+                },
+                actions: {
+                    library: () => {
+                        showDesktopMainView('discovery');
+                        dom.desktopLibraryView?.focus();
+                    },
+                    queue: () => {
+                        switchDesktopTab('playlist');
+                        togglePlaylistPanel(true);
+                    },
+                    search: () => {
+                        showDesktopMainView('search');
+                        togglePlaylistPanel(false);
+                        document.getElementById('searchInput')?.focus();
+                    },
+                    import: () => document.getElementById('playlistFile')?.click(),
+                    settings: openSettings,
+                },
+                onImmersiveChange: syncContinuousRendering,
+            });
             restoreLastCover();
+            showDesktopMainView('discovery');
 
             // ★ 初始化 IndexedDB 缓存
             try {
@@ -2552,11 +2910,14 @@
                 console.warn('IndexedDB 初始化失败:', e);
             }
 
+            initDownloadControls();
             initEventListeners();
             initSettingsUI();
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
             loadDefaultPlaylist();
-            initVisualizer();
+            loadNewSongDiscovery();
+            visualizer = initVisualizer();
+            syncContinuousRendering();
             // checkSystemTheme(); // Removed
             // enableGradientModeByDefault(); // Removed
 
@@ -2603,6 +2964,335 @@
             }
 
         });
+
+        function showDesktopMainView(view) {
+            const showSearch = view === 'search';
+            if (dom.desktopDiscoveryView) {
+                dom.desktopDiscoveryView.hidden = showSearch;
+                dom.desktopDiscoveryView.setAttribute('aria-hidden', String(showSearch));
+            }
+            if (dom.desktopSearchView) {
+                dom.desktopSearchView.hidden = !showSearch;
+                dom.desktopSearchView.setAttribute('aria-hidden', String(!showSearch));
+            }
+
+            const titleId = showSearch ? 'desktopSearchPageTitle' : 'desktopLibraryTitle';
+            dom.desktopLibraryView?.setAttribute('aria-labelledby', titleId);
+            if (dom.desktopTopbarTitle) {
+                dom.desktopTopbarTitle.textContent = showSearch ? '搜索音乐' : '发现音乐';
+            }
+            if (dom.desktopTopbarDescription) {
+                dom.desktopTopbarDescription.textContent = showSearch
+                    ? '查找歌曲、歌手或歌曲 ID'
+                    : '浏览新歌并管理当前播放内容';
+            }
+            if (dom.desktopLibraryView) dom.desktopLibraryView.scrollTop = 0;
+        }
+
+        function readSavedQuality(key, fallback = DEFAULT_QUALITY) {
+            try {
+                return supportedQuality(localStorage.getItem(key), fallback);
+            } catch (error) {
+                console.warn('无法读取音质偏好:', error);
+                return fallback;
+            }
+        }
+
+        function createQualityOption({ level }) {
+            const detail = qualityDetails(level);
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'liquid-quality-option';
+            option.dataset.quality = level;
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', 'false');
+            option.tabIndex = -1;
+
+            const copy = document.createElement('span');
+            copy.className = 'liquid-quality-option-copy';
+            const name = document.createElement('span');
+            name.className = 'liquid-quality-option-name';
+            name.textContent = detail.name;
+            const meta = document.createElement('span');
+            meta.className = 'liquid-quality-option-meta';
+            meta.textContent = detail.meta;
+            copy.append(name, meta);
+
+            const check = document.createElement('span');
+            check.className = 'liquid-quality-check';
+            check.setAttribute('aria-hidden', 'true');
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-check';
+            check.append(icon);
+            option.append(copy, check);
+            return option;
+        }
+
+        function createQualitySelector({ picker, trigger, list, valueInput, valueLabel, initialValue, onSelect }) {
+            const options = DOWNLOAD_QUALITY_OPTIONS.map(createQualityOption);
+            list.replaceChildren(...options);
+
+            const selectedOption = () => options.find(option => option.getAttribute('aria-selected') === 'true');
+
+            function setValue(level, { notify = false } = {}) {
+                const nextLevel = supportedQuality(level);
+                valueInput.value = nextLevel;
+                options.forEach(option => {
+                    const selected = option.dataset.quality === nextLevel;
+                    option.setAttribute('aria-selected', String(selected));
+                    option.tabIndex = selected ? 0 : -1;
+                });
+                if (valueLabel) valueLabel.textContent = qualityDetails(nextLevel).summary;
+                if (notify) onSelect?.(nextLevel);
+                return nextLevel;
+            }
+
+            function setOpen(open, { focusSelected = false } = {}) {
+                if (!trigger || !picker) return;
+                picker.classList.toggle('is-open', open);
+                trigger.setAttribute('aria-expanded', String(open));
+                if (open && focusSelected) selectedOption()?.focus();
+            }
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    setValue(option.dataset.quality, { notify: true });
+                    if (trigger) {
+                        setOpen(false);
+                        trigger.focus();
+                    }
+                });
+            });
+
+            list.addEventListener('keydown', event => {
+                const option = event.target.closest?.('.liquid-quality-option');
+                if (!option) return;
+                const currentIndex = options.indexOf(option);
+                const targets = {
+                    ArrowDown: Math.min(currentIndex + 1, options.length - 1),
+                    ArrowUp: Math.max(currentIndex - 1, 0),
+                    Home: 0,
+                    End: options.length - 1,
+                };
+                if (event.key in targets) {
+                    event.preventDefault();
+                    options[targets[event.key]].focus();
+                } else if (event.key === 'Escape' && trigger) {
+                    event.preventDefault();
+                    setOpen(false);
+                    trigger.focus();
+                }
+            });
+
+            if (trigger) {
+                trigger.addEventListener('click', () => {
+                    setOpen(trigger.getAttribute('aria-expanded') !== 'true');
+                });
+                trigger.addEventListener('keydown', event => {
+                    if (event.key !== 'ArrowDown') return;
+                    event.preventDefault();
+                    setOpen(true, { focusSelected: true });
+                });
+                document.addEventListener('pointerdown', event => {
+                    if (!picker.contains(event.target)) setOpen(false);
+                });
+            }
+
+            setValue(initialValue);
+            return {
+                setValue,
+                setOpen,
+                focusSelected: () => selectedOption()?.focus(),
+            };
+        }
+
+        function initDownloadControls() {
+            const savedDownloadQuality = readSavedQuality('cp_download_quality');
+            downloadQualitySelector = createQualitySelector({
+                picker: dom.downloadQualityPicker,
+                trigger: dom.downloadQualityTrigger,
+                list: dom.downloadQualityList,
+                valueInput: dom.downloadQuality,
+                valueLabel: dom.downloadQualityValue,
+                initialValue: savedDownloadQuality,
+                onSelect: level => saveDownloadQuality(level),
+            });
+
+            const savedPlaybackQuality = supportedQuality(musicService.config.quality);
+            playbackQualitySelector = createQualitySelector({
+                list: dom.playbackQualityList,
+                valueInput: dom.playbackQuality,
+                initialValue: savedPlaybackQuality,
+                onSelect: level => applyPlaybackQuality(level),
+            });
+            syncPlaybackQualityDisplay(savedPlaybackQuality);
+        }
+
+        function saveDownloadQuality(level) {
+            try {
+                localStorage.setItem('cp_download_quality', level);
+            } catch (error) {
+                console.warn('无法保存下载音质偏好:', error);
+            }
+        }
+
+        function savePlaybackQuality(level) {
+            musicService.saveSettings('quality', supportedQuality(level));
+        }
+
+        function openPlaybackQualityDialog(opener) {
+            playbackQualityState.opener = opener;
+            playbackQualitySelector.setValue(musicService.config.quality);
+            dom.playbackQualityStatus.textContent = currentPlaybackSong?.id
+                ? '选择后将保留当前进度并切换音源。'
+                : '当前未播放歌曲，选择会保存为默认音质。';
+            if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
+            requestAnimationFrame(() => playbackQualitySelector.focusSelected());
+        }
+
+        function replaceAudioSource(mediaUrl, resumeAt, shouldResume, version) {
+            return new Promise((resolve, reject) => {
+                let settled = false;
+                const timeoutId = setTimeout(() => finish(new Error('Audio metadata timed out')), 10_000);
+                const cleanup = () => {
+                    clearTimeout(timeoutId);
+                    audio.removeEventListener('loadedmetadata', handleLoaded);
+                    audio.removeEventListener('error', handleError);
+                };
+                const finish = error => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    if (error) reject(error);
+                    else resolve();
+                };
+                const handleLoaded = async () => {
+                    if (version !== playbackQualityState.version) return finish();
+                    if (Number.isFinite(audio.duration) && resumeAt > 0) {
+                        audio.currentTime = Math.min(resumeAt, Math.max(0, audio.duration - 0.25));
+                    }
+                    if (shouldResume) {
+                        try {
+                            await audio.play();
+                        } catch (error) {
+                            console.warn('切换音质后恢复播放失败:', error);
+                        }
+                    }
+                    finish();
+                };
+                const handleError = () => finish(new Error('Audio source failed'));
+                audio.addEventListener('loadedmetadata', handleLoaded);
+                audio.addEventListener('error', handleError);
+                audio.src = mediaUrl;
+                audio.load();
+            });
+        }
+
+        async function applyPlaybackQuality(level) {
+            const requestedLevel = supportedQuality(level);
+            savePlaybackQuality(requestedLevel);
+            playbackQualitySelector.setValue(requestedLevel);
+
+            if (!currentPlaybackSong?.id) {
+                syncPlaybackQualityDisplay(requestedLevel);
+                dom.playbackQualityStatus.textContent = `已将 ${qualityDetails(requestedLevel).name} 设为默认播放音质。`;
+                return;
+            }
+
+            playbackQualityState.controller?.abort();
+            const controller = new AbortController();
+            const version = playbackQualityState.version + 1;
+            playbackQualityState.controller = controller;
+            playbackQualityState.version = version;
+            const songId = currentPlaybackSong.id;
+            const previousSrc = audio.src;
+            const resumeAt = audio.currentTime || 0;
+            const shouldResume = !audio.paused;
+            dom.playbackQualityDialog.setAttribute('aria-busy', 'true');
+            dom.playbackQualityStatus.textContent = `正在匹配${qualityDetails(requestedLevel).name}音源…`;
+
+            try {
+                const data = await musicService.getSong(songId, { signal: controller.signal, level: requestedLevel });
+                if (version !== playbackQualityState.version || String(currentPlaybackSong.id) !== String(songId)) return;
+                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
+                if (!mediaUrl) throw new Error('Invalid media URL');
+                await replaceAudioSource(mediaUrl, resumeAt, shouldResume, version);
+                if (version !== playbackQualityState.version) return;
+
+                const resolvedLevel = supportedQuality(data.level, requestedLevel);
+                currentPlaybackSong = { ...currentPlaybackSong, ...data, cover: currentPlaybackSong.cover };
+                syncPlaybackQualityDisplay(resolvedLevel);
+                dom.playbackQualityStatus.textContent = resolvedLevel === requestedLevel
+                    ? `已切换为${qualityDetails(resolvedLevel).name}，播放进度已保留。`
+                    : `${qualityDetails(requestedLevel).name}不可用，已自动切换为${qualityDetails(resolvedLevel).name}。`;
+            } catch (error) {
+                if (error instanceof RequestCancelledError || version !== playbackQualityState.version) return;
+                console.error('切换播放音质失败:', error);
+                if (previousSrc && audio.src !== previousSrc) {
+                    try {
+                        await replaceAudioSource(previousSrc, resumeAt, shouldResume, version);
+                    } catch (restoreError) {
+                        console.warn('恢复原播放音源失败:', restoreError);
+                    }
+                }
+                dom.playbackQualityStatus.textContent = '切换失败，已保留原音质，请稍后重试。';
+            } finally {
+                if (version === playbackQualityState.version) {
+                    dom.playbackQualityDialog.removeAttribute('aria-busy');
+                    playbackQualityState.controller = null;
+                }
+            }
+        }
+
+        function openDownloadDialog(song, opener) {
+            if (!song?.id) return showToast('当前歌曲无法下载', true);
+            const session = downloadSession.open();
+            downloadState = { song, opener, session };
+            dom.downloadSongName.textContent = (song.name || '未知歌曲') + ' · ' + (song.artist || '未知艺术家');
+            dom.downloadBackdropArt.src = persistentCoverUrl(song.cover) || './img/icon.png';
+            dom.downloadStatus.textContent = '若当前音质不可用，将自动逐级降档。';
+            dom.downloadConfirm.disabled = false;
+            dom.downloadCancel.disabled = false;
+            downloadQualitySelector.setOpen(false);
+            if (!dom.downloadDialog.open) dom.downloadDialog.showModal();
+        }
+
+        async function downloadSelectedSong() {
+            const song = downloadState.song;
+            const session = downloadState.session;
+            if (!song?.id || !downloadSession.start(session)) return;
+            const level = dom.downloadQuality.value;
+            saveDownloadQuality(level);
+            dom.downloadConfirm.disabled = true;
+            dom.downloadCancel.disabled = true;
+            dom.downloadStatus.textContent = '正在解析下载地址...';
+            try {
+                const resolved = await resolveDownloadSong({
+                    id: song.id,
+                    level,
+                    baseUrl: window.location.href,
+                    requestSong: (id, candidate) => musicService.getSongAtLevel(id, candidate),
+                });
+                if (!downloadSession.isCurrent(session)) return;
+                dom.downloadStatus.textContent = '正在准备文件...';
+                await saveAudioBlob({
+                    url: resolved.url,
+                    filename: downloadFilename({ ...song, url: resolved.url }, resolved.resolvedLevel)
+                });
+                if (!downloadSession.isCurrent(session)) return;
+                dom.downloadDialog.close();
+                showToast('已开始下载：' + qualityDetails(resolved.resolvedLevel).name);
+            } catch (error) {
+                if (!downloadSession.isCurrent(session)) return;
+                console.error('歌曲下载失败:', error);
+                dom.downloadStatus.textContent = '下载失败：浏览器或网络阻止了音频文件读取';
+            } finally {
+                if (downloadSession.finish(session)) {
+                    dom.downloadConfirm.disabled = false;
+                    dom.downloadCancel.disabled = false;
+                }
+            }
+        }
 
         function getDoraemonMood(progress) {
             if (progress < 0.12) return '准备出发 ✨';
@@ -2718,11 +3408,31 @@
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
-
-            // Floating Toggle Button - opens sidebar
-            document.getElementById('togglePlaylistBtn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                togglePlaylistPanel();
+            dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);
+            dom.desktopDownloadBtn.addEventListener('click', () => {
+                openDownloadDialog(currentPlaybackSong, dom.desktopDownloadBtn);
+            });
+            dom.desktopPlaybackQualityBtn.addEventListener('click', () => {
+                openPlaybackQualityDialog(dom.desktopPlaybackQualityBtn);
+            });
+            dom.mobilePlaybackQualityBtn.addEventListener('click', () => {
+                openPlaybackQualityDialog(dom.mobilePlaybackQualityBtn);
+            });
+            dom.downloadConfirm.addEventListener('click', downloadSelectedSong);
+            dom.downloadDialog.addEventListener('cancel', event => {
+                if (downloadSession.isPending(downloadState.session)) event.preventDefault();
+            });
+            dom.downloadDialog.addEventListener('close', () => {
+                downloadQualitySelector.setOpen(false);
+                const { opener, session } = downloadState;
+                if (!downloadSession.isCurrent(session)) return;
+                downloadState = { song: null, opener: null, session: null };
+                if (opener?.isConnected) opener.focus();
+            });
+            dom.playbackQualityDialog.addEventListener('close', () => {
+                const opener = playbackQualityState.opener;
+                playbackQualityState.opener = null;
+                if (opener?.isConnected) opener.focus();
             });
 
             // Desktop Tab Switching
@@ -2740,7 +3450,7 @@
             dom.nextBtn.addEventListener('click', playNextSong);
             dom.playModeBtn.addEventListener('click', togglePlayMode);
 
-            bindProgressScrubber(dom.desktopProgressBarContainer);
+            bindProgressScrubber(dom.progressBarContainer);
 
             audio.addEventListener('timeupdate', updatePlayerState);
             audio.addEventListener('play', onPlayStart);
@@ -2779,15 +3489,19 @@
 
                 // Close unified Sidebar
                 const playlistPanel = document.getElementById('floatingPlaylistPanel');
-                const playlistBtn = document.getElementById('togglePlaylistBtn');
+                const queueTrigger = e.target.closest?.('[data-shell-destination="queue"]');
+                const historyTrigger = e.target.closest?.('#desktopBackBtn, #desktopForwardBtn');
+                const queueHistoryDestination = historyTrigger
+                    && document.querySelector('[data-shell-destination="queue"][aria-current="page"]');
                 if (playlistPanel && !playlistPanel.classList.contains('translate-x-full') &&
-                    !playlistPanel.contains(e.target) && !playlistBtn.contains(e.target)) {
+                    !playlistPanel.contains(e.target) && !queueTrigger && !queueHistoryDestination) {
                     togglePlaylistPanel(false);
                 }
             });
 
             dom.playlistFile.addEventListener('change', handlePlaylistUpload);
             dom.uploadContainer.addEventListener('click', (e) => {
+                if (e.target === dom.playlistFile || e.target.closest?.('[data-shell-destination="import"]')) return;
                 if (e.target.tagName !== "LABEL") dom.playlistFile.click();
             });
             dom.uploadContainer.addEventListener('dragover', (e) => {
@@ -2806,15 +3520,6 @@
             // 滚动事件由 setupVirtualScroll 中的 onscroll 处理
 
             document.getElementById('fullscreenBtn').addEventListener('click', toggleFullScreen);
-
-            // --- Gemini修复: 设置按钮逻辑增强 ---
-            const safeSettingsBtn = document.getElementById('settingsBtn');
-            if (safeSettingsBtn) {
-                safeSettingsBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    openSettings();
-                };
-            }
 
             // 移动端设置按钮
             const mobileSettingsBtn = document.getElementById('mobileSettingsBtn');
@@ -2851,7 +3556,7 @@
 
             const mobileSettingsButtons = document.getElementById('mobileSettingsButtons');
             const updateMobileButtonsVisibility = () => {
-                const isMobile = window.innerWidth <= 768;
+                const isMobile = isCompactLayout();
                 if (mobileSettingsButtons) {
                     if (isMobile) {
                         mobileSettingsButtons.classList.remove('hidden');
@@ -3283,6 +3988,23 @@
                         div.appendChild(coverDiv);
                         div.appendChild(infoDiv);
 
+                        const downloadButton = document.createElement('button');
+                        downloadButton.type = 'button';
+                        downloadButton.className = 'discovery-download';
+                        downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
+                        downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+                        downloadButton.addEventListener('click', event => {
+                            event.stopPropagation();
+                            openDownloadDialog({
+                                id: song.id,
+                                name: song.name,
+                                artist: song.artist,
+                                album: song.album || '',
+                                cover: song.cover
+                            }, downloadButton);
+                        });
+                        div.appendChild(downloadButton);
+
                         div.onclick = () => {
                             const newSong = {
                                 id: song.id, name: song.name, artist: song.artist,
@@ -3310,6 +4032,170 @@
                     desktopSearchController = null;
                 }
             }
+        }
+
+        let desktopDiscoveryController = null;
+
+        async function loadNewSongDiscovery() {
+            if (!dom.desktopDiscoveryList) return;
+
+            desktopDiscoveryController?.abort();
+            const requestController = new AbortController();
+            desktopDiscoveryController = requestController;
+            dom.desktopDiscoveryList.setAttribute('aria-busy', 'true');
+            if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = true;
+            setDiscoveryStatus('正在获取真实新歌榜...');
+
+            try {
+                const songs = await musicService.getNewSongs({
+                    signal: requestController.signal
+                });
+                if (!songs.length) throw new Error('New song chart was empty');
+                renderDiscoverySongs(songs);
+            } catch (error) {
+                if (error instanceof RequestCancelledError) return;
+                console.error('新歌榜加载失败:', error);
+                setDiscoveryStatus(`新歌榜加载失败：${requestErrorMessage(error)}`, { error: true });
+            } finally {
+                if (desktopDiscoveryController === requestController) {
+                    desktopDiscoveryController = null;
+                    dom.desktopDiscoveryList.setAttribute('aria-busy', 'false');
+                    if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = false;
+                }
+            }
+        }
+
+        function setDiscoveryStatus(message, { error = false } = {}) {
+            const status = document.createElement('div');
+            status.className = `discovery-status${error ? ' is-error' : ''}`;
+            status.setAttribute('role', 'status');
+
+            const icon = document.createElement('i');
+            icon.className = error ? 'fas fa-exclamation-circle' : 'fas fa-spinner fa-spin';
+            icon.setAttribute('aria-hidden', 'true');
+
+            const label = document.createElement('span');
+            label.textContent = message;
+            status.append(icon, label);
+            dom.desktopDiscoveryList.replaceChildren(status);
+        }
+
+        function renderDiscoverySongs(songs) {
+            const fragment = document.createDocumentFragment();
+            songs.forEach((song, index) => fragment.appendChild(createDiscoverySongRow(song, index)));
+            dom.desktopDiscoveryList.replaceChildren(fragment);
+        }
+
+        function createDiscoverySongRow(song, index) {
+            const row = document.createElement('article');
+            row.className = 'discovery-song-row';
+            row.dataset.songId = String(song.id);
+
+            const playButton = document.createElement('button');
+            playButton.type = 'button';
+            playButton.className = 'discovery-song-play';
+            playButton.setAttribute('aria-label', `加入并播放 ${song.name} - ${song.artist}`);
+
+            const number = document.createElement('span');
+            number.className = 'discovery-song-index';
+            number.textContent = String(index + 1).padStart(2, '0');
+
+            const main = document.createElement('span');
+            main.className = 'discovery-song-main';
+
+            const cover = document.createElement('span');
+            cover.className = 'discovery-song-cover';
+            const coverUrl = normalizeMediaUrl(song.cover, { baseUrl: window.location.href });
+            if (coverUrl) {
+                const image = document.createElement('img');
+                image.alt = '';
+                image.width = 48;
+                image.height = 48;
+                image.loading = 'lazy';
+                image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                window.getCachedImage(`${coverUrl}?param=96y96`).then(cachedSrc => {
+                    if (image.isConnected && cachedSrc) image.src = cachedSrc;
+                });
+                cover.appendChild(image);
+            } else {
+                const coverIcon = document.createElement('i');
+                coverIcon.className = 'fas fa-music';
+                coverIcon.setAttribute('aria-hidden', 'true');
+                cover.appendChild(coverIcon);
+            }
+
+            const copy = document.createElement('span');
+            copy.className = 'discovery-song-copy';
+            const title = document.createElement('strong');
+            title.textContent = song.name || '未知歌曲';
+            const artist = document.createElement('span');
+            artist.textContent = song.artist || '未知艺术家';
+            copy.append(title, artist);
+            main.append(cover, copy);
+
+            const album = document.createElement('span');
+            album.className = 'discovery-song-album';
+            album.textContent = song.album || '单曲';
+
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'discovery-song-action';
+            const actionIcon = document.createElement('i');
+            actionIcon.className = 'fas fa-plus';
+            actionIcon.setAttribute('aria-hidden', 'true');
+            const actionLabel = document.createElement('span');
+            actionLabel.textContent = '加入播放';
+            action.append(actionIcon, actionLabel);
+            action.addEventListener('click', () => addDiscoverySong(song));
+
+            const actions = document.createElement('div');
+            actions.className = 'discovery-song-actions';
+            const downloadButton = document.createElement('button');
+            downloadButton.type = 'button';
+            downloadButton.className = 'discovery-download';
+            downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
+            downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+            downloadButton.addEventListener('click', () => {
+                openDownloadDialog({
+                    id: song.id,
+                    name: song.name,
+                    artist: song.artist,
+                    album: song.album || '',
+                    cover: song.cover
+                }, downloadButton);
+            });
+            actions.append(action, downloadButton);
+
+            playButton.append(number, main, album);
+            row.append(playButton, actions);
+            playButton.addEventListener('click', () => addDiscoverySong(song));
+            return row;
+        }
+
+        function addDiscoverySong(song) {
+            const existingIndex = playlist.findIndex(item => String(item.id) === String(song.id));
+            if (existingIndex >= 0) {
+                window.playSongAtIndex(existingIndex);
+                showToast(`已在播放列表: ${song.name}`);
+                return;
+            }
+
+            const newSong = {
+                id: song.id,
+                name: song.name,
+                artist: song.artist,
+                cover: song.cover,
+                album: song.album || '',
+                source: 'new-song-chart'
+            };
+            const targetIndex = window.insertSongToPlaylist(newSong);
+            playlistTotalCount = playlist.length;
+            allSongsLoaded = true;
+            renderAllPlaylistItems();
+            if (mobileUI) mobileUI.loadPlaylist();
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+            window.playSongAtIndex(targetIndex);
+            showToast(`已添加并播放: ${newSong.name}`);
         }
 
         // ★ Helper for MediaSession
@@ -3343,15 +4229,14 @@
             if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.remove('opacity-0');
             if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.remove('opacity-0');
             dom.progressBar.style.width = '0%';
+            dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
             dom.currentTime.textContent = '0:00';
             updateDoraemonProgress(0, 0, 0);
             if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
             dom.songIdTag.textContent = 'ID: Load...';
-            // 加载期间保持金黄色，避免视觉降级闪烁
-            dom.qualityBadge.textContent = '💎JyMaster';
-            dom.qualityBadge.className = 'quality-badge quality-lossless';
+            syncPlaybackQualityDisplay(musicService.config.quality);
 
             try {
                 // ★ 优先级调整：音频最高优先级
@@ -3370,6 +4255,8 @@
                     || normalizeMediaUrl(data.cover, { baseUrl: window.location.href })
                     || '';
                 const playbackData = { ...data, cover: picUrl, album: queuedSong?.album || data.album || '' };
+                currentPlaybackSong = playbackData;
+                dom.desktopDownloadBtn.disabled = !currentPlaybackSong.id;
 
                 const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
                 if (!mediaUrl) throw new Error('Invalid media URL');
@@ -3392,10 +4279,9 @@
                 dom.songIdTag.textContent = `ID: ${data.id}`;
 
                 // ★ 显示音质标识
-                const qualityInfo = getQualityBadge(data.url, data.br || data.bitrate);
+                const qualityInfo = getQualityBadge(data.url, data.br || data.bitrate, data.level);
                 if (qualityInfo) {
-                    dom.qualityBadge.textContent = `${qualityInfo.icon} ${qualityInfo.text}`;
-                    dom.qualityBadge.className = `quality-badge ${qualityInfo.class}`;
+                    syncPlaybackQualityDisplay(qualityInfo.level);
                 }
 
                 // ★ 立即更新 MediaSession (确保锁屏有文字信息)
@@ -3415,6 +4301,7 @@
                     saveLastCover(picUrl);
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
+                    if (dom.desktopMiniCover) dom.desktopMiniCover.src = picUrl;
 
                     // 提取背景色（extractColorsFromImage 本身支持 URL）
                     if (fluidBg && typeof fluidBg.extractColorsFromImage === 'function') {
@@ -3467,6 +4354,7 @@
             if (!audio.duration) return;
             const pct = (audio.currentTime / audio.duration) * 100;
             dom.progressBar.style.width = `${pct}%`;
+            dom.progressBarContainer?.setAttribute('aria-valuenow', String(Math.round(pct)));
             dom.currentTime.textContent = formatTime(audio.currentTime);
             updateDoraemonProgress(pct, audio.currentTime, audio.duration);
 
@@ -3474,6 +4362,39 @@
             if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, pct);
 
             updateLyrics(audio.currentTime);
+        }
+
+        function seekAudio(e) {
+            if (!audio.duration) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pct = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = pct * audio.duration;
+        }
+
+        function seekAudioByKeyboard(event) {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+
+            let targetTime;
+            switch (event.key) {
+                case 'ArrowLeft':
+                    targetTime = audio.currentTime - 5;
+                    break;
+                case 'ArrowRight':
+                    targetTime = audio.currentTime + 5;
+                    break;
+                case 'Home':
+                    targetTime = 0;
+                    break;
+                case 'End':
+                    targetTime = audio.duration;
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+            audio.currentTime = Math.max(0, Math.min(audio.duration, targetTime));
+            updatePlayerState();
         }
 
         // ================= 歌词逻辑 =================
@@ -4512,9 +5433,10 @@
             const dataArray = new Uint8Array(bufferLength);
 
             let frameCount = 0;
+            let animationFrame = null;
 
             function draw() {
-                requestAnimationFrame(draw);
+                animationFrame = requestAnimationFrame(draw);
 
                 // 1. 实验性功能：背景激荡逻辑 (已移除 isGradientMode 依赖)
                 // if (analyser && isPlaying && ++frameCount % 5 === 0) {
@@ -4584,7 +5506,19 @@
                 // 重置阴影，避免影响性能
                 ctx.shadowBlur = 0;
             }
-            draw();
+
+            function start() {
+                if (animationFrame !== null) return;
+                animationFrame = requestAnimationFrame(draw);
+            }
+
+            function stop() {
+                if (animationFrame === null) return;
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+
+            return { start, stop };
         }
 
         // rgbToHsl - 保留供流体背景使用
@@ -4606,17 +5540,28 @@
             return { h: Math.round(h * 360), s, l };
         }
 
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    showToast(`无法启用全屏: ${err.message}`, true);
-                });
-                document.querySelector('#fullscreenBtn i').classList.replace('fa-expand', 'fa-compress');
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                    document.querySelector('#fullscreenBtn i').classList.replace('fa-compress', 'fa-expand');
+        function syncFullscreenButton() {
+            const icon = document.querySelector('#fullscreenBtn i');
+            if (!icon) return;
+            const isFullscreen = Boolean(document.fullscreenElement);
+            icon.classList.toggle('fa-expand', !isFullscreen);
+            icon.classList.toggle('fa-compress', isFullscreen);
+        }
+
+        document.addEventListener('fullscreenchange', syncFullscreenButton);
+        syncFullscreenButton();
+
+        async function toggleFullScreen() {
+            const enteringFullscreen = !document.fullscreenElement;
+            try {
+                if (enteringFullscreen) {
+                    await document.documentElement.requestFullscreen();
+                } else if (document.exitFullscreen) {
+                    await document.exitFullscreen();
                 }
+            } catch (err) {
+                showToast(`无法${enteringFullscreen ? '启用' : '退出'}全屏: ${err.message}`, true);
+                syncFullscreenButton();
             }
         }
 
@@ -4688,7 +5633,7 @@
         // ================= ★ Mobile UI Manager (Updated) =================
         class MobileUIManager {
             constructor() {
-                this.isMobile = window.innerWidth < 768;
+                this.isMobile = isCompactLayout();
                 this.currentMode = 'cover';
                 this.activeSheetTab = 'playlist'; // playlist | search
                 this.searchController = null;
@@ -5225,7 +6170,7 @@
             }
 
             handleResize() {
-                const isNowMobile = window.innerWidth < 768;
+                const isNowMobile = isCompactLayout();
                 if (this.isMobile !== isNowMobile) {
                     this.isMobile = isNowMobile;
                     if (!this.isMobile) {
@@ -5326,7 +6271,9 @@
         const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
 
         function shouldAnimateContinuously() {
-            return !document.hidden && !motionPreference.matches;
+            const desktopBrowsing = desktopShellMedia.matches
+                && !document.documentElement.classList.contains('desktop-immersive-open');
+            return !document.hidden && !motionPreference.matches && !desktopBrowsing;
         }
 
         // ================= ★ FluidBackground (复制 aura-music WebGL) =================
@@ -5890,7 +6837,18 @@
         }
 
         function syncContinuousRendering() {
-            if (shouldAnimateContinuously()) {
+            const continuousRendering = shouldAnimateContinuously();
+            const desktopVisualizerActive = continuousRendering
+                && desktopShellMedia.matches
+                && document.documentElement.classList.contains('desktop-immersive-open');
+
+            if (desktopVisualizerActive) {
+                visualizer?.start();
+            } else {
+                visualizer?.stop();
+            }
+
+            if (continuousRendering) {
                 fluidBg?.start();
                 lyricsCanvas?.start();
             } else {
@@ -5904,6 +6862,11 @@
             motionPreference.addEventListener('change', syncContinuousRendering);
         } else {
             motionPreference.addListener(syncContinuousRendering);
+        }
+        if (typeof desktopShellMedia.addEventListener === 'function') {
+            desktopShellMedia.addEventListener('change', syncContinuousRendering);
+        } else {
+            desktopShellMedia.addListener(syncContinuousRendering);
         }
 
         // 在 DOMContentLoaded 后初始化

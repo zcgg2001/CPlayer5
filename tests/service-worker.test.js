@@ -107,3 +107,29 @@ test('precaches the oneko pet runtime and sprite assets', () => {
   assert.ok(coreAssets.includes('./js/oneko-butterfly.js'));
   assert.ok(coreAssets.includes('./img/oneko-tora.gif'));
 });
+
+test('precaches the desktop shell assets', () => {
+  const context = loadServiceWorker();
+  const coreAssets = vm.runInContext('CORE_ASSETS', context);
+
+  assert.ok(coreAssets.includes('./css/app-shell.css'));
+  assert.ok(coreAssets.includes('./js/app-shell.js'));
+});
+
+test('precaches both music download runtime modules without precaching audio files', () => {
+  const context = loadServiceWorker();
+  const coreAssets = vm.runInContext('CORE_ASSETS', context);
+
+  assert.ok(coreAssets.includes('./js/music-download.js'));
+  assert.ok(coreAssets.includes('./js/download-session.js'));
+  assert.ok(!coreAssets.some(asset => asset.endsWith('.mp3') || asset.endsWith('.flac')));
+});
+
+test('retires older shell caches after the liquid quality selector upgrade', () => {
+  const { cacheNamesToDelete } = loadServiceWorker();
+
+  assert.deepEqual(
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v10', 'cplayer5-shell-v11', 'cplayer5-shell-v12'])),
+    ['cplayer5-shell-v10', 'cplayer5-shell-v11', 'cplayer5-shell-v12'],
+  );
+});

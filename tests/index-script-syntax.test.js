@@ -11,7 +11,7 @@ test('inline player scripts have valid JavaScript syntax', () => {
 
   assert.ok(inlineScripts.length > 0);
   for (const source of inlineScripts) {
-    const withoutStaticImports = source.replace(/^\s*import\b[\s\S]*?;\s*$/gm, '');
+    const withoutStaticImports = source.replace(/^\s*import\s+[\s\S]*?;\s*$/gm, '');
     assert.doesNotThrow(() => new Function(withoutStaticImports));
   }
 });
