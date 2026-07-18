@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="dark">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
+    <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦 GIF 随播放进度走路、兴奋和大笑。">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CPlayer 5｜让音乐有表情">
+    <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta property="og:image" content="__SITE_ORIGIN__/img/og-liquid.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
+    <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-liquid.png">
 
     <!-- Favicon -->
     <link rel="icon"
@@ -13,9 +22,9 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#28183B">
+    <meta name="theme-color" content="#dceeff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="CPlayer 5">
     <link rel="apple-touch-icon" href="img/icon.png">
 
@@ -45,26 +54,26 @@
              */
 
             /* 主色（白色系） */
-            --primary-color: #ffffff;
-            --on-primary-color: #000000;
+            --primary-color: #5b5bd6;
+            --on-primary-color: #ffffff;
 
             /* 背景 */
-            --bg-color: #28183B;
-            --on-bg-color: #ffffff;
+            --bg-color: #dceeff;
+            --on-bg-color: #172033;
 
             /* 表面（磨砂玻璃效果） */
-            --surface-color: rgba(255, 255, 255, 0.08);
-            --on-surface-color: #ffffff;
-            --surface-container-color: rgba(255, 255, 255, 0.05);
-            --surface-container-high-color: rgba(255, 255, 255, 0.12);
+            --surface-color: rgba(255, 255, 255, 0.56);
+            --on-surface-color: #172033;
+            --surface-container-color: rgba(255, 255, 255, 0.38);
+            --surface-container-high-color: rgba(255, 255, 255, 0.72);
 
             /* 轮廓和阴影 */
-            --outline-color: rgba(255, 255, 255, 0.1);
-            --shadow-color: rgba(0, 0, 0, 0.5);
+            --outline-color: rgba(255, 255, 255, 0.7);
+            --shadow-color: rgba(46, 57, 112, 0.16);
 
             /* 封面阴影 */
-            --cover-shadow-color: rgba(0, 0, 0, 0.6);
-            --progress-bar-bg: rgba(255, 255, 255, 0.2);
+            --cover-shadow-color: rgba(45, 56, 110, 0.28);
+            --progress-bar-bg: rgba(91, 91, 214, 0.18);
 
             /* 尺寸定义 */
             --cover-size: clamp(260px, min(45vh, 30vw), 380px);
@@ -73,9 +82,20 @@
             --m3-radius-l: 28px;
             --m3-radius-xl: 32px;
             --m3-radius-full: 9999px;
+
+            /* Liquid Glass visual system */
+            --liquid-ink: #172033;
+            --liquid-muted: #536078;
+            --liquid-sky: #7bc7ff;
+            --liquid-lavender: #9f8cff;
+            --liquid-glass: rgba(255, 255, 255, 0.52);
+            --liquid-glass-strong: rgba(255, 255, 255, 0.72);
+            --liquid-border: rgba(255, 255, 255, 0.76);
+            --liquid-shadow: 0 24px 60px rgba(55, 65, 128, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+            --liquid-ease: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        /* html.dark 与 :root 一致，无需重复定义 */
+        /* 默认使用高对比度浅色液态玻璃主题 */
 
         html,
         body {
@@ -610,6 +630,8 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            touch-action: none;
+            user-select: none;
         }
 
         .progress-track {
@@ -618,7 +640,7 @@
             background-color: var(--progress-bar-bg);
             border-radius: 3px;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             transition: background-color 0.3s ease, height 0.15s ease;
         }
 
@@ -633,6 +655,123 @@
             border-radius: 3px;
             transition: width 0.1s linear, background-color 0.5s ease;
             box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        .progress-scrubber:focus-visible {
+            outline: none;
+        }
+
+        .progress-scrubber:focus-visible .progress-track,
+        .progress-scrubber:focus-visible .mobile-progress-track {
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color), white 35%);
+        }
+
+        .doraemon-mood {
+            max-width: 58%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 3px 10px;
+            border: 1px solid color-mix(in srgb, var(--primary-color), transparent 62%);
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--primary-color), transparent 86%);
+            color: color-mix(in srgb, var(--primary-color), white 30%);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(12px);
+        }
+
+        .doraemon-progress-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 76px;
+            height: 62px;
+            padding: 3px;
+            border: 2px solid rgba(255, 255, 255, 0.92);
+            border-radius: 18px;
+            background: #07182c;
+            box-shadow:
+                0 9px 24px rgba(0, 0, 0, 0.3),
+                0 0 0 3px color-mix(in srgb, var(--primary-color), transparent 35%),
+                0 0 22px color-mix(in srgb, var(--primary-color), transparent 28%);
+            transform: translate(-50%, -50%);
+            transition: left 0.08s linear, transform 0.16s ease, box-shadow 0.2s ease;
+            pointer-events: none;
+            z-index: 5;
+            will-change: left;
+        }
+
+        .progress-scrubber.is-dragging .doraemon-progress-thumb {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow:
+                0 12px 28px rgba(0, 0, 0, 0.38),
+                0 0 0 4px color-mix(in srgb, var(--primary-color), transparent 20%),
+                0 0 28px color-mix(in srgb, var(--primary-color), transparent 15%);
+        }
+
+        .doraemon-gif {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 14px;
+            background: #07182c;
+            transform-origin: center;
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="walking"] .doraemon-gif {
+            object-position: center 48%;
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"] {
+            border-color: rgba(151, 231, 255, 0.95);
+            box-shadow:
+                0 10px 26px rgba(0, 0, 0, 0.32),
+                0 0 0 3px rgba(0, 191, 255, 0.42),
+                0 0 24px rgba(0, 191, 255, 0.46);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            border-color: rgba(111, 225, 255, 0.98);
+            box-shadow:
+                0 10px 28px rgba(0, 0, 0, 0.34),
+                0 0 0 3px rgba(0, 191, 255, 0.55),
+                0 0 28px rgba(0, 191, 255, 0.62);
+        }
+
+        body.is-audio-playing .doraemon-gif {
+            animation: doraemonGroove 1.05s ease-in-out infinite;
+        }
+
+        @keyframes doraemonGroove {
+            0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+            50% { transform: translateY(-2px) rotate(1.5deg); }
+        }
+
+        .mobile-progress-track {
+            position: relative;
+            overflow: visible;
+        }
+
+        #mobileProgressBar {
+            border-radius: 999px;
+            box-shadow: 0 0 10px color-mix(in srgb, var(--primary-color), transparent 20%);
+        }
+
+        #mobileProgressBarContainer .doraemon-progress-thumb {
+            width: 64px;
+            height: 54px;
+            border-radius: 16px;
+        }
+
+        #mobileDoraemonMood {
+            max-width: calc(100vw - 2rem);
+            margin: 0 auto -2px;
+            font-size: 0.65rem;
         }
 
         .btn-theme-adaptive {
@@ -968,6 +1107,420 @@
             }
         }
 
+        /* ================= Liquid Glass 2026（移动端） ================= */
+        @media (max-width: 1023.98px) {
+        body {
+            color: var(--liquid-ink);
+            background:
+                radial-gradient(circle at 12% 16%, rgba(113, 204, 255, 0.7), transparent 36%),
+                radial-gradient(circle at 88% 12%, rgba(184, 165, 255, 0.64), transparent 38%),
+                radial-gradient(circle at 70% 88%, rgba(116, 220, 244, 0.5), transparent 34%),
+                linear-gradient(135deg, #cfeaff 0%, #e9e4ff 52%, #d7f3ff 100%);
+            transition: color 0.3s var(--liquid-ease);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.24;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.35) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 82%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), transparent 82%);
+        }
+
+        #fluidBg {
+            opacity: 0.34;
+            filter: brightness(1.78) saturate(0.72) contrast(0.72);
+        }
+
+        #fluidNoise {
+            z-index: 1 !important;
+            opacity: 0.035 !important;
+            mix-blend-mode: soft-light !important;
+        }
+
+        #desktopLayout {
+            gap: 18px;
+            padding: 18px;
+            isolation: isolate;
+        }
+
+        .player-shell,
+        .lyrics-shell,
+        #floatingPlaylistPanel,
+        #mobileLayout > header,
+        #mobileMainView,
+        .mobile-control-deck,
+        #mobilePlaylistSheet,
+        .modal-card,
+        #welcomeCard,
+        #copyToast {
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.34)) !important;
+            border: 1px solid var(--liquid-border) !important;
+            box-shadow: var(--liquid-shadow) !important;
+            backdrop-filter: blur(30px) saturate(165%) !important;
+            -webkit-backdrop-filter: blur(30px) saturate(165%) !important;
+        }
+
+        .player-shell,
+        .lyrics-shell {
+            height: auto !important;
+            min-height: 0;
+            border-radius: 32px;
+            overflow: hidden;
+        }
+
+        .player-shell {
+            width: clamp(440px, 35vw, 550px) !important;
+        }
+
+        .player-shell::before,
+        .lyrics-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 40%;
+            pointer-events: none;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent);
+            border-radius: inherit;
+        }
+
+        .lyrics-card {
+            color: var(--liquid-ink);
+            background: transparent !important;
+        }
+
+        .lrc-line {
+            color: rgba(23, 32, 51, 0.68);
+        }
+
+        .lrc-line.active,
+        #mobileLyricsScroller .lrc-line.active,
+        #mobileLyricsScroller .lrc-line.active .lrc-text {
+            color: var(--liquid-ink);
+            text-shadow: 0 8px 26px rgba(91, 91, 214, 0.15);
+        }
+
+        #mobileLyricsScroller .lrc-line {
+            color: rgba(23, 32, 51, 0.68);
+        }
+
+        .custom-controls-wrapper {
+            max-width: 460px;
+            margin-top: 12px;
+            padding: 14px 16px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.28)) !important;
+            box-shadow: 0 14px 32px rgba(63, 72, 137, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(24px) saturate(155%);
+            -webkit-backdrop-filter: blur(24px) saturate(155%);
+        }
+
+        .top-btn,
+        .control-buttons-row button,
+        #togglePlaylistBtn,
+        #mobileLayout button,
+        #closeSettingsBtn {
+            color: var(--liquid-ink);
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 220ms var(--liquid-ease), background-color 220ms var(--liquid-ease),
+                box-shadow 220ms var(--liquid-ease), opacity 220ms var(--liquid-ease) !important;
+        }
+
+        .top-btn,
+        .control-buttons-row button:not(#playPauseBtn),
+        #mobileLayout button:not(#mobilePlayBtn) {
+            background: rgba(255, 255, 255, 0.34) !important;
+            border: 1px solid rgba(255, 255, 255, 0.62);
+            box-shadow: 0 7px 18px rgba(57, 68, 129, 0.1);
+        }
+
+        #playPauseBtn,
+        #mobilePlayBtn,
+        #togglePlaylistBtn,
+        #searchButton {
+            color: #fff !important;
+            background: linear-gradient(135deg, #287bb8 0%, #5148bd 72%, #6d55b8 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: 0 12px 28px rgba(90, 95, 205, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+        }
+
+        .top-btn:hover,
+        .control-buttons-row button:hover,
+        #togglePlaylistBtn:hover {
+            transform: translateY(-2px) scale(1.03);
+            background-color: rgba(255, 255, 255, 0.74) !important;
+            box-shadow: 0 12px 26px rgba(57, 68, 129, 0.16);
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        [role="slider"]:focus-visible {
+            outline: 3px solid rgba(91, 91, 214, 0.42) !important;
+            outline-offset: 3px;
+        }
+
+        .album-art-wrapper {
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow:
+                0 22px 52px rgba(44, 52, 106, 0.23),
+                0 0 0 10px rgba(255, 255, 255, 0.2),
+                inset 0 0 24px rgba(0, 0, 0, 0.72);
+        }
+
+        .album-art-wrapper.playing {
+            box-shadow:
+                0 24px 64px rgba(93, 101, 211, 0.3),
+                0 0 0 12px rgba(255, 255, 255, 0.24),
+                0 0 42px rgba(105, 197, 255, 0.5),
+                inset 0 0 24px rgba(0, 0, 0, 0.72);
+        }
+
+        .progress-track,
+        .mobile-progress-track {
+            background: rgba(255, 255, 255, 0.52) !important;
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            box-shadow: inset 0 2px 8px rgba(66, 77, 141, 0.13), 0 3px 12px rgba(255, 255, 255, 0.54);
+        }
+
+        #progressBar,
+        #mobileProgressBar {
+            background: linear-gradient(90deg, #62c9ff, #6a6be6 62%, #a08cff) !important;
+            box-shadow: 0 0 16px rgba(100, 112, 235, 0.48);
+        }
+
+        .doraemon-mood {
+            color: #4c4ca6;
+            background: rgba(255, 255, 255, 0.56);
+            border-color: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 8px 22px rgba(75, 85, 154, 0.12);
+        }
+
+        .doraemon-progress-thumb,
+        #mobileProgressBarContainer .doraemon-progress-thumb {
+            width: 66px;
+            height: 66px;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.48) 44%, rgba(113, 202, 255, 0.26));
+            box-shadow:
+                0 13px 28px rgba(49, 64, 124, 0.24),
+                0 0 0 7px rgba(255, 255, 255, 0.22),
+                0 0 30px rgba(94, 193, 255, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px) saturate(165%);
+            -webkit-backdrop-filter: blur(16px) saturate(165%);
+            transition: left 80ms linear, transform 220ms var(--liquid-ease), box-shadow 220ms var(--liquid-ease);
+        }
+
+        .doraemon-gif {
+            border-radius: 50%;
+            background: #eaf8ff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+        }
+
+        .progress-scrubber.is-dragging .doraemon-progress-thumb {
+            transform: translate(-50%, -50%) scale(1.12);
+            box-shadow:
+                0 16px 34px rgba(49, 64, 124, 0.28),
+                0 0 0 9px rgba(255, 255, 255, 0.3),
+                0 0 36px rgba(94, 193, 255, 0.62);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"],
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            border-color: rgba(255, 255, 255, 0.96);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="excited"] {
+            box-shadow: 0 14px 30px rgba(49, 64, 124, 0.25), 0 0 0 8px rgba(106, 207, 255, 0.24), 0 0 34px rgba(77, 190, 255, 0.66);
+        }
+
+        .doraemon-progress-thumb[data-gif-stage="laughing"] {
+            box-shadow: 0 14px 32px rgba(49, 64, 124, 0.26), 0 0 0 9px rgba(168, 145, 255, 0.24), 0 0 38px rgba(127, 112, 241, 0.68);
+        }
+
+        #floatingPlaylistPanel {
+            top: 18px !important;
+            right: 18px !important;
+            bottom: 18px !important;
+            height: auto !important;
+            width: min(400px, calc(100vw - 36px)) !important;
+            color: var(--liquid-ink);
+            border-radius: 32px 0 0 32px;
+            overflow: hidden;
+        }
+
+        #floatingPlaylistPanel input,
+        #mobilePlaylistSheet input,
+        .modal-card input,
+        .modal-card select {
+            color: var(--liquid-ink) !important;
+            background: rgba(255, 255, 255, 0.48) !important;
+            border: 1px solid rgba(255, 255, 255, 0.74) !important;
+            box-shadow: inset 0 2px 8px rgba(64, 74, 133, 0.08);
+        }
+
+        input::placeholder {
+            color: rgba(23, 32, 51, 0.48);
+            opacity: 1;
+        }
+
+        .playlist-item {
+            margin-bottom: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.56);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+            transition: transform 220ms var(--liquid-ease), background-color 220ms var(--liquid-ease), box-shadow 220ms var(--liquid-ease) !important;
+        }
+
+        .playlist-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.76) !important;
+            box-shadow: 0 12px 28px rgba(55, 66, 129, 0.14), inset 0 1px 0 #fff;
+        }
+
+        .volume-popup {
+            color: var(--liquid-ink);
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            box-shadow: 0 16px 34px rgba(54, 64, 123, 0.18);
+        }
+
+        .modal-backdrop {
+            background: rgba(51, 60, 104, 0.28);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .modal-card,
+        #welcomeCard {
+            color: var(--liquid-ink);
+        }
+
+        #playlistSourceCard,
+        #settingsCard [class*="bg-white/"] {
+            background: rgba(255, 255, 255, 0.34) !important;
+            border-color: rgba(255, 255, 255, 0.68) !important;
+        }
+
+        #mobileLayout {
+            color: var(--liquid-ink);
+        }
+
+        #mobileLayout > header {
+            margin: 10px 10px 0;
+            border-radius: 22px;
+        }
+
+        #mobileMainView {
+            margin: 10px;
+            width: auto;
+            border-radius: 30px;
+        }
+
+        .mobile-control-deck {
+            margin: 0 10px 10px;
+            padding: 14px 14px max(8px, env(safe-area-inset-bottom));
+            border-radius: 30px;
+        }
+
+        #mobilePlaylistSheet {
+            color: var(--liquid-ink);
+            border-radius: 32px 32px 0 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        #sheetDragHandle > div {
+            background: rgba(57, 67, 119, 0.28) !important;
+        }
+
+        #mobileLyricsScroller > div:not(.lrc-line) {
+            color: rgba(23, 32, 51, 0.46) !important;
+        }
+
+        @supports not (backdrop-filter: blur(1px)) {
+            .player-shell,
+            .lyrics-shell,
+            #floatingPlaylistPanel,
+            #mobilePlaylistSheet,
+            .modal-card {
+                background: rgba(242, 247, 255, 0.94) !important;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            #desktopLayout {
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .player-shell {
+                width: 440px !important;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 900px) {
+            .player-shell {
+                width: 380px !important;
+                padding-inline: 24px !important;
+            }
+
+            .lyrics-shell {
+                min-width: 250px !important;
+            }
+
+            .custom-controls-wrapper {
+                padding-inline: 12px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            body::before {
+                background-size: 36px 36px;
+                opacity: 0.16;
+            }
+
+            #fluidBg {
+                opacity: 0.24;
+            }
+
+            #mobileLayout > header,
+            #mobileMainView,
+            .mobile-control-deck,
+            #mobilePlaylistSheet,
+            .modal-card {
+                backdrop-filter: blur(16px) saturate(145%) !important;
+                -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
+            }
+
+            #mobileProgressBarContainer .doraemon-progress-thumb {
+                width: 58px;
+                height: 58px;
+                padding: 4px;
+            }
+
+            .mobile-control-deck button {
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             html:focus-within {
                 scroll-behavior: auto;
@@ -1269,11 +1822,19 @@
 
                     <div class="player-timeline">
                         <span id="currentTime">0:00</span>
-                        <div class="progress-bar-container" title="播放进度" role="slider" tabindex="0"
-                            aria-label="播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="desktopProgressBarContainer" class="progress-bar-container progress-scrubber"
+                            title="播放进度" role="slider" tabindex="0" aria-label="播放进度"
+                            aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
                             <div class="progress-track">
                                 <div id="progressBar" style="width: 0%;"></div>
+                                <div id="doraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking"
+                                    style="left: 0%;" aria-hidden="true">
+                                    <img class="doraemon-gif"
+                                        src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
+                                        alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
+                                </div>
                             </div>
+                            <span id="doraemonMood" class="sr-only" aria-live="polite" aria-atomic="true">准备出发 ✨</span>
                         </div>
                         <span id="totalTime">0:00</span>
                     </div>
@@ -1471,17 +2032,20 @@
         </div>
 
         <!-- 3. Bottom Controls -->
-        <div class="flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
+        <div class="mobile-control-deck flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
             <!-- Progress - 增大触摸区域 -->
+            <div id="mobileDoraemonMood" class="doraemon-mood text-center" aria-live="polite" aria-atomic="true">准备出发 ✨</div>
             <div class="flex items-center gap-2 mb-4">
                 <span id="mobileCurrentTime" class="text-xs font-mono opacity-70 w-10 text-right">0:00</span>
-                <div class="flex-1 h-12 flex items-center group relative cursor-pointer"
-                    id="mobileProgressBarContainer">
-                    <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden transition-all group-active:h-3">
-                        <div id="mobileProgressBar" class="h-full bg-primary-color w-0 relative">
-                            <div
-                                class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg scale-0 group-active:scale-100 transition-transform">
-                            </div>
+                <div class="flex-1 h-12 flex items-center group relative cursor-pointer progress-scrubber"
+                    id="mobileProgressBarContainer" role="slider" tabindex="0" aria-label="播放进度"
+                    aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
+                    <div class="mobile-progress-track w-full h-1.5 bg-white/20 rounded-full transition-all group-active:h-3">
+                        <div id="mobileProgressBar" class="h-full bg-primary-color w-0"></div>
+                        <div id="mobileDoraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking" style="left: 0%;" aria-hidden="true">
+                            <img class="doraemon-gif"
+                                src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
+                                alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
                         </div>
                     </div>
                 </div>
@@ -2361,6 +2925,7 @@
             // initMobileSettingsButtons(); // Removed
 
             updateVolumeIcon(0.5);
+            updateDoraemonProgress(0, 0, 0);
 
             // ★ MediaSession API (锁屏控制)
             if ('mediaSession' in navigator) {
@@ -2729,6 +3294,117 @@
             }
         }
 
+        function getDoraemonMood(progress) {
+            if (progress < 0.12) return '准备出发 ✨';
+            if (progress < 0.32) return '开始享受音乐 😊';
+            if (progress < 0.58) return '沉浸在旋律中 🎶';
+            if (progress < 0.82) return '兴奋起来！🎉';
+            return '完美收尾！🌟';
+        }
+
+        const DORAEMON_GIFS = {
+            walking: 'https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif',
+            laughing: 'https://media1.tenor.com/m/kVoXh1XMS2AAAAAd/doraemon-crying-laugh.gif'
+        };
+
+        function updateDoraemonExpression(progress, thumb, moodElement) {
+            if (!thumb) return;
+
+            const normalized = Math.max(0, Math.min(1, Number(progress) || 0));
+            const stage = normalized < 0.32 ? 'walking' : normalized < 0.82 ? 'excited' : 'laughing';
+            const image = thumb.querySelector('.doraemon-gif');
+            const nextSource = stage === 'walking' ? DORAEMON_GIFS.walking : DORAEMON_GIFS.laughing;
+
+            if (thumb.dataset.gifStage !== stage) thumb.dataset.gifStage = stage;
+            if (image && image.src !== nextSource) image.src = nextSource;
+
+            if (moodElement) {
+                const mood = getDoraemonMood(normalized);
+                if (moodElement.textContent !== mood) moodElement.textContent = mood;
+            }
+        }
+
+        function updateDoraemonProgress(progressPercent, currentTime = 0, duration = 0) {
+            const safePercent = Math.max(0, Math.min(100, Number(progressPercent) || 0));
+            const normalized = safePercent / 100;
+            const progressPairs = [
+                [dom.doraemonThumb, dom.doraemonMood, dom.desktopProgressBarContainer],
+                [dom.mobileDoraemonThumb, dom.mobileDoraemonMood, dom.mobileProgressBarContainer]
+            ];
+
+            progressPairs.forEach(([thumb, mood, container]) => {
+                if (thumb) thumb.style.left = `${safePercent}%`;
+                updateDoraemonExpression(normalized, thumb, mood);
+                if (container) {
+                    container.setAttribute('aria-valuenow', String(Math.round(safePercent)));
+                    container.setAttribute('aria-valuetext', `${formatTime(currentTime)} / ${formatTime(duration)}`);
+                }
+            });
+        }
+
+        function seekToProgress(progress) {
+            if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+            const normalized = Math.max(0, Math.min(1, progress));
+            audio.currentTime = normalized * audio.duration;
+            updatePlayerState();
+        }
+
+        function bindProgressScrubber(container) {
+            if (!container || container.dataset.progressBound === 'true') return;
+            container.dataset.progressBound = 'true';
+            let activePointerId = null;
+
+            const seekFromClientX = (clientX) => {
+                const track = container.querySelector('.progress-track, .mobile-progress-track');
+                const rect = (track || container).getBoundingClientRect();
+                if (!rect.width) return;
+                seekToProgress((clientX - rect.left) / rect.width);
+            };
+
+            const finishDragging = (event) => {
+                if (activePointerId === null || (event && event.pointerId !== activePointerId)) return;
+                if (container.hasPointerCapture?.(activePointerId)) {
+                    container.releasePointerCapture(activePointerId);
+                }
+                activePointerId = null;
+                container.classList.remove('is-dragging');
+            };
+
+            container.addEventListener('pointerdown', (event) => {
+                if (event.pointerType === 'mouse' && event.button !== 0) return;
+                activePointerId = event.pointerId;
+                container.setPointerCapture?.(event.pointerId);
+                container.classList.add('is-dragging');
+                container.focus({ preventScroll: true });
+                seekFromClientX(event.clientX);
+                event.preventDefault();
+            });
+
+            container.addEventListener('pointermove', (event) => {
+                if (event.pointerId !== activePointerId) return;
+                seekFromClientX(event.clientX);
+                event.preventDefault();
+            });
+
+            container.addEventListener('pointerup', finishDragging);
+            container.addEventListener('pointercancel', finishDragging);
+
+            container.addEventListener('keydown', (event) => {
+                if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+                const step = event.shiftKey ? 10 : 5;
+                let nextTime = null;
+
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') nextTime = audio.currentTime - step;
+                if (event.key === 'ArrowRight' || event.key === 'ArrowUp') nextTime = audio.currentTime + step;
+                if (event.key === 'Home') nextTime = 0;
+                if (event.key === 'End') nextTime = audio.duration;
+                if (nextTime === null) return;
+
+                event.preventDefault();
+                seekToProgress(nextTime / audio.duration);
+            });
+        }
+
         function initEventListeners() {
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
@@ -2774,10 +3450,7 @@
             dom.nextBtn.addEventListener('click', playNextSong);
             dom.playModeBtn.addEventListener('click', togglePlayMode);
 
-            if (dom.progressBarContainer) {
-                dom.progressBarContainer.addEventListener('click', seekAudio);
-                dom.progressBarContainer.addEventListener('keydown', seekAudioByKeyboard);
-            }
+            bindProgressScrubber(dom.progressBarContainer);
 
             audio.addEventListener('timeupdate', updatePlayerState);
             audio.addEventListener('play', onPlayStart);
@@ -2785,6 +3458,9 @@
             audio.addEventListener('ended', handleSongEnd);
             audio.addEventListener('loadedmetadata', () => {
                 dom.totalTime.textContent = formatTime(audio.duration);
+                const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+                if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, progress);
+                updateDoraemonProgress(progress, audio.currentTime, audio.duration);
             });
 
             dom.volumeSlider.addEventListener('input', (e) => {
@@ -3144,6 +3820,7 @@
 
         function onPlayStart() {
             isPlaying = true;
+            document.body.classList.add('is-audio-playing');
             dom.playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl text-on-primary-color"></i>';
             dom.albumArtWrapper.classList.add('playing');
             if (mobileUI) mobileUI.updatePlayState(true); // ★ Mobile
@@ -3157,6 +3834,7 @@
 
         function onPlayPause() {
             isPlaying = false;
+            document.body.classList.remove('is-audio-playing');
             dom.playPauseBtn.innerHTML = '<i class="fas fa-play text-2xl ml-1 text-on-primary-color"></i>';
             dom.albumArtWrapper.classList.remove('playing');
             if (mobileUI) mobileUI.updatePlayState(false); // ★ Mobile
@@ -3553,6 +4231,8 @@
             dom.progressBar.style.width = '0%';
             dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
             dom.currentTime.textContent = '0:00';
+            updateDoraemonProgress(0, 0, 0);
+            if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
             dom.songIdTag.textContent = 'ID: Load...';
@@ -3676,6 +4356,7 @@
             dom.progressBar.style.width = `${pct}%`;
             dom.progressBarContainer?.setAttribute('aria-valuenow', String(Math.round(pct)));
             dom.currentTime.textContent = formatTime(audio.currentTime);
+            updateDoraemonProgress(pct, audio.currentTime, audio.duration);
 
             // ★ Mobile Update
             if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, pct);
@@ -5088,15 +5769,8 @@
                 this.dom.nextBtn?.addEventListener('click', playNextSong);
                 this.dom.modeBtn?.addEventListener('click', togglePlayMode);
 
-                // Progress
-                this.dom.progressContainer?.addEventListener('click', (e) => {
-                    const rect = this.dom.progressContainer.getBoundingClientRect();
-                    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                    if (audio.duration) {
-                        audio.currentTime = percent * audio.duration;
-                        updateProgress();
-                    }
-                });
+                // Progress (鼠标、触摸、键盘统一处理)
+                bindProgressScrubber(this.dom.progressContainer);
             }
 
             bindSheetEvents() {
@@ -5621,10 +6295,10 @@
 
                 // 默认颜色 (aura-music)
                 this.colors = [
-                    'rgb(60, 20, 80)',
-                    'rgb(100, 40, 60)',
-                    'rgb(20, 20, 40)',
-                    'rgb(40, 40, 90)'
+                    'rgb(151, 215, 255)',
+                    'rgb(193, 177, 255)',
+                    'rgb(218, 240, 255)',
+                    'rgb(166, 225, 245)'
                 ];
 
                 this.initShader();
@@ -5712,10 +6386,11 @@
                         if (palette && palette.length >= 4) {
                             // 确保格式正确：rgb(r, g, b) 带空格
                             this.colors = palette.map(([r, g, b]) => {
-                                const factor = 0.8;
-                                const nr = Math.round(r * factor);
-                                const ng = Math.round(g * factor);
-                                const nb = Math.round(b * factor);
+                                const factor = 0.32;
+                                const lift = 168;
+                                const nr = Math.min(255, Math.round(r * factor + lift));
+                                const ng = Math.min(255, Math.round(g * factor + lift));
+                                const nb = Math.min(255, Math.round(b * factor + lift));
                                 return `rgb(${nr}, ${ng}, ${nb})`;
                             });
                             console.log('🎨 更新后的背景颜色:', this.colors);
@@ -5733,11 +6408,12 @@
                     ctx.drawImage(img, 0, 0, 2, 2);
                     const data = ctx.getImageData(0, 0, 2, 2).data;
 
+                    const toPastel = value => Math.min(255, Math.round(value * 0.32 + 168));
                     this.colors = [
-                        `rgb(${Math.round(data[0] * 0.8)}, ${Math.round(data[1] * 0.8)}, ${Math.round(data[2] * 0.8)})`,
-                        `rgb(${Math.round(data[4] * 0.8)}, ${Math.round(data[5] * 0.8)}, ${Math.round(data[6] * 0.8)})`,
-                        `rgb(${Math.round(data[8] * 0.8)}, ${Math.round(data[9] * 0.8)}, ${Math.round(data[10] * 0.8)})`,
-                        `rgb(${Math.round(data[12] * 0.8)}, ${Math.round(data[13] * 0.8)}, ${Math.round(data[14] * 0.8)})`
+                        `rgb(${toPastel(data[0])}, ${toPastel(data[1])}, ${toPastel(data[2])})`,
+                        `rgb(${toPastel(data[4])}, ${toPastel(data[5])}, ${toPastel(data[6])})`,
+                        `rgb(${toPastel(data[8])}, ${toPastel(data[9])}, ${toPastel(data[10])})`,
+                        `rgb(${toPastel(data[12])}, ${toPastel(data[13])}, ${toPastel(data[14])})`
                     ];
                     console.log('🎨 降级采样的背景颜色:', this.colors);
                 } catch (e) {

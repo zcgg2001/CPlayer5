@@ -253,18 +253,23 @@ class StartupBehaviorTests(unittest.TestCase):
             "function initEventListeners()",
             "function toggleSearchPanel(forceState)",
         )
+        scrubber = function_block(
+            self.source,
+            "function bindProgressScrubber(container)",
+            "function initEventListeners()",
+        )
         player_state = function_block(
             self.source,
             "function updatePlayerState()",
             "// ================= 歌词逻辑",
         )
         self.assertIn(
-            "dom.progressBarContainer.addEventListener('keydown', seekAudioByKeyboard);",
+            "bindProgressScrubber(dom.progressBarContainer);",
             listeners,
         )
         for key in ("ArrowLeft", "ArrowRight", "Home", "End"):
-            self.assertIn(key, player_state)
-        self.assertIn("event.preventDefault();", player_state)
+            self.assertIn(key, scrubber)
+        self.assertIn("event.preventDefault();", scrubber)
         self.assertIn("aria-valuenow", player_state)
 
     def test_application_layout_decisions_use_the_shell_media_query(self):

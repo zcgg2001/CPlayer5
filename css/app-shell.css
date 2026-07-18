@@ -1927,3 +1927,159 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Liquid-glass integration: keeps the application shell introduced on main. */
+@media (min-width: 1024px) {
+  #desktopApp {
+    --shell-bg: transparent;
+    --shell-surface: rgba(255, 255, 255, 0.58);
+    --shell-surface-soft: rgba(255, 255, 255, 0.38);
+    --shell-border: rgba(255, 255, 255, 0.7);
+    --shell-active: rgba(238, 233, 255, 0.7);
+    --shell-shadow: 0 22px 54px rgba(55, 65, 128, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    background:
+      radial-gradient(circle at 12% 16%, rgba(113, 204, 255, 0.72), transparent 36%),
+      radial-gradient(circle at 88% 12%, rgba(184, 165, 255, 0.66), transparent 38%),
+      radial-gradient(circle at 70% 88%, rgba(116, 220, 244, 0.46), transparent 34%),
+      linear-gradient(135deg, #cfeaff 0%, #e9e4ff 52%, #d7f3ff 100%);
+  }
+
+  #desktopShell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: 64px minmax(0, 1fr) minmax(84px, auto);
+    gap: 14px;
+    padding: 14px;
+    background: transparent;
+  }
+
+  #desktopShell .app-sidebar,
+  #desktopShell .app-topbar,
+  #desktopLibraryView {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.36));
+    border: 1px solid var(--shell-border);
+    box-shadow: var(--shell-shadow);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+  }
+
+  #desktopShell .app-sidebar {
+    border-radius: 28px;
+  }
+
+  #desktopShell .app-topbar {
+    border-radius: 22px;
+  }
+
+  #desktopLibraryView {
+    border-radius: 28px;
+  }
+
+  #desktopShell .app-topbar-action,
+  #desktopLibraryView .discovery-panel,
+  #desktopLibraryView .discovery-song-row {
+    background: rgba(255, 255, 255, 0.46);
+    border-color: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 10px 26px rgba(55, 65, 128, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+  }
+
+  #desktopLibraryView .discovery-panel {
+    border-radius: 26px;
+  }
+
+  #desktopLibraryView .discovery-song-row {
+    border-radius: 18px;
+    transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  #desktopLibraryView .discovery-song-row:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 14px 30px rgba(55, 65, 128, 0.14), inset 0 1px 0 #fff;
+  }
+
+  #desktopPlayerBar {
+    overflow: visible;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(37, 28, 58, 0.88), rgba(35, 70, 101, 0.82));
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 24px;
+    box-shadow: 0 18px 44px rgba(34, 37, 81, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(30px) saturate(155%);
+    -webkit-backdrop-filter: blur(30px) saturate(155%);
+  }
+
+  #desktopPlayerBar .player-timeline,
+  #desktopPlayerBar .progress-track {
+    position: relative;
+    overflow: visible;
+  }
+
+  #desktopPlayerBar .progress-track {
+    height: 5px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 2px 6px rgba(8, 18, 38, 0.28);
+  }
+
+  #desktopPlayerBar #progressBar {
+    background: linear-gradient(90deg, #73d6ff, #8b8cff 68%, #c3a5ff);
+    box-shadow: 0 0 16px rgba(119, 209, 255, 0.48);
+  }
+
+  #desktopPlayerBar .doraemon-progress-thumb {
+    width: 54px;
+    height: 54px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.5) 44%, rgba(113, 202, 255, 0.28));
+    box-shadow: 0 12px 26px rgba(8, 18, 38, 0.34), 0 0 0 6px rgba(255, 255, 255, 0.15), 0 0 28px rgba(94, 193, 255, 0.56);
+    backdrop-filter: blur(14px) saturate(165%);
+    -webkit-backdrop-filter: blur(14px) saturate(165%);
+  }
+
+  #desktopPlayerBar .doraemon-gif {
+    border-radius: 50%;
+    background: #eaf8ff;
+  }
+
+  #floatingPlaylistPanel {
+    top: 84px;
+    right: 14px;
+    bottom: 112px;
+    color: #172033;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.5));
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 28px 0 0 28px;
+    box-shadow: -18px 18px 46px rgba(55, 65, 128, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+  }
+
+  #floatingPlaylistPanel .queue-heading span {
+    color: rgba(23, 32, 51, 0.58);
+  }
+
+  #floatingPlaylistPanel #desktopTabPlaylist,
+  #floatingPlaylistPanel #desktopTabSearch {
+    color: #5142c7;
+    background: rgba(255, 255, 255, 0.55);
+    border-color: rgba(255, 255, 255, 0.78);
+  }
+
+  #floatingPlaylistPanel .playlist-item {
+    color: #172033 !important;
+    background: rgba(255, 255, 255, 0.46);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
+
+  #floatingPlaylistPanel .playlist-item:hover {
+    background: rgba(255, 255, 255, 0.84) !important;
+    box-shadow: 0 10px 26px rgba(55, 65, 128, 0.12);
+  }
+}

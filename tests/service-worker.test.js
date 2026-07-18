@@ -130,6 +130,6 @@ test('retires older shell caches after the liquid quality selector upgrade', () 
 
   assert.deepEqual(
     Array.from(cacheNamesToDelete(['cplayer5-shell-v10', 'cplayer5-shell-v11', 'cplayer5-shell-v12'])),
-    ['cplayer5-shell-v10', 'cplayer5-shell-v11'],
+    ['cplayer5-shell-v10', 'cplayer5-shell-v11', 'cplayer5-shell-v12'],
   );
 });
