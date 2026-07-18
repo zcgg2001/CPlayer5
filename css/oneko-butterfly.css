@@ -1,0 +1,182 @@
+.oneko-pet-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    overflow: hidden;
+    pointer-events: none;
+    contain: layout style paint;
+}
+
+.oneko-cat {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    appearance: none;
+    background: transparent;
+    pointer-events: auto;
+    touch-action: none;
+    cursor: grab;
+    will-change: transform;
+}
+
+.oneko-cat__sprite {
+    display: block;
+    background-image: url('../img/oneko-tora.gif');
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    will-change: transform, background-position, filter;
+    filter: drop-shadow(0 5px 8px rgba(209, 165, 255, 0.42));
+    transition: transform 160ms ease, filter 160ms ease;
+}
+
+.oneko-cat.is-dragging {
+    cursor: grabbing;
+}
+
+.oneko-cat.is-dragging .oneko-cat__sprite {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 11px rgba(255, 214, 112, 0.78));
+}
+
+.oneko-butterfly {
+    position: absolute;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    appearance: none;
+    background: transparent;
+    pointer-events: auto;
+    touch-action: manipulation;
+    cursor: pointer;
+    will-change: transform;
+    filter: drop-shadow(0 0 7px rgba(255, 208, 102, 0.9));
+}
+
+.oneko-butterfly__wing {
+    position: absolute;
+    top: 10px;
+    width: 13px;
+    height: 17px;
+    border: 2px solid rgba(255, 244, 209, 0.9);
+    background: linear-gradient(145deg, #ffe08a 8%, #d8a7ff 55%, #8256c7 100%);
+}
+
+.oneko-butterfly__wing--left {
+    left: 8px;
+    border-radius: 90% 25% 72% 35%;
+    transform-origin: right center;
+    animation: oneko-wing-left 320ms ease-in-out infinite alternate;
+}
+
+.oneko-butterfly__wing--right {
+    right: 8px;
+    border-radius: 25% 90% 35% 72%;
+    transform-origin: left center;
+    animation: oneko-wing-right 320ms ease-in-out infinite alternate;
+}
+
+.oneko-butterfly__body {
+    position: absolute;
+    z-index: 1;
+    left: 21px;
+    top: 12px;
+    width: 3px;
+    height: 17px;
+    border-radius: 999px;
+    background: #fff5cf;
+    box-shadow: 0 0 5px rgba(255, 220, 130, 0.95);
+}
+
+.oneko-trail {
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0.65;
+    background: #d7a8ff;
+    box-shadow: 0 0 8px currentColor;
+    will-change: transform;
+}
+
+.oneko-trail-2 {
+    width: 5px;
+    height: 5px;
+    color: #ffd777;
+    opacity: 0.52;
+}
+
+.oneko-trail-3 {
+    width: 4px;
+    height: 4px;
+    opacity: 0.38;
+}
+
+.oneko-pet-layer[data-mode='rest'] .oneko-trail,
+.oneko-pet-layer[data-interaction-mode='cursor'] .oneko-trail,
+.oneko-pet-layer[data-interaction-mode='sleep'] .oneko-trail {
+    display: none;
+}
+
+.oneko-pet-layer[data-mode='rest'] .oneko-butterfly__wing {
+    animation-duration: 900ms;
+}
+
+.oneko-pet-layer[data-interaction-mode='cursor'] .oneko-butterfly {
+    opacity: 0.36;
+}
+
+.oneko-pet-layer[data-interaction-mode='sleep'] .oneko-butterfly {
+    opacity: 0.22;
+}
+
+.oneko-cat:focus-visible,
+.oneko-butterfly:focus-visible {
+    outline: 2px solid rgba(255, 224, 138, 0.95);
+    outline-offset: 2px;
+    border-radius: 12px;
+}
+
+@keyframes oneko-wing-left {
+    from { transform: rotate(-42deg) scaleX(0.72); }
+    to { transform: rotate(-12deg) scaleX(1); }
+}
+
+@keyframes oneko-wing-right {
+    from { transform: rotate(42deg) scaleX(0.72); }
+    to { transform: rotate(12deg) scaleX(1); }
+}
+
+@media (max-width: 767px) {
+    .oneko-cat__sprite {
+        filter: drop-shadow(0 3px 5px rgba(209, 165, 255, 0.35));
+    }
+
+    .oneko-butterfly {
+        opacity: 0.82;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .oneko-cat,
+    .oneko-cat__sprite,
+    .oneko-butterfly,
+    .oneko-trail {
+        will-change: auto;
+    }
+
+    .oneko-butterfly__wing {
+        animation: none;
+    }
+}
