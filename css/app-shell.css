@@ -243,21 +243,13 @@
 }
 
 #desktopShell .app-brand-copy {
-  display: grid;
+  display: block;
   min-width: 0;
-  gap: 1px;
 }
 
 #desktopShell .app-brand-copy strong {
   font-size: 17px;
   line-height: 1.2;
-}
-
-#desktopShell .app-brand-copy span {
-  color: var(--shell-muted);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 #desktopShell .app-navigation {
@@ -1773,6 +1765,10 @@
   border: 0;
 }
 
+.collection-library-dialog {
+  width: min(820px, calc(100vw - 32px));
+}
+
 #downloadDialog::backdrop,
 .liquid-choice-dialog::backdrop {
   background:
@@ -1808,6 +1804,10 @@
     0 0 0 1px rgba(120, 150, 255, 0.05);
   backdrop-filter: blur(42px) saturate(170%);
   -webkit-backdrop-filter: blur(42px) saturate(170%);
+}
+
+.collection-library-card {
+  min-height: min(660px, calc(100dvh - 32px));
 }
 
 #downloadDialog .download-dialog-card::after,
@@ -1863,6 +1863,286 @@
   overscroll-behavior: contain;
 }
 
+.collection-library-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  max-height: calc(100dvh - 32px);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 24px;
+  padding: 28px;
+  overflow: hidden;
+}
+
+.collection-library-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 20px;
+}
+
+.collection-library-heading {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 144px minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+#collectionDialogCover {
+  display: block;
+  width: 144px;
+  height: 144px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.collection-library-copy {
+  min-width: 0;
+}
+
+.collection-library-copy h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(25px, 4vw, 36px);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#collectionDialogMeta {
+  margin: 8px 0 18px;
+  overflow: hidden;
+  color: rgba(247, 248, 255, 0.68);
+  font-size: 13px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.collection-library-primary,
+.collection-library-secondary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: #17182b;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.94);
+  border-radius: 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 760;
+  transition: transform 180ms ease, background-color 180ms ease, opacity 180ms ease;
+}
+
+.collection-library-secondary {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.collection-library-primary:hover,
+.collection-library-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.collection-library-primary:focus-visible,
+.collection-library-secondary:focus-visible,
+.collection-track-play:focus-visible,
+.collection-track-add:focus-visible {
+  outline: 3px solid rgba(185, 182, 255, 0.42);
+  outline-offset: 2px;
+}
+
+.collection-library-primary:disabled,
+.collection-library-secondary:disabled {
+  opacity: 0.42;
+  cursor: wait;
+  transform: none;
+}
+
+.collection-library-tracks {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.collection-library-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 4px;
+}
+
+.collection-library-list-heading h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 15px;
+}
+
+.collection-library-list-heading span {
+  color: rgba(247, 248, 255, 0.55);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+#collectionTrackList {
+  min-height: 180px;
+  overflow-y: auto;
+  padding: 4px 6px 4px 0;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+  scrollbar-width: thin;
+}
+
+.collection-track-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.collection-track-play {
+  display: grid;
+  width: 100%;
+  min-height: 64px;
+  grid-template-columns: 28px 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px;
+  color: rgba(247, 248, 255, 0.76);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.collection-track-play:hover,
+.collection-track-play:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.collection-track-number {
+  color: rgba(247, 248, 255, 0.4);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.collection-track-cover {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+}
+
+.collection-track-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collection-track-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.collection-track-copy strong,
+.collection-track-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-track-copy strong {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 660;
+}
+
+.collection-track-copy span {
+  color: rgba(247, 248, 255, 0.5);
+  font-size: 11px;
+}
+
+.collection-track-album {
+  max-width: 150px;
+  overflow: hidden;
+  color: rgba(247, 248, 255, 0.42);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-track-add {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  color: rgba(247, 248, 255, 0.68);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.collection-track-add:hover,
+.collection-track-add:focus-visible {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.collection-library-status {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  color: rgba(247, 248, 255, 0.62);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px dashed rgba(255, 255, 255, 0.13);
+  border-radius: 18px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.collection-library-status button {
+  min-height: 44px;
+  padding: 0 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+}
+
 .download-dialog-header {
   display: flex;
   align-items: flex-start;
@@ -1888,7 +2168,8 @@
 }
 
 #downloadCancel,
-#playbackQualityCancel {
+#playbackQualityCancel,
+#collectionDialogClose {
   display: grid;
   width: 44px;
   height: 44px;
@@ -1903,14 +2184,61 @@
 }
 
 #downloadCancel:hover,
-#playbackQualityCancel:hover {
+#playbackQualityCancel:hover,
+#collectionDialogClose:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 
 #downloadCancel:focus-visible,
-#playbackQualityCancel:focus-visible {
+#playbackQualityCancel:focus-visible,
+#collectionDialogClose:focus-visible {
   outline: 3px solid rgba(185, 182, 255, 0.34);
   outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .collection-library-content {
+    gap: 18px;
+    padding: 20px;
+  }
+
+  .collection-library-header {
+    gap: 12px;
+  }
+
+  .collection-library-heading {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  #collectionDialogCover {
+    width: 88px;
+    height: 88px;
+    border-radius: 18px;
+  }
+
+  .collection-library-copy h2 {
+    font-size: 22px;
+  }
+
+  #collectionDialogMeta {
+    margin-bottom: 12px;
+  }
+
+  .collection-track-play {
+    grid-template-columns: 24px 44px minmax(0, 1fr);
+    gap: 9px;
+    padding-right: 9px;
+  }
+
+  .collection-track-cover {
+    width: 44px;
+    height: 44px;
+  }
+
+  .collection-track-album {
+    display: none;
+  }
 }
 
 .download-song-name {
