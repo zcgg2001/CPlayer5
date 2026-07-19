@@ -61,6 +61,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "closeSettingsBtn",
             "downloadCancel",
             "playbackQualityCancel",
+            "collectionDialogClose",
             "mobilePlaybackQualityBtn",
         ):
             self.assertTrue(markup.by_id[element_id].get("aria-label"), element_id)

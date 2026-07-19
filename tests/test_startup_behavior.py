@@ -201,6 +201,52 @@ class StartupBehaviorTests(unittest.TestCase):
         ):
             self.assertIn(fragment, discovery)
 
+    def test_collection_cards_open_a_track_picker_before_playback(self):
+        card_factory = function_block(
+            self.source,
+            "function createCollectionCard(collection",
+            "function createSceneCard(scene, collection)",
+        )
+        self.assertIn("openCollectionDialog(collection", card_factory)
+        self.assertIn("fa-list-ul", card_factory)
+        self.assertNotIn("playNow: true", card_factory)
+
+        dialog_loader = function_block(
+            self.source,
+            "async function loadCollectionDialogTracks(version)",
+            "async function handleCollectionAction",
+        )
+        self.assertIn("await resolveAlbumTracks(collection)", dialog_loader)
+        self.assertIn("renderCollectionTrackList(tracks)", dialog_loader)
+        self.assertIn("dom.collectionDialog.showModal()", dialog_loader)
+
+        track_renderer = function_block(
+            self.source,
+            "function renderCollectionTrackList(tracks)",
+            "async function loadCollectionDialogTracks(version)",
+        )
+        self.assertIn("addCollectionTracks([song]", track_renderer)
+        self.assertIn("playNow: true", track_renderer)
+        self.assertIn("playNow: false", track_renderer)
+
+    def test_collection_artwork_uses_high_resolution_variants(self):
+        artwork = function_block(
+            self.source,
+            "function createCollectionArtwork(cover, title",
+            "function createCollectionCard(collection",
+        )
+        self.assertIn("coverVariantUrl(cover, scene ? 960 : 720", artwork)
+        self.assertIn("image.src = coverUrl", artwork)
+        self.assertNotIn("getCachedImage", artwork)
+
+        image_cache = function_block(
+            self.source,
+            "window.getCachedImage = async function (url)",
+            "// 保存歌单到 IndexedDB",
+        )
+        self.assertIn("const cacheKey = `v2:${secureUrl}`", image_cache)
+        self.assertIn("Math.min(192", image_cache)
+
     def test_song_resolution_falls_back_across_supported_quality_levels(self):
         self.assertIn("downloadFallbackLevels", self.source)
         service = function_block(

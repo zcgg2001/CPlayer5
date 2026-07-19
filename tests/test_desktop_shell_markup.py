@@ -125,6 +125,17 @@ class DesktopShellMarkupTests(unittest.TestCase):
             self.source,
             r'(?s)<span class="app-brand-copy">\s*<strong>505音乐之家</strong>',
         )
+        self.assertNotIn("Music workspace", self.source)
+
+    def test_collection_dialog_exposes_a_selectable_music_library(self):
+        dialog = self.markup.by_id["collectionDialog"]
+        self.assertEqual(dialog["tag"], "dialog")
+        self.assertEqual(dialog.get("aria-labelledby"), "collectionDialogTitle")
+        self.assertEqual(dialog.get("aria-describedby"), "collectionDialogMeta")
+        self.assertEqual(self.markup.by_id["collectionTrackList"].get("role"), "list")
+        self.assertEqual(self.markup.by_id["collectionTrackList"].get("aria-live"), "polite")
+        self.assertIn("disabled", self.markup.by_id["collectionPlayAll"])
+        self.assertIn("disabled", self.markup.by_id["collectionAddAll"])
 
     def test_topbar_search_shortcut_has_a_distinct_visible_surface(self):
         normal_color = self.css_property(
