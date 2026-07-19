@@ -1599,6 +1599,7 @@
                         aria-label="打开播放队列">
                         <i class="fas fa-list-ul" aria-hidden="true"></i>
                         <span>播放队列</span>
+                        <span id="playlistCount" class="app-nav-count" aria-live="polite">0首</span>
                     </button>
                     <button id="desktopImportBtn" class="app-nav-item" type="button"
                         data-shell-destination="import" aria-controls="playlistFile" aria-label="导入本地 JSON 歌单">
@@ -1618,6 +1619,11 @@
                         <i class="fas fa-cog" aria-hidden="true"></i>
                         <span>设置</span>
                     </button>
+                </div>
+
+                <div class="upload-container app-import-proxy" aria-hidden="true">
+                    <input type="file" id="playlistFile" accept=".json" class="hidden" tabindex="-1"
+                        aria-label="导入 JSON 歌单">
                 </div>
             </aside>
 
@@ -1694,53 +1700,43 @@
                             </div>
                         </section>
 
-                        <section class="capability-grid" aria-label="音乐库工具">
-                            <article class="capability-card">
-                                <span class="capability-icon" aria-hidden="true">
-                                    <i class="fas fa-list-ul"></i>
-                                </span>
-                                <h2>当前播放列表</h2>
-                                <p>查看已经载入的真实曲目，并从现有虚拟列表继续播放。</p>
-                                <div class="capability-actions">
-                                    <span id="playlistCount" class="capability-status"
-                                        aria-live="polite">等待载入</span>
-                                    <button id="desktopLibraryQueueBtn" class="capability-action" type="button"
-                                        data-shell-destination="queue" aria-controls="floatingPlaylistPanel">
-                                        查看队列
-                                    </button>
+                        <section class="music-shelf editorial-shelf" aria-labelledby="editorialPlaylistsTitle">
+                            <header class="music-shelf-heading">
+                                <div>
+                                    <p class="music-shelf-kicker">EDITOR'S PICKS</p>
+                                    <h2 id="editorialPlaylistsTitle">编辑精选</h2>
+                                    <p>从真实榜单中挑选不同风格，点击封面即可播放。</p>
                                 </div>
-                            </article>
+                                <span class="music-shelf-note">每日更新</span>
+                            </header>
+                            <div id="editorialPlaylistGrid" class="collection-grid editorial-grid" aria-live="polite"
+                                aria-busy="true"></div>
+                        </section>
 
-                            <article class="capability-card upload-container">
-                                <input type="file" id="playlistFile" accept=".json" class="hidden"
-                                    aria-label="导入 JSON 歌单">
-                                <span class="capability-icon" aria-hidden="true">
-                                    <i class="fas fa-file-import"></i>
-                                </span>
-                                <h2>本地导入</h2>
-                                <p>选择项目支持的 JSON 歌单文件，继续使用当前播放器和缓存流程。</p>
-                                <div class="capability-actions">
-                                    <span class="capability-status">JSON 歌单</span>
-                                    <button id="desktopImportCardBtn" class="capability-action" type="button"
-                                        data-shell-destination="import" aria-controls="playlistFile">
-                                        选择文件
-                                    </button>
+                        <section class="music-shelf album-shelf" aria-labelledby="newAlbumsTitle">
+                            <header class="music-shelf-heading">
+                                <div>
+                                    <p class="music-shelf-kicker">NEW RELEASES</p>
+                                    <h2 id="newAlbumsTitle">新碟上架</h2>
+                                    <p>从新歌榜同步专辑，发现刚刚发布的新声音。</p>
                                 </div>
-                            </article>
+                                <span class="music-shelf-note">实时同步</span>
+                            </header>
+                            <div id="newAlbumGrid" class="collection-grid album-grid" aria-live="polite"
+                                aria-busy="true"></div>
+                        </section>
 
-                            <article class="capability-card">
-                                <span class="capability-icon" aria-hidden="true">
-                                    <i class="fas fa-cloud-download-alt"></i>
-                                </span>
-                                <h2>歌单工具</h2>
-                                <p>打开项目自带的歌单下载工具，准备可供 CPlayer 5 使用的内容。</p>
-                                <div class="capability-actions">
-                                    <span class="capability-status">内置工具</span>
-                                    <a class="capability-action" href="./playlist-downloader.html">
-                                        打开工具
-                                    </a>
+                        <section class="music-shelf scene-shelf" aria-labelledby="scenePlaylistsTitle">
+                            <header class="music-shelf-heading">
+                                <div>
+                                    <p class="music-shelf-kicker">MOMENTS</p>
+                                    <h2 id="scenePlaylistsTitle">场景歌单</h2>
+                                    <p>让不同的声音自然进入通勤、专注、运动与夜晚。</p>
                                 </div>
-                            </article>
+                                <span class="music-shelf-note">随心切换</span>
+                            </header>
+                            <div id="scenePlaylistGrid" class="scene-grid" aria-live="polite"
+                                aria-busy="true"></div>
                         </section>
                     </div>
 
@@ -1785,20 +1781,20 @@
                 </div>
             </main>
 
-            <footer id="desktopPlayerBar" aria-label="桌面播放控制">
+            <footer id="desktopPlayerBar" class="is-empty" aria-label="桌面播放控制">
                 <div class="player-meta">
                     <button id="desktopMiniPlayer" type="button" aria-label="打开正在播放"
-                        aria-controls="desktopLayout" aria-expanded="false">
-                        <img id="desktopMiniCover" src="./img/icon.png" alt="" width="48" height="48">
+                        aria-controls="desktopLayout" aria-expanded="false" disabled>
+                        <img id="desktopMiniCover" src="./img/icon.png" alt="" width="56" height="56">
                         <span class="player-meta-copy">
                             <span id="songTitle" class="player-song-title"
-                                title="右键或长按复制">CPlayer 5</span>
-                            <span id="artistName" title="右键或长按复制">ChKSz</span>
+                                title="右键或长按复制">请选择歌曲</span>
+                            <span id="artistName" title="右键或长按复制">从歌单或搜索中开始播放</span>
                         </span>
                     </button>
                     <div class="player-tags" aria-label="当前曲目信息">
-                        <span id="sourceTag">未加载</span>
-                        <span id="songIdTag" title="右键或长按复制">ID: --</span>
+                        <span id="sourceTag">准备播放</span>
+                        <span id="songIdTag" class="player-technical-id" title="右键或长按复制">ID: --</span>
                         <span id="qualityBadge" class="quality-badge quality-standard">音质 --</span>
                     </div>
                 </div>
@@ -1809,34 +1805,31 @@
                             title="播放模式" aria-label="切换播放模式">
                             <i class="fas fa-random" aria-hidden="true"></i>
                         </button>
-                        <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲">
+                        <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲" disabled>
                             <i class="fas fa-backward" aria-hidden="true"></i>
                         </button>
-                        <button id="playPauseBtn" class="player-control-button" type="button" aria-label="播放/暂停">
-                            <i class="fas fa-play" aria-hidden="true"></i>
+                        <button id="playPauseBtn" class="player-control-button" type="button" aria-label="打开播放队列">
+                            <i class="fas fa-list-ul" aria-hidden="true"></i>
                         </button>
-                        <button id="nextBtn" class="player-control-button" type="button" aria-label="下一曲">
+                        <button id="nextBtn" class="player-control-button" type="button" aria-label="下一曲" disabled>
                             <i class="fas fa-forward" aria-hidden="true"></i>
                         </button>
                     </div>
 
                     <div class="player-timeline">
-                        <span id="currentTime">0:00</span>
+                        <span id="currentTime">--:--</span>
                         <div id="desktopProgressBarContainer" class="progress-bar-container progress-scrubber"
-                            title="播放进度" role="slider" tabindex="0" aria-label="播放进度"
-                            aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
+                            title="尚未选择歌曲" role="slider" tabindex="-1" aria-label="播放进度"
+                            aria-disabled="true" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                            aria-valuetext="--:-- / --:--">
                             <div class="progress-track">
                                 <div id="progressBar" style="width: 0%;"></div>
-                                <div id="doraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking"
-                                    style="left: 0%;" aria-hidden="true">
-                                    <img class="doraemon-gif"
-                                        src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
-                                        alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
-                                </div>
+                                <div id="doraemonThumb" class="desktop-progress-thumb" data-gif-stage="walking"
+                                    style="left: 0%;" aria-hidden="true"></div>
                             </div>
-                            <span id="doraemonMood" class="sr-only" aria-live="polite" aria-atomic="true">准备出发 ✨</span>
+                            <span id="doraemonMood" class="sr-only" aria-live="polite" aria-atomic="true">尚未播放</span>
                         </div>
-                        <span id="totalTime">0:00</span>
+                        <span id="totalTime">--:--</span>
                     </div>
                 </div>
 
@@ -2390,6 +2383,7 @@
         } from './js/http.js';
         import {
             normalizeLyricsPayload,
+            normalizePlaylistCollectionPayload,
             normalizePlaylistPayload,
             normalizeSearchPayload,
             normalizeSongPayload
@@ -2407,6 +2401,22 @@
         const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
         const NEW_SONGS_PLAYLIST_ID = '3779629';
+        const EDITORIAL_PLAYLISTS = Object.freeze([
+            { id: '19723756', description: '捕捉今天正在上升的旋律', tone: 'violet' },
+            { id: '2884035', description: '听见华语原创的新鲜表达', tone: 'rose' },
+            { id: '3779629', description: '第一时间抵达全网新声', tone: 'sky' },
+            { id: '5059644681', description: '清透细腻的日系旋律漫游', tone: 'cyan' },
+            { id: '71384707', description: '在古典作品里沉静片刻', tone: 'amber' },
+            { id: '991319590', description: '锋利节拍与中文表达现场', tone: 'indigo' },
+        ]);
+        const SCENE_PLAYLISTS = Object.freeze([
+            { playlistId: '3779629', title: '清晨通勤', description: '用新鲜旋律开启今天', icon: 'fa-sun', tone: 'sky' },
+            { playlistId: '71384707', title: '沉浸专注', description: '给思绪留出安静的空间', icon: 'fa-feather-alt', tone: 'cyan' },
+            { playlistId: '2884035', title: '夜晚独处', description: '原创声音陪你慢慢放松', icon: 'fa-moon', tone: 'violet' },
+            { playlistId: '991319590', title: '运动能量', description: '让节拍推高身体状态', icon: 'fa-bolt', tone: 'rose' },
+            { playlistId: '5059644681', title: '日系漫游', description: '适合散步与旅行的轻盈感', icon: 'fa-paper-plane', tone: 'indigo' },
+            { playlistId: '19723756', title: '发现新声', description: '跟上此刻正在升温的音乐', icon: 'fa-compass', tone: 'amber' },
+        ]);
         const DEFAULT_QUALITY = 'lossless';
         const QUALITY_DETAILS = Object.freeze({
             standard: { name: '标准', summary: '标准 · 128K', meta: '128K · MP3', className: 'quality-standard' },
@@ -2540,6 +2550,12 @@
                 const url = `${this.baseUrl}/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}`;
                 const json = await requestJson(url, { signal });
                 return normalizePlaylistPayload(json).slice(0, 12);
+            }
+
+            async getPlaylistCollection(id, { signal } = {}) {
+                const url = `${this.baseUrl}/163_playlist?id=${encodeURIComponent(id)}`;
+                const json = await requestJson(url, { signal });
+                return normalizePlaylistCollectionPayload(json);
             }
 
             async getSongAtLevel(id, level, { signal } = {}) {
@@ -2900,6 +2916,7 @@
                 onImmersiveChange: syncContinuousRendering,
             });
             restoreLastCover();
+            syncDesktopPlayerAvailability();
             showDesktopMainView('discovery');
 
             // ★ 初始化 IndexedDB 缓存
@@ -2916,6 +2933,7 @@
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
             loadDefaultPlaylist();
             loadNewSongDiscovery();
+            loadMusicCollections();
             visualizer = initVisualizer();
             syncContinuousRendering();
             // checkSystemTheme(); // Removed
@@ -3821,7 +3839,8 @@
         function onPlayStart() {
             isPlaying = true;
             document.body.classList.add('is-audio-playing');
-            dom.playPauseBtn.innerHTML = '<i class="fas fa-pause text-2xl text-on-primary-color"></i>';
+            setDesktopPlayIcon('pause');
+            dom.playPauseBtn.setAttribute('aria-label', '暂停');
             dom.albumArtWrapper.classList.add('playing');
             if (mobileUI) mobileUI.updatePlayState(true); // ★ Mobile
             if (!audioContext) setupAudioContext();
@@ -3835,7 +3854,8 @@
         function onPlayPause() {
             isPlaying = false;
             document.body.classList.remove('is-audio-playing');
-            dom.playPauseBtn.innerHTML = '<i class="fas fa-play text-2xl ml-1 text-on-primary-color"></i>';
+            setDesktopPlayIcon('play');
+            dom.playPauseBtn.setAttribute('aria-label', '播放');
             dom.albumArtWrapper.classList.remove('playing');
             if (mobileUI) mobileUI.updatePlayState(false); // ★ Mobile
 
@@ -3844,7 +3864,67 @@
             }
         }
 
+        function setDesktopPlayIcon(iconName) {
+            const icon = dom.playPauseBtn?.querySelector('i');
+            if (!icon) return;
+            icon.className = `fas fa-${iconName}`;
+        }
+
+        function playbackDetailText(data, level) {
+            const resolvedLevel = supportedQuality(level);
+            const bitrate = Number(data?.br ?? data?.bitrate);
+            const isFlac = String(data?.url || '').toLowerCase().includes('flac')
+                || ['lossless', 'hires', 'jymaster'].includes(resolvedLevel);
+            const format = isFlac ? 'FLAC' : 'MP3';
+            if (Number.isFinite(bitrate) && bitrate > 0) {
+                return `${Math.round(bitrate / 1000)} kbps · ${format}`;
+            }
+            if (resolvedLevel === 'standard') return `128 kbps · ${format}`;
+            if (resolvedLevel === 'exhigh') return `320 kbps · ${format}`;
+            return `${qualityDetails(resolvedLevel).name} · ${format}`;
+        }
+
+        function syncDesktopPlayerAvailability() {
+            if (!dom.desktopPlayerBar) return;
+            const hasSong = Boolean(currentPlaybackSong?.id);
+            dom.desktopPlayerBar.classList.toggle('is-empty', !hasSong);
+            if (dom.desktopMiniPlayer) dom.desktopMiniPlayer.disabled = !hasSong;
+            if (dom.prevBtn) dom.prevBtn.disabled = !hasSong;
+            if (dom.nextBtn) dom.nextBtn.disabled = !hasSong;
+            if (dom.desktopDownloadBtn) dom.desktopDownloadBtn.disabled = !hasSong;
+
+            if (dom.progressBarContainer) {
+                dom.progressBarContainer.setAttribute('aria-disabled', String(!hasSong));
+                dom.progressBarContainer.tabIndex = hasSong ? 0 : -1;
+                dom.progressBarContainer.title = hasSong ? '播放进度' : '尚未选择歌曲';
+            }
+
+            if (hasSong) {
+                if (dom.currentTime?.textContent === '--:--') dom.currentTime.textContent = '0:00';
+                if (dom.totalTime?.textContent === '--:--') dom.totalTime.textContent = '0:00';
+                setDesktopPlayIcon(isPlaying ? 'pause' : 'play');
+                dom.playPauseBtn?.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+                return;
+            }
+
+            if (dom.desktopMiniCover) dom.desktopMiniCover.src = './img/icon.png';
+            if (dom.songTitle) dom.songTitle.textContent = '请选择歌曲';
+            if (dom.artistName) dom.artistName.textContent = '从歌单或搜索中开始播放';
+            if (dom.sourceTag) dom.sourceTag.textContent = '准备播放';
+            if (dom.songIdTag) dom.songIdTag.textContent = 'ID: --';
+            if (dom.currentTime) dom.currentTime.textContent = '--:--';
+            if (dom.totalTime) dom.totalTime.textContent = '--:--';
+            if (dom.progressBar) dom.progressBar.style.width = '0%';
+            setDesktopPlayIcon('list-ul');
+            dom.playPauseBtn?.setAttribute('aria-label', '打开播放队列');
+        }
+
         function togglePlayPause() {
+            if (!currentPlaybackSong?.id) {
+                switchDesktopTab('playlist');
+                togglePlaylistPanel(true);
+                return;
+            }
             if (!audio.src || audio.readyState === 0) {
                 // 如果还未加载过歌曲，直接播放播放列表中的当前或第一首歌
                 if (playlist.length) {
@@ -4045,6 +4125,7 @@
             dom.desktopDiscoveryList.setAttribute('aria-busy', 'true');
             if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = true;
             setDiscoveryStatus('正在获取真实新歌榜...');
+            setCollectionLoading(dom.newAlbumGrid, 6, '正在整理新碟上架');
 
             try {
                 const songs = await musicService.getNewSongs({
@@ -4052,10 +4133,15 @@
                 });
                 if (!songs.length) throw new Error('New song chart was empty');
                 renderDiscoverySongs(songs);
+                renderNewAlbums(songs);
             } catch (error) {
                 if (error instanceof RequestCancelledError) return;
                 console.error('新歌榜加载失败:', error);
                 setDiscoveryStatus(`新歌榜加载失败：${requestErrorMessage(error)}`, { error: true });
+                setCollectionStatus(dom.newAlbumGrid, '新碟加载失败，请刷新后重试', {
+                    error: true,
+                    retry: loadNewSongDiscovery,
+                });
             } finally {
                 if (desktopDiscoveryController === requestController) {
                     desktopDiscoveryController = null;
@@ -4198,6 +4284,421 @@
             showToast(`已添加并播放: ${newSong.name}`);
         }
 
+        let musicCollectionsController = null;
+        const collectionImagePlaceholder = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+        function setCollectionLoading(container, count, message, { scene = false } = {}) {
+            if (!container) return;
+            container.setAttribute('aria-busy', 'true');
+            const fragment = document.createDocumentFragment();
+            const status = document.createElement('span');
+            status.className = 'collection-sr-only';
+            status.setAttribute('role', 'status');
+            status.textContent = message;
+            fragment.appendChild(status);
+
+            for (let index = 0; index < count; index += 1) {
+                const skeleton = document.createElement('div');
+                skeleton.className = scene ? 'collection-skeleton scene-skeleton' : 'collection-skeleton';
+                skeleton.setAttribute('aria-hidden', 'true');
+                const art = document.createElement('span');
+                art.className = 'collection-skeleton-art';
+                const line = document.createElement('span');
+                line.className = 'collection-skeleton-line';
+                const shortLine = document.createElement('span');
+                shortLine.className = 'collection-skeleton-line is-short';
+                skeleton.append(art, line, shortLine);
+                fragment.appendChild(skeleton);
+            }
+            container.replaceChildren(fragment);
+        }
+
+        function setCollectionStatus(container, message, { error = false, retry = null } = {}) {
+            if (!container) return;
+            container.setAttribute('aria-busy', 'false');
+            const status = document.createElement('div');
+            status.className = `collection-status${error ? ' is-error' : ''}`;
+            status.setAttribute('role', 'status');
+
+            const icon = document.createElement('i');
+            icon.className = error ? 'fas fa-exclamation-circle' : 'fas fa-compact-disc';
+            icon.setAttribute('aria-hidden', 'true');
+            const label = document.createElement('span');
+            label.textContent = message;
+            status.append(icon, label);
+
+            if (retry) {
+                const retryButton = document.createElement('button');
+                retryButton.type = 'button';
+                retryButton.textContent = '重新加载';
+                retryButton.addEventListener('click', retry);
+                status.appendChild(retryButton);
+            }
+            container.replaceChildren(status);
+        }
+
+        function createCollectionArtwork(cover, title, { scene = false } = {}) {
+            const media = document.createElement('span');
+            media.className = scene ? 'scene-artwork' : 'collection-artwork';
+            const coverUrl = normalizeMediaUrl(cover, { baseUrl: window.location.href });
+
+            if (!coverUrl) {
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-music';
+                icon.setAttribute('aria-hidden', 'true');
+                media.appendChild(icon);
+                return media;
+            }
+
+            const image = document.createElement('img');
+            image.alt = '';
+            image.width = scene ? 640 : 360;
+            image.height = scene ? 360 : 360;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            image.src = collectionImagePlaceholder;
+            window.getCachedImage(`${coverUrl}?param=${scene ? '640y360' : '360y360'}`).then(cachedSrc => {
+                if (image.isConnected && cachedSrc) image.src = cachedSrc;
+            });
+            image.addEventListener('error', () => {
+                image.remove();
+                if (!media.querySelector('i')) {
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-music';
+                    icon.setAttribute('aria-hidden', 'true');
+                    media.appendChild(icon);
+                }
+            }, { once: true });
+            media.setAttribute('title', `${title}封面`);
+            media.appendChild(image);
+            return media;
+        }
+
+        function createCollectionCard(collection, { description, tone = 'violet', type = 'playlist' } = {}) {
+            const article = document.createElement('article');
+            article.className = 'collection-card';
+            article.dataset.tone = tone;
+
+            const coverButton = document.createElement('button');
+            coverButton.type = 'button';
+            coverButton.className = 'collection-cover-button';
+            coverButton.setAttribute('aria-label', `播放${type === 'album' ? '专辑' : '歌单'} ${collection.name}`);
+            coverButton.appendChild(createCollectionArtwork(collection.cover, collection.name));
+            const playBadge = document.createElement('span');
+            playBadge.className = 'collection-play-badge';
+            playBadge.setAttribute('aria-hidden', 'true');
+            const playIcon = document.createElement('i');
+            playIcon.className = 'fas fa-play';
+            playBadge.appendChild(playIcon);
+            coverButton.appendChild(playBadge);
+            coverButton.addEventListener('click', () => handleCollectionAction(collection, {
+                playNow: true,
+                trigger: coverButton,
+            }));
+
+            const copy = document.createElement('div');
+            copy.className = 'collection-card-copy';
+            const title = document.createElement('h3');
+            title.textContent = collection.name;
+            title.title = collection.name;
+            const subtitle = document.createElement('p');
+            subtitle.textContent = description || collection.artist || '来自真实音乐榜单';
+            copy.append(title, subtitle);
+
+            const footer = document.createElement('div');
+            footer.className = 'collection-card-footer';
+            const meta = document.createElement('span');
+            const trackCount = Number.isFinite(Number(collection.trackCount))
+                ? Number(collection.trackCount)
+                : collection.tracks.length;
+            meta.textContent = type === 'album'
+                ? `${trackCount}首上榜 · 专辑`
+                : `${trackCount}首 · ${collection.creator || '网易云音乐'}`;
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'collection-add-button';
+            addButton.setAttribute('aria-label', `将 ${collection.name} 加入播放队列`);
+            addButton.title = '加入播放队列';
+            const addIcon = document.createElement('i');
+            addIcon.className = 'fas fa-plus';
+            addIcon.setAttribute('aria-hidden', 'true');
+            addButton.appendChild(addIcon);
+            addButton.addEventListener('click', () => handleCollectionAction(collection, {
+                playNow: false,
+                trigger: addButton,
+            }));
+            footer.append(meta, addButton);
+            article.append(coverButton, copy, footer);
+            return article;
+        }
+
+        function createSceneCard(scene, collection) {
+            const article = document.createElement('article');
+            article.className = 'scene-card';
+            article.dataset.tone = scene.tone;
+            article.appendChild(createCollectionArtwork(collection.cover, scene.title, { scene: true }));
+
+            const content = document.createElement('div');
+            content.className = 'scene-card-content';
+            const icon = document.createElement('span');
+            icon.className = 'scene-card-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            const iconGlyph = document.createElement('i');
+            iconGlyph.className = `fas ${scene.icon}`;
+            icon.appendChild(iconGlyph);
+
+            const copy = document.createElement('div');
+            copy.className = 'scene-card-copy';
+            const title = document.createElement('h3');
+            title.textContent = scene.title;
+            const description = document.createElement('p');
+            description.textContent = scene.description;
+            const meta = document.createElement('span');
+            meta.textContent = `${collection.trackCount || collection.tracks.length}首 · ${collection.name}`;
+            copy.append(title, description, meta);
+
+            const actions = document.createElement('div');
+            actions.className = 'scene-card-actions';
+            const playButton = document.createElement('button');
+            playButton.type = 'button';
+            playButton.className = 'scene-play-button';
+            playButton.setAttribute('aria-label', `播放场景歌单 ${scene.title}`);
+            const playIcon = document.createElement('i');
+            playIcon.className = 'fas fa-play';
+            playIcon.setAttribute('aria-hidden', 'true');
+            const playLabel = document.createElement('span');
+            playLabel.textContent = '播放';
+            playButton.append(playIcon, playLabel);
+            playButton.addEventListener('click', () => handleCollectionAction(collection, {
+                playNow: true,
+                trigger: playButton,
+            }));
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'scene-add-button';
+            addButton.setAttribute('aria-label', `将 ${scene.title} 加入播放队列`);
+            addButton.title = '加入播放队列';
+            const addIcon = document.createElement('i');
+            addIcon.className = 'fas fa-plus';
+            addIcon.setAttribute('aria-hidden', 'true');
+            addButton.appendChild(addIcon);
+            addButton.addEventListener('click', () => handleCollectionAction(collection, {
+                playNow: false,
+                trigger: addButton,
+            }));
+            actions.append(playButton, addButton);
+            content.append(icon, copy, actions);
+            article.appendChild(content);
+            return article;
+        }
+
+        function renderEditorialCollections(collections) {
+            const fragment = document.createDocumentFragment();
+            collections.forEach(({ config, collection }) => {
+                fragment.appendChild(createCollectionCard(collection, {
+                    description: config.description,
+                    tone: config.tone,
+                }));
+            });
+            dom.editorialPlaylistGrid.replaceChildren(fragment);
+            dom.editorialPlaylistGrid.setAttribute('aria-busy', 'false');
+        }
+
+        function renderSceneCollections(collectionMap) {
+            const fragment = document.createDocumentFragment();
+            SCENE_PLAYLISTS.forEach(scene => {
+                const collection = collectionMap.get(scene.playlistId);
+                if (collection) fragment.appendChild(createSceneCard(scene, collection));
+            });
+
+            if (!fragment.childNodes.length) {
+                setCollectionStatus(dom.scenePlaylistGrid, '场景歌单暂时无法加载', {
+                    error: true,
+                    retry: loadMusicCollections,
+                });
+                return;
+            }
+            dom.scenePlaylistGrid.replaceChildren(fragment);
+            dom.scenePlaylistGrid.setAttribute('aria-busy', 'false');
+        }
+
+        async function loadMusicCollections() {
+            if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid) return;
+            musicCollectionsController?.abort();
+            const requestController = new AbortController();
+            musicCollectionsController = requestController;
+            setCollectionLoading(dom.editorialPlaylistGrid, EDITORIAL_PLAYLISTS.length, '正在整理编辑精选');
+            setCollectionLoading(dom.scenePlaylistGrid, SCENE_PLAYLISTS.length, '正在准备场景歌单', { scene: true });
+
+            try {
+                const results = await Promise.allSettled(EDITORIAL_PLAYLISTS.map(async config => {
+                    const collection = await musicService.getPlaylistCollection(config.id, {
+                        signal: requestController.signal,
+                    });
+                    if (!collection?.tracks?.length) throw new Error(`Playlist ${config.id} was empty`);
+                    return { config, collection };
+                }));
+                if (requestController.signal.aborted) return;
+
+                const collections = results
+                    .filter(result => result.status === 'fulfilled')
+                    .map(result => result.value);
+                if (!collections.length) throw new Error('All editorial playlists failed');
+
+                const collectionMap = new Map(collections.map(item => [String(item.collection.id), item.collection]));
+                renderEditorialCollections(collections);
+                renderSceneCollections(collectionMap);
+            } catch (error) {
+                if (error instanceof RequestCancelledError || requestController.signal.aborted) return;
+                console.error('音乐精选加载失败:', error);
+                setCollectionStatus(dom.editorialPlaylistGrid, '编辑精选加载失败，请稍后重试', {
+                    error: true,
+                    retry: loadMusicCollections,
+                });
+                setCollectionStatus(dom.scenePlaylistGrid, '场景歌单加载失败，请稍后重试', {
+                    error: true,
+                    retry: loadMusicCollections,
+                });
+            } finally {
+                if (musicCollectionsController === requestController) {
+                    musicCollectionsController = null;
+                }
+            }
+        }
+
+        function renderNewAlbums(songs) {
+            if (!dom.newAlbumGrid) return;
+            const albums = new Map();
+            songs.forEach(song => {
+                const albumName = String(song.album || song.name || '单曲').trim();
+                const artist = String(song.artist || '未知艺术家').trim();
+                const key = `${albumName}\u0000${artist}`;
+                if (!albums.has(key)) {
+                    albums.set(key, {
+                        id: key,
+                        name: albumName,
+                        artist,
+                        cover: song.cover,
+                        trackCount: 0,
+                        tracks: [],
+                        type: 'album',
+                    });
+                }
+                const album = albums.get(key);
+                album.tracks.push(song);
+                album.trackCount = album.tracks.length;
+            });
+
+            const albumList = Array.from(albums.values()).slice(0, 12);
+            if (!albumList.length) {
+                setCollectionStatus(dom.newAlbumGrid, '暂时没有可展示的新专辑', {
+                    error: true,
+                    retry: loadNewSongDiscovery,
+                });
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            albumList.forEach((album, index) => {
+                fragment.appendChild(createCollectionCard(album, {
+                    description: album.artist,
+                    tone: EDITORIAL_PLAYLISTS[index % EDITORIAL_PLAYLISTS.length].tone,
+                    type: 'album',
+                }));
+            });
+            dom.newAlbumGrid.replaceChildren(fragment);
+            dom.newAlbumGrid.setAttribute('aria-busy', 'false');
+        }
+
+        async function resolveAlbumTracks(collection) {
+            if (collection.resolvedTracks?.length) return collection.resolvedTracks;
+            const fallbackTracks = collection.tracks || [];
+            try {
+                const results = await musicService.search(`${collection.name} ${collection.artist || ''}`.trim());
+                const expectedAlbum = collection.name.toLocaleLowerCase();
+                const exactMatches = results.filter(song =>
+                    String(song.album || '').trim().toLocaleLowerCase() === expectedAlbum
+                );
+                collection.resolvedTracks = exactMatches.length ? exactMatches.slice(0, 30) : fallbackTracks;
+            } catch (error) {
+                console.warn('专辑曲目补全失败，使用榜单曲目:', error);
+                collection.resolvedTracks = fallbackTracks;
+            }
+            return collection.resolvedTracks;
+        }
+
+        async function handleCollectionAction(collection, { playNow, trigger }) {
+            if (!collection?.tracks?.length || !trigger || trigger.disabled) return;
+            const icon = trigger.querySelector('i');
+            const iconClass = icon?.className || '';
+            trigger.disabled = true;
+            trigger.setAttribute('aria-busy', 'true');
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
+
+            try {
+                const tracks = collection.type === 'album'
+                    ? await resolveAlbumTracks(collection)
+                    : collection.tracks;
+                addCollectionTracks(tracks, {
+                    label: collection.name,
+                    playNow,
+                    source: collection.type === 'album' ? 'new-album' : 'editorial-playlist',
+                });
+            } finally {
+                trigger.disabled = false;
+                trigger.removeAttribute('aria-busy');
+                if (icon) icon.className = iconClass;
+            }
+        }
+
+        function addCollectionTracks(tracks, { label, playNow, source }) {
+            const uniqueTracks = [];
+            const collectionIds = new Set();
+            tracks.forEach(song => {
+                const id = String(song?.id ?? '').trim();
+                if (!id || collectionIds.has(id)) return;
+                collectionIds.add(id);
+                uniqueTracks.push({
+                    id: song.id,
+                    name: song.name || '未知歌曲',
+                    artist: song.artist || '未知艺术家',
+                    cover: song.cover || '',
+                    album: song.album || '',
+                    source,
+                });
+            });
+            if (!uniqueTracks.length) {
+                showToast(`${label} 暂无可播放曲目`, true);
+                return;
+            }
+
+            const firstSongId = String(uniqueTracks[0].id);
+            const existingIds = new Set(playlist.map(song => String(song.id)));
+            const additions = uniqueTracks.filter(song => !existingIds.has(String(song.id)));
+
+            if (additions.length) {
+                if (!playlist.length) {
+                    const [firstSong, ...remaining] = additions;
+                    window.insertSongToPlaylist(firstSong);
+                    [...remaining].reverse().forEach(song => window.insertSongToPlaylist(song));
+                } else {
+                    [...additions].reverse().forEach(song => window.insertSongToPlaylist(song));
+                }
+                playlistTotalCount = playlist.length;
+                allSongsLoaded = true;
+                renderAllPlaylistItems();
+                if (mobileUI) mobileUI.loadPlaylist();
+                if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+            }
+
+            const targetIndex = playlist.findIndex(song => String(song.id) === firstSongId);
+            if (playNow && targetIndex >= 0) window.playSongAtIndex(targetIndex);
+            const action = playNow ? '开始播放' : '已加入队列';
+            const suffix = additions.length ? ` · ${additions.length}首` : ' · 已在队列中';
+            showToast(`${action}：${label}${suffix}`);
+        }
+
         // ★ Helper for MediaSession
         function updateMediaSessionMetadata(data) {
             if (!('mediaSession' in navigator)) return;
@@ -4230,7 +4731,8 @@
             if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.remove('opacity-0');
             dom.progressBar.style.width = '0%';
             dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
-            dom.currentTime.textContent = '0:00';
+            dom.currentTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
+            dom.totalTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
             updateDoraemonProgress(0, 0, 0);
             if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
@@ -4256,7 +4758,7 @@
                     || '';
                 const playbackData = { ...data, cover: picUrl, album: queuedSong?.album || data.album || '' };
                 currentPlaybackSong = playbackData;
-                dom.desktopDownloadBtn.disabled = !currentPlaybackSong.id;
+                syncDesktopPlayerAvailability();
 
                 const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
                 if (!mediaUrl) throw new Error('Invalid media URL');
@@ -4283,6 +4785,7 @@
                 if (qualityInfo) {
                     syncPlaybackQualityDisplay(qualityInfo.level);
                 }
+                dom.sourceTag.textContent = playbackDetailText(playbackData, qualityInfo?.level || data.level);
 
                 // ★ 立即更新 MediaSession (确保锁屏有文字信息)
                 // 即使封面还在加载，也先显示歌名和歌手

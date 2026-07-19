@@ -78,6 +78,7 @@ REQUIRED_IDS = {
     "desktopContentSearch",
     "desktopLayout",
     "desktopLoaderOverlay",
+    "editorialPlaylistGrid",
     "desktopTabPlaylist",
     "desktopTabSearch",
     "fileImportSection",
@@ -117,6 +118,7 @@ REQUIRED_IDS = {
     "mobileSongIdTag",
     "mobileTitle",
     "mobileVinylContainer",
+    "newAlbumGrid",
     "nextBtn",
     "playModeBtn",
     "playPauseBtn",
@@ -133,6 +135,7 @@ REQUIRED_IDS = {
     "searchButton",
     "searchInput",
     "searchResults",
+    "scenePlaylistGrid",
     "settingsBtn",
     "settingsCard",
     "settingsDropZone",
@@ -184,8 +187,17 @@ def _is_descendant(element, ancestor):
 class DomContractTests(unittest.TestCase):
     def test_required_legacy_ids_remain(self):
         actual = set(IDS)
-        self.assertEqual(len(REQUIRED_IDS), 103)
+        self.assertEqual(len(REQUIRED_IDS), 106)
         self.assertEqual(REQUIRED_IDS - actual, set())
+
+    def test_discovery_replaces_duplicate_tool_cards_with_music_shelves(self):
+        classes = [element.classes for element in MARKUP.elements]
+        self.assertFalse(any("capability-grid" in element_classes for element_classes in classes))
+        for class_name in ("editorial-shelf", "album-shelf", "scene-shelf"):
+            self.assertTrue(
+                any(class_name in element_classes for element_classes in classes),
+                f"missing {class_name}",
+            )
 
     def test_index_has_no_duplicate_ids(self):
         duplicates = sorted({element_id for element_id in IDS if IDS.count(element_id) > 1})

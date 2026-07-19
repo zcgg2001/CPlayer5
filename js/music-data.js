@@ -31,6 +31,7 @@ function coverUrl(item) {
   for (const candidate of [
     item?.picUrl,
     item?.cover,
+    item?.coverImgUrl,
     item?.album?.picUrl,
     item?.al?.picUrl,
   ]) {
@@ -103,4 +104,28 @@ export function normalizePlaylistPayload(payload) {
     album: albumText(item),
     cover: coverUrl(item),
   }));
+}
+
+export function normalizePlaylistCollectionPayload(payload) {
+  const item = payload?.data ?? payload?.playlist;
+  if (!item || typeof item !== 'object' || Array.isArray(item) || !hasId(item)) {
+    return null;
+  }
+
+  const tracks = normalizePlaylistPayload(payload);
+  const declaredTrackCount = Number(item.trackCount);
+  const creator = item.creator;
+
+  return {
+    id: item.id,
+    name: text(item.name, '未命名歌单'),
+    cover: coverUrl(item),
+    creator: typeof creator === 'string'
+      ? text(creator)
+      : text(creator?.nickname ?? creator?.name),
+    trackCount: Number.isFinite(declaredTrackCount) && declaredTrackCount >= 0
+      ? declaredTrackCount
+      : tracks.length,
+    tracks,
+  };
 }

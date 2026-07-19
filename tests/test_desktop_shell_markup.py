@@ -60,7 +60,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertIn("@media (min-width: 1024px)", self.css)
         self.assertIn("@media (max-width: 1023.98px)", self.css)
         self.assertIn("grid-template-columns: 240px minmax(0, 1fr)", self.css)
-        self.assertIn("grid-template-rows: 70px minmax(0, 1fr) minmax(80px, auto)", self.css)
+        self.assertIn("grid-template-rows: 70px minmax(0, 1fr) 108px", self.css)
 
     def test_real_desktop_shell_surfaces_exist(self):
         for element_id in (
@@ -79,7 +79,8 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertEqual(library.get("aria-current"), "page")
         self.assertEqual(library.get("data-shell-destination"), "library")
         self.assertNotRegex(self.source, r'data-shell-destination="(?:ranking|artists|video|radio)"')
-        self.assertNotIn('aria-disabled="true"', self.source)
+        for nav_id in ("desktopNavLibrary", "desktopNavSearch"):
+            self.assertNotEqual(self.markup.by_id[nav_id].get("aria-disabled"), "true")
 
     def test_search_is_a_standalone_theme_below_discovery(self):
         search_nav = self.markup.by_id["desktopNavSearch"]
@@ -192,12 +193,33 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertGreater(player_z, queue_z)
 
     def test_default_player_height_keeps_queue_drawer_clear(self):
-        self.assertEqual(self.css_property("#desktopPlayerBar", "min-height"), "80px")
-        self.assertEqual(self.css_property("#floatingPlaylistPanel", "bottom"), "80px")
+        self.assertEqual(self.css_property("#desktopPlayerBar", "min-height"), "108px")
+        self.assertEqual(self.css_property("#floatingPlaylistPanel", "bottom"), "108px")
         self.assertEqual(
             self.css_property("#desktopPlayerBar", "padding"),
-            "6px 20px calc(6px + env(safe-area-inset-bottom))",
+            "14px 24px calc(14px + env(safe-area-inset-bottom))",
         )
+
+    def test_player_starts_in_a_clear_non_interactive_empty_state(self):
+        player = self.markup.by_id["desktopPlayerBar"]
+        progress = self.markup.by_id["desktopProgressBarContainer"]
+
+        self.assertIn("is-empty", player.get("class", "").split())
+        for control_id in ("desktopMiniPlayer", "prevBtn", "nextBtn", "desktopDownloadBtn"):
+            self.assertIn("disabled", self.markup.by_id[control_id])
+        self.assertEqual(progress.get("aria-disabled"), "true")
+        self.assertEqual(progress.get("tabindex"), "-1")
+        self.assertRegex(self.source, r'id="currentTime">--:--</span>')
+        self.assertRegex(self.source, r'id="totalTime">--:--</span>')
+
+    def test_desktop_progress_uses_a_small_css_thumb_not_an_image(self):
+        thumb = self.markup.by_id["doraemonThumb"]
+        self.assertIn("desktop-progress-thumb", thumb.get("class", "").split())
+        self.assertNotRegex(
+            self.source,
+            r'(?s)id="doraemonThumb"[^>]*>\s*<img',
+        )
+        self.assertEqual(self.css_property("#desktopPlayerBar .desktop-progress-thumb", "width"), "12px")
 
     def test_desktop_download_controls_and_dialog_are_exposed(self):
         for element_id in (
