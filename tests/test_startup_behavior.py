@@ -271,6 +271,13 @@ class StartupBehaviorTests(unittest.TestCase):
             self.assertIn(key, scrubber)
         self.assertIn("event.preventDefault();", scrubber)
         self.assertIn("aria-valuenow", player_state)
+        availability = function_block(
+            self.source,
+            "function syncDesktopPlayerAvailability()",
+            "function togglePlayPause()",
+        )
+        self.assertIn("setAttribute('aria-disabled', String(!hasSong))", availability)
+        self.assertIn("tabIndex = hasSong ? 0 : -1", availability)
 
     def test_application_layout_decisions_use_the_shell_media_query(self):
         self.assertIn(

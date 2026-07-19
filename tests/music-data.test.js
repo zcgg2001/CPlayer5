@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   normalizeLyricsPayload,
+  normalizePlaylistCollectionPayload,
   normalizePlaylistPayload,
   normalizeSearchPayload,
   normalizeSongPayload,
@@ -121,4 +122,38 @@ test('normalizes supported playlist response shapes', () => {
       cover: 'https://img.example/track.jpg',
     }]);
   }
+});
+
+test('normalizes playlist collection metadata with its playable tracks', () => {
+  const payload = {
+    data: {
+      id: 42,
+      name: '编辑精选',
+      coverImgUrl: 'https://img.example/playlist.jpg',
+      creator: { nickname: 'CPlayer 编辑部' },
+      trackCount: 24,
+      tracks: [{
+        id: 2,
+        name: 'Track',
+        ar: [{ name: 'Singer' }],
+        al: { name: 'Record', picUrl: 'https://img.example/track.jpg' },
+      }],
+    },
+  };
+
+  assert.deepEqual(normalizePlaylistCollectionPayload(payload), {
+    id: 42,
+    name: '编辑精选',
+    cover: 'https://img.example/playlist.jpg',
+    creator: 'CPlayer 编辑部',
+    trackCount: 24,
+    tracks: [{
+      id: 2,
+      name: 'Track',
+      artist: 'Singer',
+      album: 'Record',
+      cover: 'https://img.example/track.jpg',
+    }],
+  });
+  assert.equal(normalizePlaylistCollectionPayload({ data: [] }), null);
 });

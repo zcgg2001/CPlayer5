@@ -98,7 +98,8 @@ class AccessibilityMarkupTests(unittest.TestCase):
             if "progress-bar-container" in element.get("class", "").split()
         )
         self.assertEqual(progress.get("role"), "slider")
-        self.assertEqual(progress.get("tabindex"), "0")
+        self.assertEqual(progress.get("aria-disabled"), "true")
+        self.assertEqual(progress.get("tabindex"), "-1")
         self.assertEqual(progress.get("aria-valuemin"), "0")
         self.assertEqual(progress.get("aria-valuemax"), "100")
         self.assertEqual(progress.get("aria-valuenow"), "0")
@@ -154,7 +155,8 @@ class AccessibilityMarkupTests(unittest.TestCase):
         for element_id in ("desktopProgressBarContainer", "mobileProgressBarContainer"):
             scrubber = markup.by_id[element_id]
             self.assertEqual(scrubber.get("role"), "slider", element_id)
-            self.assertEqual(scrubber.get("tabindex"), "0", element_id)
+            expected_tabindex = "-1" if scrubber.get("aria-disabled") == "true" else "0"
+            self.assertEqual(scrubber.get("tabindex"), expected_tabindex, element_id)
             self.assertEqual(scrubber.get("aria-valuemin"), "0", element_id)
             self.assertEqual(scrubber.get("aria-valuemax"), "100", element_id)
             self.assertTrue(scrubber.get("aria-label"), element_id)
