@@ -1,0 +1,171 @@
+:root {
+  --anime-progress-thumb-size: 34px;
+  --anime-progress-blue-start: #35bdf6;
+  --anime-progress-blue-end: #356de8;
+  --anime-progress-track: #dce4ec;
+  --anime-progress-buffer: rgba(80, 164, 211, 0.3);
+}
+
+.progress-track,
+.mobile-progress-track {
+  position: relative;
+  overflow: visible;
+  background: var(--anime-progress-track) !important;
+}
+
+.progress-buffer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: var(--anime-progress-buffer);
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 240ms ease;
+}
+
+#progressBar,
+#mobileProgressBar {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(90deg, var(--anime-progress-blue-start), var(--anime-progress-blue-end)) !important;
+  box-shadow: 0 0 10px rgba(53, 136, 235, 0.34) !important;
+}
+
+.anime-progress-thumb {
+  --anime-progress-x: 0px;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  z-index: 5;
+  width: var(--anime-progress-thumb-size);
+  height: var(--anime-progress-thumb-size);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+  transform: translate3d(var(--anime-progress-x), -50%, 0) translateX(-50%);
+  transition: transform 100ms linear;
+  will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.anime-progress-thumb.is-dragging {
+  cursor: grabbing;
+  transition-duration: 0ms;
+}
+
+.anime-progress-thumb__character,
+.anime-progress-thumb__motion,
+.anime-progress-thumb__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.anime-progress-thumb__character {
+  transform-origin: center bottom;
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 180ms ease;
+  filter: drop-shadow(0 3px 4px rgba(21, 68, 117, 0.32));
+}
+
+.anime-progress-thumb__motion {
+  transform-origin: center bottom;
+}
+
+.anime-progress-thumb__image {
+  object-fit: contain;
+  object-position: center;
+  /* 原素材奔跑方向偏左，默认翻转为面向播放方向（右）。 */
+  transform: scaleX(-1);
+  transform-origin: center;
+  pointer-events: none;
+}
+
+.anime-progress-thumb:hover .anime-progress-thumb__character,
+.anime-progress-thumb:focus-visible .anime-progress-thumb__character {
+  transform: scale(1.12);
+  filter: drop-shadow(0 5px 7px rgba(21, 68, 117, 0.4));
+}
+
+.anime-progress-thumb.is-dragging .anime-progress-thumb__character {
+  transform: scale(1.14);
+}
+
+.anime-progress-thumb.is-playing:not(.is-dragging) .anime-progress-thumb__motion {
+  animation: animeProgressWalk 760ms ease-in-out infinite;
+}
+
+.anime-progress-thumb__tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  padding: 5px 9px;
+  border: 1px solid rgba(82, 156, 207, 0.22);
+  border-radius: 8px;
+  color: #173452;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 18px rgba(27, 75, 119, 0.18);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, 4px, 0) scale(0.96);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.anime-progress-thumb__tooltip::after {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  content: '';
+  background: rgba(255, 255, 255, 0.96);
+  border-right: 1px solid rgba(82, 156, 207, 0.22);
+  border-bottom: 1px solid rgba(82, 156, 207, 0.22);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.anime-progress-thumb:hover .anime-progress-thumb__tooltip,
+.anime-progress-thumb.is-dragging .anime-progress-thumb__tooltip {
+  opacity: 1;
+  transform: translate3d(-50%, 0, 0) scale(1);
+}
+
+@keyframes animeProgressWalk {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1deg); }
+  50% { transform: translate3d(0, -2px, 0) rotate(1deg); }
+}
+
+@media (max-width: 1023.98px) {
+  :root {
+    --anime-progress-thumb-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --anime-progress-thumb-size: 26px;
+  }
+
+  .anime-progress-thumb__tooltip {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anime-progress-thumb,
+  .anime-progress-thumb__character,
+  .anime-progress-thumb__tooltip,
+  .progress-buffer {
+    transition-duration: 0.01ms !important;
+  }
+
+  .anime-progress-thumb__motion {
+    animation: none !important;
+  }
+}

@@ -116,6 +116,15 @@ test('precaches the desktop shell assets', () => {
   assert.ok(coreAssets.includes('./js/app-shell.js'));
 });
 
+test('precaches the anime progress thumb component and artwork', () => {
+  const context = loadServiceWorker();
+  const coreAssets = vm.runInContext('CORE_ASSETS', context);
+
+  assert.ok(coreAssets.includes('./css/anime-progress-thumb.css'));
+  assert.ok(coreAssets.includes('./js/anime-progress-thumb.js'));
+  assert.ok(coreAssets.includes('./img/doraemon-progress-thumb.png'));
+});
+
 test('precaches both music download runtime modules without precaching audio files', () => {
   const context = loadServiceWorker();
   const coreAssets = vm.runInContext('CORE_ASSETS', context);
@@ -129,7 +138,7 @@ test('retires older shell caches after the album library upgrade', () => {
   const { cacheNamesToDelete } = loadServiceWorker();
 
   assert.deepEqual(
-    Array.from(cacheNamesToDelete(['cplayer5-shell-v13', 'cplayer5-shell-v14', 'cplayer5-shell-v15'])),
-    ['cplayer5-shell-v13', 'cplayer5-shell-v14', 'cplayer5-shell-v15'],
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v14', 'cplayer5-shell-v15', 'cplayer5-shell-v16'])),
+    ['cplayer5-shell-v14', 'cplayer5-shell-v15', 'cplayer5-shell-v16'],
   );
 });

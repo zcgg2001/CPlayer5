@@ -111,7 +111,8 @@ class DesktopShellMarkupTests(unittest.TestCase):
     def test_progress_track_and_queue_drawer_contracts_remain(self):
         self.assertRegex(
             self.source,
-            r'(?s)progress-bar-container[^>]*>\s*<div[^>]*progress-track[^>]*>\s*<div id="progressBar"',
+            r'(?s)progress-bar-container[^>]*>\s*<div[^>]*progress-track[^>]*>'
+            r'\s*<div id="progressBuffer"[^>]*></div>\s*<div id="progressBar"',
         )
         drawer_classes = self.markup.by_id["floatingPlaylistPanel"].get("class", "")
         self.assertIn("translate-x-full", drawer_classes.split())
@@ -223,14 +224,18 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertRegex(self.source, r'id="currentTime">--:--</span>')
         self.assertRegex(self.source, r'id="totalTime">--:--</span>')
 
-    def test_desktop_progress_uses_a_small_css_thumb_not_an_image(self):
+    def test_desktop_progress_uses_the_anime_thumb_component(self):
         thumb = self.markup.by_id["doraemonThumb"]
-        self.assertIn("desktop-progress-thumb", thumb.get("class", "").split())
+        self.assertIn("anime-progress-thumb", thumb.get("class", "").split())
         self.assertNotRegex(
             self.source,
             r'(?s)id="doraemonThumb"[^>]*>\s*<img',
         )
-        self.assertEqual(self.css_property("#desktopPlayerBar .desktop-progress-thumb", "width"), "12px")
+        anime_css = (ROOT / "css/anime-progress-thumb.css").read_text(encoding="utf-8")
+        self.assertIn("--anime-progress-thumb-size: 34px", anime_css)
+        self.assertIn("translate3d(var(--anime-progress-x)", anime_css)
+        self.assertIn('src="./js/anime-progress-thumb.js"', self.source)
+        self.assertTrue((ROOT / "img/doraemon-progress-thumb.png").is_file())
 
     def test_desktop_download_controls_and_dialog_are_exposed(self):
         for element_id in (
