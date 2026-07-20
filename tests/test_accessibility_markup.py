@@ -166,18 +166,26 @@ class AccessibilityMarkupTests(unittest.TestCase):
         markup = parse_markup("index.html")
         for element_id in (
             "doraemonThumb",
-            "doraemonMood",
             "mobileDoraemonThumb",
-            "mobileDoraemonMood",
+            "progressBuffer",
+            "mobileProgressBuffer",
         ):
             self.assertIn(element_id, markup.by_id)
 
         source = (ROOT / "index.html").read_text(encoding="utf-8")
-        self.assertIn("function updateDoraemonExpression", source)
+        component = (ROOT / "js/anime-progress-thumb.js").read_text(encoding="utf-8")
+        styles = (ROOT / "css/anime-progress-thumb.css").read_text(encoding="utf-8")
+        self.assertIn("function initAnimeProgressThumbs", source)
         self.assertIn("bindProgressScrubber", source)
-        self.assertIn("doraemon-walking-trippy.gif", source)
-        self.assertIn("doraemon-crying-laugh.gif", source)
-        self.assertNotIn('class="doraemon-head"', source)
+        self.assertIn("updateBufferedProgress", source)
+        self.assertIn("class AnimeProgressThumb", component)
+        self.assertIn("./img/doraemon-progress-thumb.png", component)
+        self.assertIn("拖动调整播放进度", component)
+        self.assertIn("setPlaying(isPlaying)", component)
+        self.assertIn("setDragging(isDragging)", component)
+        self.assertIn("transform: translate3d(var(--anime-progress-x)", styles)
+        self.assertIn("--anime-progress-thumb-size: 28px", styles)
+        self.assertNotIn("media1.tenor.com", source)
 
     def test_pages_define_reduced_motion_styles(self):
         for filename in ("index.html", "playlist-downloader.html"):

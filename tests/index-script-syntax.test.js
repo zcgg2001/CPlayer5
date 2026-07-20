@@ -15,3 +15,8 @@ test('inline player scripts have valid JavaScript syntax', () => {
     assert.doesNotThrow(() => new Function(withoutStaticImports));
   }
 });
+
+test('anime progress thumb component has valid JavaScript syntax', () => {
+  const source = readFileSync(new URL('../js/anime-progress-thumb.js', import.meta.url), 'utf8');
+  assert.doesNotThrow(() => new Function(source));
+});

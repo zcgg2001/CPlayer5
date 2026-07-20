@@ -5,14 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CPlayer 5</title>
-    <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦 GIF 随播放进度走路、兴奋和大笑。">
+    <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦随播放进度轻快前进。">
     <meta property="og:type" content="website">
     <meta property="og:title" content="CPlayer 5｜让音乐有表情">
-    <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
     <meta property="og:image" content="__SITE_ORIGIN__/img/og-liquid.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
-    <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度变化的哆啦A梦动画播放器。">
+    <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
     <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-liquid.png">
 
     <!-- Favicon -->
@@ -666,92 +666,6 @@
             box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color), white 35%);
         }
 
-        .doraemon-mood {
-            max-width: 58%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding: 3px 10px;
-            border: 1px solid color-mix(in srgb, var(--primary-color), transparent 62%);
-            border-radius: 999px;
-            background: color-mix(in srgb, var(--primary-color), transparent 86%);
-            color: color-mix(in srgb, var(--primary-color), white 30%);
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.12);
-            backdrop-filter: blur(12px);
-        }
-
-        .doraemon-progress-thumb {
-            position: absolute;
-            top: 50%;
-            left: 0%;
-            width: 76px;
-            height: 62px;
-            padding: 3px;
-            border: 2px solid rgba(255, 255, 255, 0.92);
-            border-radius: 18px;
-            background: #07182c;
-            box-shadow:
-                0 9px 24px rgba(0, 0, 0, 0.3),
-                0 0 0 3px color-mix(in srgb, var(--primary-color), transparent 35%),
-                0 0 22px color-mix(in srgb, var(--primary-color), transparent 28%);
-            transform: translate(-50%, -50%);
-            transition: left 0.08s linear, transform 0.16s ease, box-shadow 0.2s ease;
-            pointer-events: none;
-            z-index: 5;
-            will-change: left;
-        }
-
-        .progress-scrubber.is-dragging .doraemon-progress-thumb {
-            transform: translate(-50%, -50%) scale(1.1);
-            box-shadow:
-                0 12px 28px rgba(0, 0, 0, 0.38),
-                0 0 0 4px color-mix(in srgb, var(--primary-color), transparent 20%),
-                0 0 28px color-mix(in srgb, var(--primary-color), transparent 15%);
-        }
-
-        .doraemon-gif {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            border-radius: 14px;
-            background: #07182c;
-            transform-origin: center;
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="walking"] .doraemon-gif {
-            object-position: center 48%;
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="excited"] {
-            border-color: rgba(151, 231, 255, 0.95);
-            box-shadow:
-                0 10px 26px rgba(0, 0, 0, 0.32),
-                0 0 0 3px rgba(0, 191, 255, 0.42),
-                0 0 24px rgba(0, 191, 255, 0.46);
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="laughing"] {
-            border-color: rgba(111, 225, 255, 0.98);
-            box-shadow:
-                0 10px 28px rgba(0, 0, 0, 0.34),
-                0 0 0 3px rgba(0, 191, 255, 0.55),
-                0 0 28px rgba(0, 191, 255, 0.62);
-        }
-
-        body.is-audio-playing .doraemon-gif {
-            animation: doraemonGroove 1.05s ease-in-out infinite;
-        }
-
-        @keyframes doraemonGroove {
-            0%, 100% { transform: translateY(0) rotate(-1.5deg); }
-            50% { transform: translateY(-2px) rotate(1.5deg); }
-        }
-
         .mobile-progress-track {
             position: relative;
             overflow: visible;
@@ -760,18 +674,6 @@
         #mobileProgressBar {
             border-radius: 999px;
             box-shadow: 0 0 10px color-mix(in srgb, var(--primary-color), transparent 20%);
-        }
-
-        #mobileProgressBarContainer .doraemon-progress-thumb {
-            width: 64px;
-            height: 54px;
-            border-radius: 16px;
-        }
-
-        #mobileDoraemonMood {
-            max-width: calc(100vw - 2rem);
-            margin: 0 auto -2px;
-            font-size: 0.65rem;
         }
 
         .btn-theme-adaptive {
@@ -1299,59 +1201,6 @@
             box-shadow: 0 0 16px rgba(100, 112, 235, 0.48);
         }
 
-        .doraemon-mood {
-            color: #4c4ca6;
-            background: rgba(255, 255, 255, 0.56);
-            border-color: rgba(255, 255, 255, 0.78);
-            box-shadow: 0 8px 22px rgba(75, 85, 154, 0.12);
-        }
-
-        .doraemon-progress-thumb,
-        #mobileProgressBarContainer .doraemon-progress-thumb {
-            width: 66px;
-            height: 66px;
-            padding: 5px;
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            background:
-                radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.48) 44%, rgba(113, 202, 255, 0.26));
-            box-shadow:
-                0 13px 28px rgba(49, 64, 124, 0.24),
-                0 0 0 7px rgba(255, 255, 255, 0.22),
-                0 0 30px rgba(94, 193, 255, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(16px) saturate(165%);
-            -webkit-backdrop-filter: blur(16px) saturate(165%);
-            transition: left 80ms linear, transform 220ms var(--liquid-ease), box-shadow 220ms var(--liquid-ease);
-        }
-
-        .doraemon-gif {
-            border-radius: 50%;
-            background: #eaf8ff;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
-        }
-
-        .progress-scrubber.is-dragging .doraemon-progress-thumb {
-            transform: translate(-50%, -50%) scale(1.12);
-            box-shadow:
-                0 16px 34px rgba(49, 64, 124, 0.28),
-                0 0 0 9px rgba(255, 255, 255, 0.3),
-                0 0 36px rgba(94, 193, 255, 0.62);
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="excited"],
-        .doraemon-progress-thumb[data-gif-stage="laughing"] {
-            border-color: rgba(255, 255, 255, 0.96);
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="excited"] {
-            box-shadow: 0 14px 30px rgba(49, 64, 124, 0.25), 0 0 0 8px rgba(106, 207, 255, 0.24), 0 0 34px rgba(77, 190, 255, 0.66);
-        }
-
-        .doraemon-progress-thumb[data-gif-stage="laughing"] {
-            box-shadow: 0 14px 32px rgba(49, 64, 124, 0.26), 0 0 0 9px rgba(168, 145, 255, 0.24), 0 0 38px rgba(127, 112, 241, 0.68);
-        }
-
         #floatingPlaylistPanel {
             top: 18px !important;
             right: 18px !important;
@@ -1508,12 +1357,6 @@
                 -webkit-backdrop-filter: blur(16px) saturate(145%) !important;
             }
 
-            #mobileProgressBarContainer .doraemon-progress-thumb {
-                width: 58px;
-                height: 58px;
-                padding: 4px;
-            }
-
             .mobile-control-deck button {
                 min-width: 44px;
                 min-height: 44px;
@@ -1541,6 +1384,8 @@
         }
     </style>
     <link rel="stylesheet" href="./css/app-shell.css">
+    <link rel="stylesheet" href="./css/anime-progress-thumb.css">
+    <script src="./js/anime-progress-thumb.js"></script>
     <script src="playlist.js"></script>
 </head>
 
@@ -1822,11 +1667,10 @@
                             aria-disabled="true" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
                             aria-valuetext="--:-- / --:--">
                             <div class="progress-track">
+                                <div id="progressBuffer" class="progress-buffer" aria-hidden="true"></div>
                                 <div id="progressBar" style="width: 0%;"></div>
-                                <div id="doraemonThumb" class="desktop-progress-thumb" data-gif-stage="walking"
-                                    style="left: 0%;" aria-hidden="true"></div>
+                                <div id="doraemonThumb" class="anime-progress-thumb" aria-hidden="true"></div>
                             </div>
-                            <span id="doraemonMood" class="sr-only" aria-live="polite" aria-atomic="true">尚未播放</span>
                         </div>
                         <span id="totalTime">--:--</span>
                     </div>
@@ -2026,19 +1870,15 @@
         <!-- 3. Bottom Controls -->
         <div class="mobile-control-deck flex-none p-4 pb-0 bg-gradient-to-t from-black/80 to-transparent">
             <!-- Progress - 增大触摸区域 -->
-            <div id="mobileDoraemonMood" class="doraemon-mood text-center" aria-live="polite" aria-atomic="true">准备出发 ✨</div>
             <div class="flex items-center gap-2 mb-4">
                 <span id="mobileCurrentTime" class="text-xs font-mono opacity-70 w-10 text-right">0:00</span>
                 <div class="flex-1 h-12 flex items-center group relative cursor-pointer progress-scrubber"
                     id="mobileProgressBarContainer" role="slider" tabindex="0" aria-label="播放进度"
                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0:00 / 0:00">
                     <div class="mobile-progress-track w-full h-1.5 bg-white/20 rounded-full transition-all group-active:h-3">
+                        <div id="mobileProgressBuffer" class="progress-buffer" aria-hidden="true"></div>
                         <div id="mobileProgressBar" class="h-full bg-primary-color w-0"></div>
-                        <div id="mobileDoraemonThumb" class="doraemon-progress-thumb" data-gif-stage="walking" style="left: 0%;" aria-hidden="true">
-                            <img class="doraemon-gif"
-                                src="https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif"
-                                alt="" loading="eager" decoding="async" referrerpolicy="no-referrer">
-                        </div>
+                        <div id="mobileDoraemonThumb" class="anime-progress-thumb" aria-hidden="true"></div>
                     </div>
                 </div>
                 <span id="mobileDuration" class="text-xs font-mono opacity-70 w-10">0:00</span>
@@ -2919,6 +2759,7 @@
         let desktopShell = null;
         let visualizer = null;
         let currentPlaybackSong = null;
+        let animeProgressThumbs = [];
         const downloadSession = createDownloadSession();
         let downloadState = { song: null, opener: null, session: null };
         let downloadQualitySelector = null;
@@ -2942,6 +2783,7 @@
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            initAnimeProgressThumbs();
             desktopShell = initAppShell({
                 elements: {
                     shell: dom.desktopShell,
@@ -3378,51 +3220,70 @@
             }
         }
 
-        function getDoraemonMood(progress) {
-            if (progress < 0.12) return '准备出发 ✨';
-            if (progress < 0.32) return '开始享受音乐 😊';
-            if (progress < 0.58) return '沉浸在旋律中 🎶';
-            if (progress < 0.82) return '兴奋起来！🎉';
-            return '完美收尾！🌟';
-        }
+        function initAnimeProgressThumbs() {
+            if (typeof AnimeProgressThumb !== 'function') return;
 
-        const DORAEMON_GIFS = {
-            walking: 'https://media1.tenor.com/m/nVoq46IA99sAAAAd/doraemon-walking-trippy.gif',
-            laughing: 'https://media1.tenor.com/m/kVoXh1XMS2AAAAAd/doraemon-crying-laugh.gif'
-        };
+            const progressProvider = () => {
+                const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+                const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+                return {
+                    currentTime,
+                    duration,
+                    progress: duration > 0 ? (currentTime / duration) * 100 : 0,
+                };
+            };
 
-        function updateDoraemonExpression(progress, thumb, moodElement) {
-            if (!thumb) return;
-
-            const normalized = Math.max(0, Math.min(1, Number(progress) || 0));
-            const stage = normalized < 0.32 ? 'walking' : normalized < 0.82 ? 'excited' : 'laughing';
-            const image = thumb.querySelector('.doraemon-gif');
-            const nextSource = stage === 'walking' ? DORAEMON_GIFS.walking : DORAEMON_GIFS.laughing;
-
-            if (thumb.dataset.gifStage !== stage) thumb.dataset.gifStage = stage;
-            if (image && image.src !== nextSource) image.src = nextSource;
-
-            if (moodElement) {
-                const mood = getDoraemonMood(normalized);
-                if (moodElement.textContent !== mood) moodElement.textContent = mood;
-            }
+            animeProgressThumbs = [
+                new AnimeProgressThumb({
+                    root: dom.doraemonThumb,
+                    container: dom.desktopProgressBarContainer,
+                    track: dom.desktopProgressBarContainer?.querySelector('.progress-track'),
+                    assetSrc: AnimeProgressThumb.DEFAULT_ASSET_PATH,
+                    progressProvider,
+                }),
+                new AnimeProgressThumb({
+                    root: dom.mobileDoraemonThumb,
+                    container: dom.mobileProgressBarContainer,
+                    track: dom.mobileProgressBarContainer?.querySelector('.mobile-progress-track'),
+                    assetSrc: AnimeProgressThumb.DEFAULT_ASSET_PATH,
+                    progressProvider,
+                }),
+            ].filter(component => component.root && component.track);
         }
 
         function updateDoraemonProgress(progressPercent, currentTime = 0, duration = 0) {
             const safePercent = Math.max(0, Math.min(100, Number(progressPercent) || 0));
-            const normalized = safePercent / 100;
-            const progressPairs = [
-                [dom.doraemonThumb, dom.doraemonMood, dom.desktopProgressBarContainer],
-                [dom.mobileDoraemonThumb, dom.mobileDoraemonMood, dom.mobileProgressBarContainer]
-            ];
+            animeProgressThumbs.forEach(component => {
+                component.setProgress(safePercent, currentTime, duration);
+            });
 
-            progressPairs.forEach(([thumb, mood, container]) => {
-                if (thumb) thumb.style.left = `${safePercent}%`;
-                updateDoraemonExpression(normalized, thumb, mood);
+            [dom.desktopProgressBarContainer, dom.mobileProgressBarContainer].forEach(container => {
                 if (container) {
                     container.setAttribute('aria-valuenow', String(Math.round(safePercent)));
                     container.setAttribute('aria-valuetext', `${formatTime(currentTime)} / ${formatTime(duration)}`);
                 }
+            });
+        }
+
+        function updateBufferedProgress() {
+            const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+            let bufferedEnd = 0;
+
+            if (duration && audio.buffered) {
+                for (let index = 0; index < audio.buffered.length; index += 1) {
+                    bufferedEnd = Math.max(bufferedEnd, audio.buffered.end(index));
+                }
+            }
+
+            const bufferedRatio = duration ? Math.max(0, Math.min(1, bufferedEnd / duration)) : 0;
+            [dom.progressBuffer, dom.mobileProgressBuffer].forEach(buffer => {
+                if (buffer) buffer.style.transform = `scaleX(${bufferedRatio})`;
+            });
+        }
+
+        function resetBufferedProgress() {
+            [dom.progressBuffer, dom.mobileProgressBuffer].forEach(buffer => {
+                if (buffer) buffer.style.transform = 'scaleX(0)';
             });
         }
 
@@ -3452,6 +3313,7 @@
                 }
                 activePointerId = null;
                 container.classList.remove('is-dragging');
+                container.animeProgressThumb?.setDragging(false);
             };
 
             container.addEventListener('pointerdown', (event) => {
@@ -3459,6 +3321,7 @@
                 activePointerId = event.pointerId;
                 container.setPointerCapture?.(event.pointerId);
                 container.classList.add('is-dragging');
+                container.animeProgressThumb?.setDragging(true);
                 container.focus({ preventScroll: true });
                 seekFromClientX(event.clientX);
                 event.preventDefault();
@@ -3552,6 +3415,9 @@
             bindProgressScrubber(dom.progressBarContainer);
 
             audio.addEventListener('timeupdate', updatePlayerState);
+            audio.addEventListener('progress', updateBufferedProgress);
+            audio.addEventListener('durationchange', updateBufferedProgress);
+            audio.addEventListener('emptied', resetBufferedProgress);
             audio.addEventListener('play', onPlayStart);
             audio.addEventListener('pause', onPlayPause);
             audio.addEventListener('ended', handleSongEnd);
@@ -3560,6 +3426,7 @@
                 const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
                 if (mobileUI) mobileUI.updateProgress(audio.currentTime, audio.duration, progress);
                 updateDoraemonProgress(progress, audio.currentTime, audio.duration);
+                updateBufferedProgress();
             });
 
             dom.volumeSlider.addEventListener('input', (e) => {
@@ -3920,6 +3787,7 @@
         function onPlayStart() {
             isPlaying = true;
             document.body.classList.add('is-audio-playing');
+            animeProgressThumbs.forEach(component => component.setPlaying(true));
             setDesktopPlayIcon('pause');
             dom.playPauseBtn.setAttribute('aria-label', '暂停');
             dom.albumArtWrapper.classList.add('playing');
@@ -3935,6 +3803,7 @@
         function onPlayPause() {
             isPlaying = false;
             document.body.classList.remove('is-audio-playing');
+            animeProgressThumbs.forEach(component => component.setPlaying(false));
             setDesktopPlayIcon('play');
             dom.playPauseBtn.setAttribute('aria-label', '播放');
             dom.albumArtWrapper.classList.remove('playing');
@@ -3996,6 +3865,8 @@
             if (dom.currentTime) dom.currentTime.textContent = '--:--';
             if (dom.totalTime) dom.totalTime.textContent = '--:--';
             if (dom.progressBar) dom.progressBar.style.width = '0%';
+            updateDoraemonProgress(0, 0, 0);
+            resetBufferedProgress();
             setDesktopPlayIcon('list-ul');
             dom.playPauseBtn?.setAttribute('aria-label', '打开播放队列');
         }
@@ -4996,6 +4867,7 @@
             dom.currentTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
             dom.totalTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
             updateDoraemonProgress(0, 0, 0);
+            resetBufferedProgress();
             if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
             dom.sourceTag.textContent = 'CHKSZ API';
