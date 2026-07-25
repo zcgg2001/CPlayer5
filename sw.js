@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v19';
+const SHELL_CACHE = 'cplayer5-shell-v20';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -40,8 +40,8 @@ function isNetEaseHost(hostname) {
 
 function isArtworkHost(hostname) {
   return isNetEaseHost(hostname)
-    || hostname === 'mzstatic.com'
-    || hostname.endsWith('.mzstatic.com');
+    || hostname === 'hdslb.com'
+    || hostname.endsWith('.hdslb.com');
 }
 
 function classifyRequest(request) {
@@ -49,7 +49,7 @@ function classifyRequest(request) {
 
   const url = new URL(request.url);
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
-  if (url.hostname === 'api.chksz.top') return 'api';
+  if (['api.chksz.top', 'api.chksz.com', 'api.bilibili.com'].includes(url.hostname)) return 'api';
 
   const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);
   if (isArtworkHost(url.hostname) && (request.destination === 'image' || imagePath)) {

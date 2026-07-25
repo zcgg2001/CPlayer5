@@ -106,18 +106,18 @@ test('serves the same-origin artist API without touching static assets', async (
 test('serves the same-origin video API without touching static assets', async () => {
   const { env, requestedPaths } = createEnv();
   env.VIDEO_FETCH = async () => Response.json({
-    results: [{
-      kind: 'music-video',
-      artistId: 1,
-      trackId: 201,
-      artistName: '视频歌手',
-      trackName: '现场视频',
-      artistViewUrl: 'https://music.apple.com/cn/artist/example/1',
-      trackViewUrl: 'https://music.apple.com/cn/music-video/example/201',
-      artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/video/100x100bb.jpg',
-      releaseDate: '2026-07-01T00:00:00Z',
-      primaryGenreName: '流行',
-    }],
+    code: 0,
+    data: {
+      result: [{
+        bvid: 'BV201',
+        title: '现场视频',
+        author: '视频歌手',
+        mid: 1,
+        arcurl: 'https://www.bilibili.com/video/BV201',
+        pic: '//i1.hdslb.com/bfs/archive/example.jpg',
+        pubdate: 1782864000,
+      }],
+    },
   });
   const response = await worker.fetch(
     new Request('https://player.example/api/v1/videos?category=global&limit=1'),

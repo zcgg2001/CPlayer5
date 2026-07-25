@@ -8,12 +8,12 @@ const ARTIST_SCOPES = Object.freeze({
 const VIDEO_CATEGORIES = Object.freeze({
   trending: '趋势视频',
   mandopop: '华语现场',
-  global: '全球流行',
+  global: '经典影像',
   live: '现场精选',
 });
 
 const ARTIST_CACHE_PREFIX = 'cp_artist_snapshot_v1_';
-const VIDEO_CACHE_PREFIX = 'cp_video_snapshot_v1_';
+const VIDEO_CACHE_PREFIX = 'cp_video_snapshot_v2_';
 
 function text(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
@@ -134,8 +134,8 @@ export function normalizeVideosPayload(payload) {
   const items = rawItems
     .map(item => {
       const id = text(item?.id);
-      const poster = safeHttpsUrl(item?.poster, ['mzstatic.com']);
-      const externalUrl = safeHttpsUrl(item?.externalUrl, ['music.apple.com']);
+      const poster = safeHttpsUrl(item?.poster, ['hdslb.com']);
+      const externalUrl = safeHttpsUrl(item?.externalUrl, ['bilibili.com']);
       if (!id || !poster || !externalUrl) return null;
       return {
         id,
@@ -143,13 +143,13 @@ export function normalizeVideosPayload(payload) {
         artist: text(item.artist, '未知艺术家'),
         artistId: text(item.artistId),
         poster,
-        previewUrl: safeHttpsUrl(item.previewUrl, ['apple.com', 'mzstatic.com']),
+        previewUrl: '',
         externalUrl,
-        artistUrl: safeHttpsUrl(item.artistUrl, ['music.apple.com']),
+        artistUrl: safeHttpsUrl(item.artistUrl, ['bilibili.com']),
         releasedAt: text(item.releasedAt),
         genre: text(item.genre, '音乐视频'),
         explicit: Boolean(item.explicit),
-        provider: text(item.provider, 'Apple Music'),
+        provider: text(item.provider, '哔哩哔哩'),
       };
     })
     .filter(Boolean);
@@ -163,7 +163,7 @@ export function normalizeVideosPayload(payload) {
         : 'trending',
       name: text(payload?.collection?.name, '趋势视频'),
       description: text(payload?.collection?.description, '自动发现音乐视频。'),
-      sourceName: text(payload?.collection?.sourceName, 'Apple Music'),
+      sourceName: text(payload?.collection?.sourceName, 'ChKSz 热榜 · 哔哩哔哩'),
       videoCount: Number(payload?.collection?.videoCount) || items.length,
       previewCount: Number(payload?.collection?.previewCount) || 0,
       fetchedAt: text(payload?.collection?.fetchedAt, new Date().toISOString()),
