@@ -3439,8 +3439,19 @@
 
             // ★ PWA Service Worker 注册
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').then(reg => {
+                const hasActiveServiceWorker = Boolean(navigator.serviceWorker.controller);
+                let isReloadingForUpdate = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!hasActiveServiceWorker || isReloadingForUpdate) return;
+                    isReloadingForUpdate = true;
+                    window.location.reload();
+                });
+
+                navigator.serviceWorker.register('./sw.js', {
+                    updateViaCache: 'none'
+                }).then(reg => {
                     console.log('📱 Service Worker 已注册');
+                    return reg.update();
                 }).catch(err => {
                     console.warn('SW 注册失败:', err);
                 });

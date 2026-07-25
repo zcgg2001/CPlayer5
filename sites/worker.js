@@ -17,14 +17,21 @@ function assetRequest(request, pathname) {
 }
 
 async function withAbsoluteSiteMetadata(response, request) {
-  if (!response.ok || request.method === 'HEAD') return response;
+  if (!response.ok) return response;
 
   const origin = new URL(request.url).origin;
-  const html = (await response.text()).replaceAll('__SITE_ORIGIN__', origin);
+  const headers = new Headers(response.headers);
+  headers.set('cache-control', 'no-store, max-age=0, must-revalidate');
+  headers.set('cdn-cache-control', 'no-store');
+  headers.set('pragma', 'no-cache');
+  headers.set('expires', '0');
+  const html = request.method === 'HEAD'
+    ? null
+    : (await response.text()).replaceAll('__SITE_ORIGIN__', origin);
   return new Response(html, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers,
   });
 }
 

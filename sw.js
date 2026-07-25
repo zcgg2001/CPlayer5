@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v21';
+const SHELL_CACHE = 'cplayer5-shell-v22';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -95,7 +95,7 @@ async function coverCacheFirst(request) {
 
 async function navigationNetworkFirst(request) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: 'no-store' });
     if (response.ok) return response;
   } catch (error) {
     console.warn('SW: navigation network request failed', error);
@@ -106,37 +106,31 @@ async function navigationNetworkFirst(request) {
     || caches.match('./offline.html');
 }
 
-async function updateShellAsset(request) {
-  const response = await fetch(request);
-  if (response.ok) {
-    const cache = await caches.open(SHELL_CACHE);
-    await cache.put(request, response.clone());
-  }
-  return response;
-}
-
-async function staleWhileRevalidate(request, event) {
-  const cached = await caches.match(request);
-  const update = updateShellAsset(request).catch(error => {
-    console.warn('SW: asset update failed', error);
-    return null;
-  });
-
-  if (cached) {
-    event.waitUntil(update);
-    return cached;
+async function shellAssetNetworkFirst(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response.ok) {
+      await cache.put(request, response.clone());
+      return response;
+    }
+  } catch (error) {
+    console.warn('SW: shell asset network request failed', error);
   }
 
-  const response = await update;
-  if (response) return response;
-  return new Response('Offline', { status: 503 });
+  return (await cache.match(request))
+    || new Response('Offline', { status: 503 });
 }
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
+    const freshAssets = CORE_ASSETS.map(asset => new Request(
+      new URL(asset, self.location.href),
+      { cache: 'reload' },
+    ));
     try {
-      await cache.addAll(CORE_ASSETS);
+      await cache.addAll(freshAssets);
     } catch (error) {
       console.error('SW: shell installation failed', error);
       throw error;
@@ -169,6 +163,6 @@ self.addEventListener('fetch', event => {
     return;
   }
   if (policy === 'asset') {
-    event.respondWith(staleWhileRevalidate(event.request, event));
+    event.respondWith(shellAssetNetworkFirst(event.request));
   }
 });

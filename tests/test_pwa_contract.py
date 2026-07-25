@@ -44,7 +44,10 @@ class PwaContractTests(unittest.TestCase):
         manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertIn('<link rel="manifest" href="manifest.json">', index_source)
-        self.assertIn("navigator.serviceWorker.register('./sw.js')", index_source)
+        self.assertIn("navigator.serviceWorker.register('./sw.js', {", index_source)
+        self.assertIn("updateViaCache: 'none'", index_source)
+        self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", index_source)
+        self.assertIn("return reg.update();", index_source)
         self.assertEqual(manifest.get("start_url"), "./index.html")
         self.assertEqual(manifest.get("scope"), "./")
         self.assertEqual(manifest.get("display"), "standalone")
@@ -66,7 +69,7 @@ class PwaContractTests(unittest.TestCase):
         worker_source = (ROOT / "sw.js").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v21';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v22';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",
@@ -93,6 +96,8 @@ class PwaContractTests(unittest.TestCase):
 
         self.assertIn("self.addEventListener('install'", worker_source)
         self.assertIn("const cache = await caches.open(SHELL_CACHE);", worker_source)
-        self.assertIn("await cache.addAll(CORE_ASSETS);", worker_source)
+        self.assertIn("await cache.addAll(freshAssets);", worker_source)
+        self.assertIn("fetch(request, { cache: 'no-store' })", worker_source)
+        self.assertIn("shellAssetNetworkFirst(event.request)", worker_source)
         self.assertIn("self.addEventListener('activate'", worker_source)
         self.assertIn("self.addEventListener('fetch'", worker_source)

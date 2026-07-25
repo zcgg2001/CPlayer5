@@ -43,6 +43,9 @@ test('injects an absolute social image URL into the player shell', async () => {
 
   assert.match(html, /https:\/\/player\.example\/img\/og\.png/);
   assert.doesNotMatch(html, /__SITE_ORIGIN__/);
+  assert.equal(response.headers.get('cache-control'), 'no-store, max-age=0, must-revalidate');
+  assert.equal(response.headers.get('cdn-cache-control'), 'no-store');
+  assert.equal(response.headers.get('pragma'), 'no-cache');
 });
 
 
