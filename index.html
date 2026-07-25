@@ -1766,7 +1766,7 @@
                                 <p class="library-kicker">MUSIC VIDEO</p>
                                 <h1 id="desktopVideosPageTitle">视频中心</h1>
                                 <p class="library-description">
-                                    根据国内音乐榜单发现 MV、现场与经典影像；视频默认不自动播放。
+                                    自动发现音乐视频、现场与全球流行影像；视频默认不自动播放。
                                 </p>
                             </div>
                         </header>
@@ -1776,7 +1776,7 @@
                             <div class="content-overview">
                                 <div class="content-overview-copy">
                                     <h2 id="desktopVideoTitle">趋势视频</h2>
-                                    <p id="desktopVideoDescription">根据国内实时榜单歌手自动发现近期音乐视频。</p>
+                                    <p id="desktopVideoDescription">根据实时榜单歌手自动发现近期音乐视频。</p>
                                     <div class="content-meta">
                                         <span id="desktopVideoSource">
                                             <i class="fas fa-film" aria-hidden="true"></i>
@@ -1816,8 +1816,8 @@
                                 <button class="content-filter-tab" type="button" role="tab"
                                     data-video-category="global" aria-selected="false"
                                     aria-controls="desktopVideoGrid" tabindex="-1">
-                                    <i class="fas fa-compact-disc" aria-hidden="true"></i>
-                                    经典影像
+                                    <i class="fas fa-globe-asia" aria-hidden="true"></i>
+                                    全球流行
                                 </button>
                                 <button class="content-filter-tab" type="button" role="tab"
                                     data-video-category="live" aria-selected="false"
@@ -2390,7 +2390,7 @@
                         <div class="content-overview">
                             <div class="content-overview-copy">
                                 <h2 id="mobileVideoTitle">趋势视频</h2>
-                                <p id="mobileVideoDescription">根据国内实时榜单歌手自动发现近期音乐视频。</p>
+                                <p id="mobileVideoDescription">根据实时榜单歌手自动发现近期音乐视频。</p>
                                 <div class="content-meta">
                                     <span id="mobileVideoSource">
                                         <i class="fas fa-film" aria-hidden="true"></i>
@@ -2424,8 +2424,8 @@
                             <button class="content-filter-tab" type="button" role="tab"
                                 data-video-category="global" aria-selected="false"
                                 aria-controls="mobileVideoGrid" tabindex="-1">
-                                <i class="fas fa-compact-disc" aria-hidden="true"></i>
-                                经典
+                                <i class="fas fa-globe-asia" aria-hidden="true"></i>
+                                全球
                             </button>
                             <button class="content-filter-tab" type="button" role="tab"
                                 data-video-category="live" aria-selected="false"
@@ -2454,14 +2454,14 @@
                 <video id="videoPreviewPlayer" controls playsinline preload="none" hidden></video>
             </div>
             <div class="video-preview-copy">
-                <span id="videoPreviewSource">哔哩哔哩</span>
+                <span id="videoPreviewSource">APPLE MUSIC</span>
                 <h2 id="videoPreviewTitle">音乐视频</h2>
                 <p id="videoPreviewMeta">选择视频后查看详细信息</p>
                 <div class="video-preview-actions">
-                    <a id="videoPreviewOpen" href="https://www.bilibili.com/" target="_blank"
+                    <a id="videoPreviewOpen" href="https://music.apple.com/" target="_blank"
                         rel="noopener noreferrer">
                         <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                        在哔哩哔哩观看
+                        在 Apple Music 观看
                     </a>
                     <button id="videoPreviewDismiss" type="button">
                         <i class="fas fa-chevron-left" aria-hidden="true"></i>
@@ -3472,7 +3472,7 @@
                     element: dom.desktopVideosView,
                     titleId: 'desktopVideosPageTitle',
                     title: '视频中心',
-                    description: '浏览国内音乐视频、现场与经典影像',
+                    description: '浏览音乐视频、现场与全球流行影像',
                 },
                 search: {
                     element: dom.desktopSearchView,
@@ -3528,7 +3528,7 @@
             const labels = {
                 charts: ['音乐排行榜', '热歌、新歌与趋势'],
                 artists: ['歌手中心', '实时榜单自动聚合'],
-                videos: ['视频中心', '国内音乐视频与现场影像'],
+                videos: ['视频中心', '音乐视频与现场影像'],
             };
             const panes = {
                 charts: dom.mobileExploreChartsPane,
@@ -3586,11 +3586,11 @@
             videoPreviewOpener = opener || document.activeElement;
             const poster = normalizeMediaUrl(video.poster, { baseUrl: window.location.href });
             const preview = normalizeMediaUrl(video.previewUrl, { baseUrl: window.location.href });
-            let externalUrl = 'https://www.bilibili.com/';
+            let externalUrl = 'https://music.apple.com/';
             try {
                 const candidate = new URL(video.externalUrl);
                 if (candidate.protocol === 'https:' &&
-                    (candidate.hostname === 'bilibili.com' || candidate.hostname.endsWith('.bilibili.com'))) {
+                    (candidate.hostname === 'music.apple.com' || candidate.hostname.endsWith('.music.apple.com'))) {
                     externalUrl = candidate.href;
                 }
             } catch (error) {
@@ -3604,8 +3604,8 @@
                 formatReleaseDate(video.releasedAt),
             ].filter(Boolean).join(' · ');
             dom.videoPreviewSource.textContent = preview
-                ? `${video.provider || '哔哩哔哩'} · 可预览`
-                : `${video.provider || '哔哩哔哩'} · 国内来源`;
+                ? `${video.provider || 'APPLE MUSIC'} · 可预览`
+                : `${video.provider || 'APPLE MUSIC'} · 官方来源`;
             dom.videoPreviewOpen.href = externalUrl;
             dom.videoPreviewPoster.src = poster || './img/icon.png';
             dom.videoPreviewPoster.alt = `${video.name || '音乐视频'} 封面`;

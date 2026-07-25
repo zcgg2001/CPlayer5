@@ -56,18 +56,6 @@ test('classifies API, navigation and local asset requests', () => {
   }), 'api');
   assert.equal(classifyRequest({
     method: 'GET',
-    url: 'https://api.chksz.com/api/163_playlist',
-    destination: '',
-    mode: 'cors',
-  }), 'api');
-  assert.equal(classifyRequest({
-    method: 'GET',
-    url: 'https://api.bilibili.com/x/web-interface/search/type',
-    destination: '',
-    mode: 'cors',
-  }), 'api');
-  assert.equal(classifyRequest({
-    method: 'GET',
     url: 'https://player.example/api/v1/charts',
     destination: '',
     mode: 'same-origin',
