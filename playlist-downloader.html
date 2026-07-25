@@ -12,6 +12,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="css/all.min.css?v=22">
     <link rel="stylesheet" href="css/noto-sans-sc.css?v=22">
+    <link rel="stylesheet" href="css/art-direction.css?v=23">
+    <script defer src="js/lucide.min.js?v=23"></script>
+    <script defer src="js/lucide-bridge.js?v=23"></script>
 
     <style>
         :root {
@@ -126,7 +129,7 @@
     </style>
 </head>
 
-<body class="flex items-center justify-center min-h-screen p-4">
+<body class="playlist-tool flex items-center justify-center min-h-screen p-4">
 
     <!-- 背景 -->
     <div class="animated-bg"></div>
@@ -264,7 +267,7 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(blobUrl);
 
-                showToast(`🎉 成功生成！共包含 ${tracks.length} 首歌曲`);
+                showToast(`成功生成！共包含 ${tracks.length} 首歌曲`);
                 input.value = '';
 
             } catch (error) {

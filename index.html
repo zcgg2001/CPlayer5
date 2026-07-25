@@ -9,11 +9,11 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="CPlayer 5｜让音乐有表情">
     <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
-    <meta property="og:image" content="__SITE_ORIGIN__/img/og-liquid.png">
+    <meta property="og:image" content="__SITE_ORIGIN__/img/og-art-direction.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
     <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
-    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-liquid.png">
+    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-art-direction.png">
 
     <!-- Favicon -->
     <link rel="icon"
@@ -1387,6 +1387,9 @@
     <link rel="stylesheet" href="./css/charts.css?v=22">
     <link rel="stylesheet" href="./css/music-explore.css?v=22">
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=22">
+    <link rel="stylesheet" href="./css/art-direction.css?v=23">
+    <script defer src="./js/lucide.min.js?v=23"></script>
+    <script defer src="./js/lucide-bridge.js?v=23"></script>
     <script src="./js/anime-progress-thumb.js?v=22"></script>
     <script src="playlist.js?v=22"></script>
 </head>
@@ -6483,7 +6486,7 @@
                 document.getElementById('welcomeLoadingText').textContent = '加载成功！';
                 document.getElementById('welcomeLoadingSubtext').textContent = `已加载 ${playlist.length} 首歌曲`;
 
-                showToast(`🎵 歌单加载成功！共 ${playlist.length} 首歌曲`);
+                showToast(`歌单加载成功！共 ${playlist.length} 首歌曲`);
 
                 setTimeout(() => {
                     closeWelcomeModal();
@@ -8135,7 +8138,7 @@
                     ctx.font = '800 24px "PingFang SC", sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('♪ 播放音乐以查看歌词', this.width / 2, this.height / 2);
+                    ctx.fillText('播放音乐以查看歌词', this.width / 2, this.height / 2);
                     return;
                 }
 
