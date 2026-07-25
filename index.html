@@ -29,12 +29,12 @@
     <link rel="apple-touch-icon" href="img/icon.png">
 
     <!-- Fonts & Icons -->
-    <link href="css/noto-sans-sc.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/all.min.css">
-    <link rel="stylesheet" href="css/oneko-butterfly.css">
-    <script src="js/tailwindcss.js"></script>
+    <link href="css/noto-sans-sc.css?v=22" rel="stylesheet">
+    <link rel="stylesheet" href="css/all.min.css?v=22">
+    <link rel="stylesheet" href="css/oneko-butterfly.css?v=22">
+    <script src="js/tailwindcss.js?v=22"></script>
     <!-- ColorThief - 从图片提取主色调 -->
-    <script src="js/color-thief.umd.js"></script>
+    <script src="js/color-thief.umd.js?v=22"></script>
 
     <script>
         // ★ Hotfix: Define variable to prevent ReferenceError in cached/legacy scripts
@@ -1383,12 +1383,12 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="./css/app-shell.css">
-    <link rel="stylesheet" href="./css/charts.css">
-    <link rel="stylesheet" href="./css/music-explore.css">
-    <link rel="stylesheet" href="./css/anime-progress-thumb.css">
-    <script src="./js/anime-progress-thumb.js"></script>
-    <script src="playlist.js"></script>
+    <link rel="stylesheet" href="./css/app-shell.css?v=22">
+    <link rel="stylesheet" href="./css/charts.css?v=22">
+    <link rel="stylesheet" href="./css/music-explore.css?v=22">
+    <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=22">
+    <script src="./js/anime-progress-thumb.js?v=22"></script>
+    <script src="playlist.js?v=22"></script>
 </head>
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
@@ -2748,34 +2748,34 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
-        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';
-        import { createChartsController } from './js/charts-page.js';
+        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';
+        import { createChartsController } from './js/charts-page.js?v=22';
         import {
             createArtistsController,
             createVideosController,
             formatReleaseDate
-        } from './js/music-explore.js';
-        import { normalizeMediaUrl } from './js/security.js';
+        } from './js/music-explore.js?v=22';
+        import { normalizeMediaUrl } from './js/security.js?v=22';
         import {
             RequestCancelledError,
             requestErrorMessage,
             requestJson
-        } from './js/http.js';
+        } from './js/http.js?v=22';
         import {
             normalizeLyricsPayload,
             normalizePlaylistCollectionPayload,
             normalizePlaylistPayload,
             normalizeSearchPayload,
             normalizeSongPayload
-        } from './js/music-data.js';
+        } from './js/music-data.js?v=22';
         import {
             DOWNLOAD_QUALITY_OPTIONS,
             downloadFallbackLevels,
             downloadFilename,
             resolveDownloadSong,
             saveAudioBlob
-        } from './js/music-download.js';
-        import { createDownloadSession } from './js/download-session.js';
+        } from './js/music-download.js?v=22';
+        import { createDownloadSession } from './js/download-session.js?v=22';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -8320,7 +8320,7 @@
         });
 
     </script>
-    <script type="module" src="js/oneko-butterfly.js"></script>
+    <script type="module" src="js/oneko-butterfly.js?v=22"></script>
 </body>
 
 </html>

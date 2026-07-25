@@ -118,7 +118,7 @@ async function shellAssetNetworkFirst(request) {
     console.warn('SW: shell asset network request failed', error);
   }
 
-  return (await cache.match(request))
+  return (await cache.match(request, { ignoreSearch: true }))
     || new Response('Offline', { status: 503 });
 }
 

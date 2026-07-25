@@ -67,6 +67,7 @@ class PwaContractTests(unittest.TestCase):
 
     def test_service_worker_cache_and_precache_contract_remain(self):
         worker_source = (ROOT / "sw.js").read_text(encoding="utf-8")
+        index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
         self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v22';", worker_source)
@@ -98,6 +99,17 @@ class PwaContractTests(unittest.TestCase):
         self.assertIn("const cache = await caches.open(SHELL_CACHE);", worker_source)
         self.assertIn("await cache.addAll(freshAssets);", worker_source)
         self.assertIn("fetch(request, { cache: 'no-store' })", worker_source)
+        self.assertIn("cache.match(request, { ignoreSearch: true })", worker_source)
         self.assertIn("shellAssetNetworkFirst(event.request)", worker_source)
         self.assertIn("self.addEventListener('activate'", worker_source)
         self.assertIn("self.addEventListener('fetch'", worker_source)
+
+        for versioned_asset in (
+            "css/app-shell.css?v=22",
+            "css/charts.css?v=22",
+            "css/music-explore.css?v=22",
+            "js/app-shell.js?v=22",
+            "js/charts-page.js?v=22",
+            "js/music-explore.js?v=22",
+        ):
+            self.assertIn(versioned_asset, index_source)
