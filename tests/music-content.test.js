@@ -5,12 +5,13 @@ import {
   ARTIST_SCOPES,
   CHART_DEFINITIONS,
   VIDEO_CATEGORIES,
-  appleVideoProviderUrl,
+  bilibiliVideoProviderUrl,
   chartProviderUrl,
+  chartProviderUrls,
   handleArtistsRequest,
   handleChartsRequest,
   handleVideosRequest,
-  normalizeAppleVideoPayload,
+  normalizeBilibiliVideoPayload,
   normalizeArtistsFromCharts,
   normalizeChkszChartPayload,
   resolveArtistScope,
@@ -46,23 +47,20 @@ function providerPayload() {
   };
 }
 
-function appleVideoPayload() {
+function bilibiliVideoPayload() {
   return {
-    resultCount: 1,
-    results: [{
-      wrapperType: 'track',
-      kind: 'music-video',
-      artistId: 300117743,
-      trackId: 1887481475,
-      artistName: '周杰伦',
-      trackName: '太阳之子',
-      artistViewUrl: 'https://music.apple.com/cn/artist/example/300117743?uo=4',
-      trackViewUrl: 'https://music.apple.com/cn/music-video/example/1887481475?uo=4',
-      artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/Video211/example/100x100bb.jpg',
-      releaseDate: '2026-03-24T07:00:00Z',
-      trackExplicitness: 'notExplicit',
-      primaryGenreName: '国语流行',
-    }],
+    code: 0,
+    data: {
+      result: [{
+        bvid: 'BV1d4411N7zD',
+        title: '【4K修复】<em class="keyword">周杰伦</em> - 晴天MV',
+        author: '音乐无限',
+        mid: 300117743,
+        arcurl: 'https://www.bilibili.com/video/BV1d4411N7zD',
+        pic: '//i1.hdslb.com/bfs/archive/example.jpg',
+        pubdate: 1774316400,
+      }],
+    },
   };
 }
 
@@ -82,7 +80,7 @@ test('resolves allowlisted artist scopes and video categories', () => {
   assert.equal(resolveVideoCategory('live'), 'live');
   assert.equal(resolveVideoCategory('unknown'), 'trending');
   assert.deepEqual(ARTIST_SCOPES.trending.chartKeys, ['hot', 'soaring']);
-  assert.equal(VIDEO_CATEGORIES.global.name, '全球流行');
+  assert.equal(VIDEO_CATEGORIES.global.name, '经典影像');
 });
 
 
@@ -121,6 +119,10 @@ test('builds provider URLs from allowlisted chart definitions', () => {
     chartProviderUrl('not-allowed'),
     `https://api.chksz.top/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}`,
   );
+  assert.deepEqual(chartProviderUrls('hot', 'secret-key'), [
+    `https://api.chksz.com/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}&apikey=secret-key`,
+    `https://api.chksz.top/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}`,
+  ]);
 });
 
 
@@ -143,17 +145,17 @@ test('aggregates chart tracks into ranked artists with playable selections', () 
 });
 
 
-test('normalizes Apple music videos and upgrades artwork size', () => {
-  const videos = normalizeAppleVideoPayload(appleVideoPayload(), { category: 'mandopop' });
+test('normalizes domestic Bilibili music videos', () => {
+  const videos = normalizeBilibiliVideoPayload(bilibiliVideoPayload(), { category: 'mandopop' });
 
   assert.equal(videos.length, 1);
-  assert.equal(videos[0].id, '1887481475');
-  assert.equal(videos[0].artist, '周杰伦');
+  assert.equal(videos[0].id, 'BV1d4411N7zD');
+  assert.equal(videos[0].artist, '音乐无限');
+  assert.equal(videos[0].name, '【4K修复】周杰伦 - 晴天MV');
   assert.equal(videos[0].category, 'mandopop');
-  assert.match(videos[0].poster, /900x506bb\.jpg$/);
-  assert.equal(videos[0].externalUrl, 'https://music.apple.com/cn/music-video/example/1887481475?uo=4');
+  assert.equal(videos[0].externalUrl, 'https://www.bilibili.com/video/BV1d4411N7zD');
   assert.equal(videos[0].previewUrl, '');
-  assert.match(appleVideoProviderUrl('周杰伦', 6), /entity=musicVideo/);
+  assert.match(bilibiliVideoProviderUrl('周杰伦 官方 MV', 6), /api\.bilibili\.com/);
 });
 
 
@@ -196,6 +198,28 @@ test('returns a stable user-facing error when the provider fails', async () => {
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
+test('prefers authenticated chksz.com and falls back to chksz.top', async () => {
+  const requestedUrls = [];
+  const response = await handleChartsRequest(
+    new Request('https://player.example/api/v1/charts?chart=hot&limit=1'),
+    {
+      CHKSZ_API_KEY: 'private-key',
+      async MUSIC_FETCH(url) {
+        requestedUrls.push(url);
+        if (url.startsWith('https://api.chksz.com/')) {
+          return Response.json({ code: 401 }, { status: 401 });
+        }
+        return Response.json(providerPayload());
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.match(requestedUrls[0], /^https:\/\/api\.chksz\.com\/api\//);
+  assert.match(requestedUrls[0], /apikey=private-key/);
+  assert.match(requestedUrls[1], /^https:\/\/api\.chksz\.top\/api\//);
+});
+
 
 test('serves artists aggregated from the selected chart scope', async () => {
   const requestedUrls = [];
@@ -218,14 +242,14 @@ test('serves artists aggregated from the selected chart scope', async () => {
 });
 
 
-test('serves video cards from the Apple music video directory', async () => {
+test('serves video cards from the domestic Bilibili directory', async () => {
   const requestedUrls = [];
   const response = await handleVideosRequest(
     new Request('https://player.example/api/v1/videos?category=global&limit=3'),
     {
       async VIDEO_FETCH(url) {
         requestedUrls.push(url);
-        return Response.json(appleVideoPayload());
+        return Response.json(bilibiliVideoPayload());
       },
     },
   );
@@ -233,8 +257,8 @@ test('serves video cards from the Apple music video directory', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(requestedUrls.length, VIDEO_CATEGORIES.global.terms.length);
-  assert.ok(requestedUrls.every(url => url.startsWith('https://itunes.apple.com/search?')));
+  assert.ok(requestedUrls.every(url => url.startsWith('https://api.bilibili.com/')));
   assert.equal(payload.collection.key, 'global');
-  assert.equal(payload.collection.sourceName, 'Apple Music');
-  assert.equal(payload.items[0].name, '太阳之子');
+  assert.equal(payload.collection.sourceName, 'ChKSz 热榜 · 哔哩哔哩');
+  assert.equal(payload.items[0].name, '【4K修复】周杰伦 - 晴天MV');
 });
