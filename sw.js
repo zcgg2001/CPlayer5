@@ -43,8 +43,8 @@ function isNetEaseHost(hostname) {
 
 function isArtworkHost(hostname) {
   return isNetEaseHost(hostname)
-    || hostname === 'hdslb.com'
-    || hostname.endsWith('.hdslb.com');
+    || hostname === 'mzstatic.com'
+    || hostname.endsWith('.mzstatic.com');
 }
 
 function classifyRequest(request) {
@@ -52,7 +52,7 @@ function classifyRequest(request) {
 
   const url = new URL(request.url);
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
-  if (['api.chksz.top', 'api.chksz.com', 'api.bilibili.com'].includes(url.hostname)) return 'api';
+  if (url.hostname === 'api.chksz.top') return 'api';
 
   const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);
   if (isArtworkHost(url.hostname) && (request.destination === 'image' || imagePath)) {

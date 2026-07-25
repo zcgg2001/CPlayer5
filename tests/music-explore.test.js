@@ -126,18 +126,19 @@ test('uses direct ChKSz feeds when the page is opened from a local file', async 
 });
 
 
-test('normalizes allowlisted Bilibili video links and drops unsafe cards', () => {
+test('normalizes allowlisted Apple video links and drops unsafe cards', () => {
   const result = normalizeVideosPayload({
-    collection: { key: 'global', name: '经典影像' },
+    collection: { key: 'global', name: '全球流行' },
     items: [
       {
-        id: 'BV123',
-        name: '晴天 MV',
-        artist: '国内音乐频道',
-        poster: 'https://i1.hdslb.com/bfs/archive/example.jpg',
-        externalUrl: 'https://www.bilibili.com/video/BV123',
+        id: '201',
+        name: 'Music Video',
+        artist: 'Artist',
+        poster: 'https://is1-ssl.mzstatic.com/image/thumb/video/900x506bb.jpg',
+        externalUrl: 'https://music.apple.com/cn/music-video/example/201',
+        previewUrl: 'https://video-ssl.itunes.apple.com/video/example.mov',
         releasedAt: '2026-03-24T07:00:00Z',
-        genre: '音乐视频',
+        genre: 'Pop',
       },
       {
         id: 'unsafe',
@@ -151,9 +152,8 @@ test('normalizes allowlisted Bilibili video links and drops unsafe cards', () =>
 
   assert.equal(result.collection.key, 'global');
   assert.equal(result.items.length, 1);
-  assert.equal(result.items[0].id, 'BV123');
-  assert.equal(result.items[0].previewUrl, '');
-  assert.match(result.items[0].externalUrl, /^https:\/\/www\.bilibili\.com\//);
+  assert.equal(result.items[0].id, '201');
+  assert.match(result.items[0].previewUrl, /^https:\/\/video-ssl\.itunes\.apple\.com\//);
 });
 
 
