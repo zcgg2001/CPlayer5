@@ -105,6 +105,7 @@ class StartupBehaviorTests(unittest.TestCase):
         )
         for fragment in (
             "showDesktopMainView('discovery');",
+            "showDesktopMainView('charts');",
             "showDesktopMainView('search');",
             "document.getElementById('searchInput')?.focus();",
         ):
@@ -116,10 +117,13 @@ class StartupBehaviorTests(unittest.TestCase):
             "function initEventListeners()",
         )
         for fragment in (
-            "dom.desktopDiscoveryView.hidden = showSearch",
-            "dom.desktopSearchView.hidden = !showSearch",
+            "element: dom.desktopDiscoveryView",
+            "element: dom.desktopChartsView",
+            "element: dom.desktopSearchView",
             "desktopSearchPageTitle",
+            "desktopChartsPageTitle",
             "desktopLibraryTitle",
+            "config.element.hidden = hidden",
             "dom.desktopTopbarTitle.textContent",
             "dom.desktopTopbarDescription.textContent",
             "dom.desktopLibraryView.scrollTop = 0",

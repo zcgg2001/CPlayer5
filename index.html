@@ -1384,6 +1384,7 @@
         }
     </style>
     <link rel="stylesheet" href="./css/app-shell.css">
+    <link rel="stylesheet" href="./css/charts.css">
     <link rel="stylesheet" href="./css/anime-progress-thumb.css">
     <script src="./js/anime-progress-thumb.js"></script>
     <script src="playlist.js"></script>
@@ -1427,6 +1428,11 @@
                         data-shell-destination="library" aria-controls="desktopLibraryView" aria-current="page">
                         <i class="fas fa-compact-disc" aria-hidden="true"></i>
                         <span>发现音乐</span>
+                    </button>
+                    <button id="desktopNavCharts" class="app-nav-item" type="button"
+                        data-shell-destination="charts" aria-controls="desktopChartsView">
+                        <i class="fas fa-chart-line" aria-hidden="true"></i>
+                        <span>排行榜</span>
                     </button>
                     <button id="desktopNavSearch" class="app-nav-item" type="button"
                         data-shell-destination="search" aria-controls="desktopSearchView">
@@ -1583,6 +1589,87 @@
                                 aria-busy="true"></div>
                         </section>
                     </div>
+
+                    <section id="desktopChartsView" class="desktop-main-view" tabindex="-1" aria-hidden="true"
+                        aria-labelledby="desktopChartsPageTitle" hidden>
+                        <header class="library-heading">
+                            <div>
+                                <p class="library-kicker">CHARTS</p>
+                                <h1 id="desktopChartsPageTitle">音乐排行榜</h1>
+                                <p class="library-description">
+                                    自动追踪热歌、新歌、飙升与原创趋势，点击即可加入同一播放队列。
+                                </p>
+                            </div>
+                        </header>
+
+                        <section class="charts-workspace" aria-labelledby="desktopChartTitle">
+                            <div class="chart-overview">
+                                <span class="chart-overview-art">
+                                    <img id="desktopChartCover" src="./img/icon.png" alt="" width="132" height="132">
+                                </span>
+                                <div class="chart-overview-copy">
+                                    <h2 id="desktopChartTitle">热歌榜</h2>
+                                    <p id="desktopChartDescription">聚合近期播放热度，快速找到此刻最受关注的声音。</p>
+                                    <div class="chart-meta">
+                                        <span id="desktopChartSource">
+                                            <i class="fas fa-signal" aria-hidden="true"></i>
+                                            正在连接数据
+                                        </span>
+                                        <span>
+                                            <i class="far fa-clock" aria-hidden="true"></i>
+                                            <span id="desktopChartUpdated">等待更新</span>
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-list-ol" aria-hidden="true"></i>
+                                            <span id="desktopChartCount">-- 首</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button id="desktopChartRefresh" class="chart-refresh" type="button"
+                                    aria-label="刷新当前排行榜">
+                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                                    <span>刷新榜单</span>
+                                </button>
+                            </div>
+
+                            <div class="chart-tabs" role="tablist" aria-label="排行榜类型">
+                                <button class="chart-tab" type="button" role="tab" data-chart-key="hot"
+                                    aria-selected="true" aria-controls="desktopChartList">
+                                    <i class="fas fa-fire" aria-hidden="true"></i>
+                                    热歌榜
+                                </button>
+                                <button class="chart-tab" type="button" role="tab" data-chart-key="new"
+                                    aria-selected="false" aria-controls="desktopChartList" tabindex="-1">
+                                    <i class="fas fa-star" aria-hidden="true"></i>
+                                    新歌榜
+                                </button>
+                                <button class="chart-tab" type="button" role="tab" data-chart-key="soaring"
+                                    aria-selected="false" aria-controls="desktopChartList" tabindex="-1">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                                    飙升榜
+                                </button>
+                                <button class="chart-tab" type="button" role="tab" data-chart-key="original"
+                                    aria-selected="false" aria-controls="desktopChartList" tabindex="-1">
+                                    <i class="fas fa-pen-nib" aria-hidden="true"></i>
+                                    原创榜
+                                </button>
+                            </div>
+
+                            <div class="chart-list-header" aria-hidden="true">
+                                <span>排名</span>
+                                <span>歌曲 / 专辑</span>
+                                <span>趋势</span>
+                                <span>操作</span>
+                            </div>
+                            <div id="desktopChartList" class="chart-track-list" role="list"
+                                aria-live="polite" aria-busy="true">
+                                <div class="chart-empty-state" role="status">
+                                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                    <span>正在准备排行榜…</span>
+                                </div>
+                            </div>
+                        </section>
+                    </section>
 
                     <section id="desktopSearchView" class="desktop-main-view" aria-hidden="true"
                         aria-labelledby="desktopSearchPageTitle" hidden>
@@ -1787,6 +1874,10 @@
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
+            <button id="mobileChartsBtn" type="button" aria-label="打开排行榜"
+                aria-controls="mobileChartsSheet" aria-expanded="false">
+                <i class="fas fa-chart-line" aria-hidden="true"></i>
+            </button>
             <!-- 设置按钮 (移动端) -->
             <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 min-w-11 min-h-11 p-2 opacity-70 active:opacity-100 flex items-center justify-center">
                 <i class="fas fa-cog"></i>
@@ -1974,6 +2065,79 @@
                 </div>
             </div>
         </div>
+
+        <section id="mobileChartsSheet" role="dialog" aria-modal="true"
+            aria-labelledby="mobileChartsPageTitle" aria-hidden="true">
+            <header class="mobile-charts-header">
+                <button id="mobileChartsClose" class="mobile-charts-close" type="button"
+                    aria-label="关闭排行榜">
+                    <i class="fas fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <div class="mobile-charts-header-copy">
+                    <strong id="mobileChartsPageTitle">音乐排行榜</strong>
+                    <span>自动更新 · 点击歌曲即可播放</span>
+                </div>
+                <span aria-hidden="true" style="width: 44px;"></span>
+            </header>
+
+            <div class="mobile-charts-content">
+                <section class="charts-workspace" aria-labelledby="mobileChartTitle">
+                    <div class="chart-overview">
+                        <span class="chart-overview-art">
+                            <img id="mobileChartCover" src="./img/icon.png" alt="" width="86" height="86">
+                        </span>
+                        <div class="chart-overview-copy">
+                            <h2 id="mobileChartTitle">热歌榜</h2>
+                            <p id="mobileChartDescription">聚合近期播放热度，快速找到此刻最受关注的声音。</p>
+                            <div class="chart-meta">
+                                <span id="mobileChartSource">
+                                    <i class="fas fa-signal" aria-hidden="true"></i>
+                                    正在连接数据
+                                </span>
+                                <span id="mobileChartUpdated">等待更新</span>
+                                <span id="mobileChartCount">-- 首</span>
+                            </div>
+                        </div>
+                        <button id="mobileChartRefresh" class="chart-refresh" type="button"
+                            aria-label="刷新当前排行榜">
+                            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                            <span>刷新榜单</span>
+                        </button>
+                    </div>
+
+                    <div class="chart-tabs" role="tablist" aria-label="排行榜类型">
+                        <button class="chart-tab" type="button" role="tab" data-chart-key="hot"
+                            aria-selected="true" aria-controls="mobileChartList">
+                            <i class="fas fa-fire" aria-hidden="true"></i>
+                            热歌
+                        </button>
+                        <button class="chart-tab" type="button" role="tab" data-chart-key="new"
+                            aria-selected="false" aria-controls="mobileChartList" tabindex="-1">
+                            <i class="fas fa-star" aria-hidden="true"></i>
+                            新歌
+                        </button>
+                        <button class="chart-tab" type="button" role="tab" data-chart-key="soaring"
+                            aria-selected="false" aria-controls="mobileChartList" tabindex="-1">
+                            <i class="fas fa-chart-line" aria-hidden="true"></i>
+                            飙升
+                        </button>
+                        <button class="chart-tab" type="button" role="tab" data-chart-key="original"
+                            aria-selected="false" aria-controls="mobileChartList" tabindex="-1">
+                            <i class="fas fa-pen-nib" aria-hidden="true"></i>
+                            原创
+                        </button>
+                    </div>
+
+                    <div id="mobileChartList" class="chart-track-list" role="list"
+                        aria-live="polite" aria-busy="true">
+                        <div class="chart-empty-state" role="status">
+                            <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                            <span>正在准备排行榜…</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
     </div>
 
     <!-- 设置模态框 -->
@@ -2253,6 +2417,7 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';
+        import { createChartsController } from './js/charts-page.js';
         import { normalizeMediaUrl } from './js/security.js';
         import {
             RequestCancelledError,
@@ -2757,6 +2922,8 @@
         const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         let dom = {};
         let desktopShell = null;
+        let chartsController = null;
+        let mobileChartsOpener = null;
         let visualizer = null;
         let currentPlaybackSong = null;
         let animeProgressThumbs = [];
@@ -2784,6 +2951,10 @@
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
             initAnimeProgressThumbs();
+            chartsController = createChartsController({
+                onPlay: song => addChartSong(song, { playNow: true }),
+                onAdd: song => addChartSong(song, { playNow: false }),
+            });
             desktopShell = initAppShell({
                 elements: {
                     shell: dom.desktopShell,
@@ -2807,7 +2978,15 @@
                 actions: {
                     library: () => {
                         showDesktopMainView('discovery');
+                        syncChartsRoute(false);
                         dom.desktopLibraryView?.focus();
+                    },
+                    charts: () => {
+                        showDesktopMainView('charts');
+                        togglePlaylistPanel(false);
+                        syncChartsRoute(true);
+                        chartsController?.ensureLoaded();
+                        dom.desktopChartsView?.focus();
                     },
                     queue: () => {
                         switchDesktopTab('playlist');
@@ -2816,6 +2995,7 @@
                     search: () => {
                         showDesktopMainView('search');
                         togglePlaylistPanel(false);
+                        syncChartsRoute(false);
                         document.getElementById('searchInput')?.focus();
                     },
                     import: () => document.getElementById('playlistFile')?.click(),
@@ -2825,7 +3005,12 @@
             });
             restoreLastCover();
             syncDesktopPlayerAvailability();
-            showDesktopMainView('discovery');
+            if (window.location.hash === '#charts') {
+                desktopShell.navigate('charts', { record: false });
+                if (isCompactLayout()) setMobileChartsOpen(true, { syncRoute: false });
+            } else {
+                showDesktopMainView('discovery');
+            }
 
             // ★ 初始化 IndexedDB 缓存
             try {
@@ -2892,27 +3077,81 @@
         });
 
         function showDesktopMainView(view) {
-            const showSearch = view === 'search';
-            if (dom.desktopDiscoveryView) {
-                dom.desktopDiscoveryView.hidden = showSearch;
-                dom.desktopDiscoveryView.setAttribute('aria-hidden', String(showSearch));
-            }
-            if (dom.desktopSearchView) {
-                dom.desktopSearchView.hidden = !showSearch;
-                dom.desktopSearchView.setAttribute('aria-hidden', String(!showSearch));
-            }
+            const viewConfig = {
+                discovery: {
+                    element: dom.desktopDiscoveryView,
+                    titleId: 'desktopLibraryTitle',
+                    title: '发现音乐',
+                    description: '浏览新歌并管理当前播放内容',
+                },
+                charts: {
+                    element: dom.desktopChartsView,
+                    titleId: 'desktopChartsPageTitle',
+                    title: '音乐排行榜',
+                    description: '追踪热歌、新歌与上升趋势',
+                },
+                search: {
+                    element: dom.desktopSearchView,
+                    titleId: 'desktopSearchPageTitle',
+                    title: '搜索音乐',
+                    description: '查找歌曲、歌手或歌曲 ID',
+                },
+            };
+            const active = viewConfig[view] || viewConfig.discovery;
+            Object.values(viewConfig).forEach(config => {
+                if (!config.element) return;
+                const hidden = config !== active;
+                config.element.hidden = hidden;
+                config.element.setAttribute('aria-hidden', String(hidden));
+            });
 
-            const titleId = showSearch ? 'desktopSearchPageTitle' : 'desktopLibraryTitle';
-            dom.desktopLibraryView?.setAttribute('aria-labelledby', titleId);
+            dom.desktopLibraryView?.setAttribute('aria-labelledby', active.titleId);
             if (dom.desktopTopbarTitle) {
-                dom.desktopTopbarTitle.textContent = showSearch ? '搜索音乐' : '发现音乐';
+                dom.desktopTopbarTitle.textContent = active.title;
             }
             if (dom.desktopTopbarDescription) {
-                dom.desktopTopbarDescription.textContent = showSearch
-                    ? '查找歌曲、歌手或歌曲 ID'
-                    : '浏览新歌并管理当前播放内容';
+                dom.desktopTopbarDescription.textContent = active.description;
             }
             if (dom.desktopLibraryView) dom.desktopLibraryView.scrollTop = 0;
+        }
+
+        function syncChartsRoute(open) {
+            const chartsHash = '#charts';
+            if (open) {
+                if (window.location.hash !== chartsHash) {
+                    window.history.replaceState({ cplayerView: 'charts' }, '', `${window.location.pathname}${window.location.search}${chartsHash}`);
+                }
+                return;
+            }
+            if (window.location.hash === chartsHash) {
+                window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
+            }
+        }
+
+        function setMobileChartsOpen(open, { syncRoute = true } = {}) {
+            if (!dom.mobileChartsSheet || !dom.mobileChartsBtn) return;
+            const isOpen = dom.mobileChartsSheet.getAttribute('aria-hidden') === 'false';
+            if (open === isOpen) {
+                if (open) chartsController?.ensureLoaded();
+                return;
+            }
+
+            dom.mobileChartsSheet.classList.toggle('is-open', open);
+            dom.mobileChartsSheet.setAttribute('aria-hidden', String(!open));
+            dom.mobileChartsBtn.setAttribute('aria-expanded', String(open));
+            dom.mobileMainView.inert = open;
+            document.querySelector('.mobile-control-deck').inert = open;
+
+            if (open) {
+                mobileChartsOpener = document.activeElement;
+                chartsController?.ensureLoaded();
+                requestAnimationFrame(() => dom.mobileChartsClose?.focus());
+            } else {
+                const opener = mobileChartsOpener;
+                mobileChartsOpener = null;
+                if (opener?.isConnected) opener.focus();
+            }
+            if (syncRoute) syncChartsRoute(open);
         }
 
         function readSavedQuality(key, fallback = DEFAULT_QUALITY) {
@@ -3356,6 +3595,22 @@
             dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
             dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
             dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);
+            dom.mobileChartsBtn?.addEventListener('click', () => setMobileChartsOpen(true));
+            dom.mobileChartsClose?.addEventListener('click', () => setMobileChartsOpen(false));
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false') {
+                    event.preventDefault();
+                    setMobileChartsOpen(false);
+                }
+            });
+            window.addEventListener('hashchange', () => {
+                const shouldOpen = window.location.hash === '#charts';
+                if (isCompactLayout()) {
+                    setMobileChartsOpen(shouldOpen, { syncRoute: false });
+                } else if (shouldOpen) {
+                    desktopShell?.navigate('charts');
+                }
+            });
             dom.desktopDownloadBtn.addEventListener('click', () => {
                 openDownloadDialog(currentPlaybackSong, dom.desktopDownloadBtn);
             });
@@ -4234,6 +4489,40 @@
             if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
             window.playSongAtIndex(targetIndex);
             showToast(`已添加并播放: ${newSong.name}`);
+        }
+
+        function addChartSong(song, { playNow = true } = {}) {
+            const playbackId = song.playbackId || song.id;
+            const existingIndex = playlist.findIndex(item => String(item.id) === String(playbackId));
+            if (existingIndex >= 0) {
+                if (playNow) window.playSongAtIndex(existingIndex);
+                showToast(playNow ? `已在播放列表: ${song.name}` : `${song.name} 已在播放队列`);
+                if (isCompactLayout() && playNow) setMobileChartsOpen(false);
+                return;
+            }
+
+            const newSong = {
+                id: playbackId,
+                name: song.name,
+                artist: song.artist,
+                cover: song.cover,
+                album: song.album || '',
+                source: `chart-${chartsController?.current() || 'hot'}`
+            };
+            const targetIndex = window.insertSongToPlaylist(newSong);
+            playlistTotalCount = playlist.length;
+            allSongsLoaded = true;
+            renderAllPlaylistItems();
+            if (mobileUI) mobileUI.loadPlaylist();
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+
+            if (playNow) {
+                window.playSongAtIndex(targetIndex);
+                if (isCompactLayout()) setMobileChartsOpen(false);
+                showToast(`已添加并播放: ${newSong.name}`);
+            } else {
+                showToast(`已加入播放队列: ${newSong.name}`);
+            }
         }
 
         let musicCollectionsController = null;

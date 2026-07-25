@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v17';
+const SHELL_CACHE = 'cplayer5-shell-v18';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -10,10 +10,12 @@ const CORE_ASSETS = [
   './playlist-downloader.html',
   './css/all.min.css',
   './css/app-shell.css',
+  './css/charts.css',
   './css/anime-progress-thumb.css',
   './css/noto-sans-sc.css',
   './css/oneko-butterfly.css',
   './js/app-shell.js',
+  './js/charts-page.js',
   './js/anime-progress-thumb.js',
   './js/tailwindcss.js',
   './js/color-thief.umd.js',
@@ -38,6 +40,7 @@ function classifyRequest(request) {
   if (request.method !== 'GET') return 'ignore';
 
   const url = new URL(request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
   if (url.hostname === 'api.chksz.top') return 'api';
 
   const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);

@@ -46,6 +46,35 @@ test('injects an absolute social image URL into the player shell', async () => {
 });
 
 
+test('serves the same-origin chart API without touching static assets', async () => {
+  const { env, requestedPaths } = createEnv();
+  env.MUSIC_FETCH = async () => Response.json({
+    data: {
+      id: 3778678,
+      name: '热歌榜',
+      trackCount: 1,
+      creator: { nickname: '网易云音乐' },
+      tracks: [{
+        id: 101,
+        name: '第一首',
+        ar: [{ name: '歌手' }],
+        al: { name: '专辑', picUrl: 'https://p1.music.126.net/cover.jpg' },
+      }],
+    },
+  });
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/charts?chart=hot'),
+    env,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.chart.key, 'hot');
+  assert.equal(payload.items[0].name, '第一首');
+  assert.deepEqual(requestedPaths, []);
+});
+
+
 test('falls back to the player shell only for HTML navigation', async () => {
   const html = createEnv();
   const htmlResponse = await worker.fetch(new Request('https://player.example/unknown', {

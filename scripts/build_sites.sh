@@ -24,3 +24,4 @@ if test -f "$project_dir/playlist.js"; then
 fi
 
 cp "$project_dir/sites/worker.js" "$server_dir/index.js"
+cp "$project_dir/sites/music-content.js" "$server_dir/music-content.js"

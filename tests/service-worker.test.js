@@ -56,6 +56,12 @@ test('classifies API, navigation and local asset requests', () => {
   }), 'api');
   assert.equal(classifyRequest({
     method: 'GET',
+    url: 'https://player.example/api/v1/charts',
+    destination: '',
+    mode: 'same-origin',
+  }), 'api');
+  assert.equal(classifyRequest({
+    method: 'GET',
     url: 'https://player.example/app/',
     destination: 'document',
     mode: 'navigate',
@@ -113,7 +119,9 @@ test('precaches the desktop shell assets', () => {
   const coreAssets = vm.runInContext('CORE_ASSETS', context);
 
   assert.ok(coreAssets.includes('./css/app-shell.css'));
+  assert.ok(coreAssets.includes('./css/charts.css'));
   assert.ok(coreAssets.includes('./js/app-shell.js'));
+  assert.ok(coreAssets.includes('./js/charts-page.js'));
 });
 
 test('precaches the anime progress thumb component and artwork', () => {

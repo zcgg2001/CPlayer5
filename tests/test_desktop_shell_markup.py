@@ -76,10 +76,13 @@ class DesktopShellMarkupTests(unittest.TestCase):
 
     def test_library_is_default_and_navigation_has_no_placeholders(self):
         library = self.markup.by_id["desktopNavLibrary"]
+        charts = self.markup.by_id["desktopNavCharts"]
         self.assertEqual(library.get("aria-current"), "page")
         self.assertEqual(library.get("data-shell-destination"), "library")
-        self.assertNotRegex(self.source, r'data-shell-destination="(?:ranking|artists|video|radio)"')
-        for nav_id in ("desktopNavLibrary", "desktopNavSearch"):
+        self.assertEqual(charts.get("data-shell-destination"), "charts")
+        self.assertEqual(charts.get("aria-controls"), "desktopChartsView")
+        self.assertNotRegex(self.source, r'data-shell-destination="(?:artists|video|radio)"')
+        for nav_id in ("desktopNavLibrary", "desktopNavCharts", "desktopNavSearch"):
             self.assertNotEqual(self.markup.by_id[nav_id].get("aria-disabled"), "true")
 
     def test_search_is_a_standalone_theme_below_discovery(self):
@@ -95,9 +98,30 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertIn("hidden", search_view)
         self.assertRegex(
             self.source,
-            r'(?s)id="desktopNavLibrary".*?</button>\s*<button id="desktopNavSearch"',
+            r'(?s)id="desktopNavLibrary".*?</button>\s*<button id="desktopNavCharts"'
+            r'.*?</button>\s*<button id="desktopNavSearch"',
         )
         self.assertIn("desktopSearchPageTitle", self.markup.by_id)
+
+    def test_chart_destination_exposes_filters_and_live_regions(self):
+        for element_id in (
+            "desktopChartsView", "desktopChartsPageTitle", "desktopChartTitle",
+            "desktopChartList", "desktopChartRefresh", "mobileChartsBtn",
+            "mobileChartsSheet", "mobileChartList", "mobileChartsClose",
+        ):
+            self.assertIn(element_id, self.markup.by_id)
+
+        charts = self.markup.by_id["desktopChartsView"]
+        mobile_sheet = self.markup.by_id["mobileChartsSheet"]
+        self.assertEqual(charts.get("aria-hidden"), "true")
+        self.assertIn("hidden", charts)
+        self.assertEqual(mobile_sheet.get("role"), "dialog")
+        self.assertEqual(mobile_sheet.get("aria-modal"), "true")
+        self.assertEqual(mobile_sheet.get("aria-hidden"), "true")
+        self.assertEqual(self.source.count('data-chart-key="hot"'), 2)
+        self.assertEqual(self.source.count('data-chart-key="new"'), 2)
+        self.assertEqual(self.markup.by_id["desktopChartList"].get("role"), "list")
+        self.assertEqual(self.markup.by_id["mobileChartList"].get("aria-live"), "polite")
 
     def test_mobile_layout_no_longer_disappears_at_768(self):
         classes = self.markup.by_id["mobileLayout"].get("class", "")
