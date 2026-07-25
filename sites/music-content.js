@@ -1,6 +1,4 @@
-const CHKSZ_PRIMARY_API_ORIGIN = 'https://api.chksz.com/api';
-const CHKSZ_FALLBACK_API_ORIGIN = 'https://api.chksz.top/api';
-const BILIBILI_SEARCH_ORIGIN = 'https://api.bilibili.com/x/web-interface/search/type';
+const CHKSZ_API_ORIGIN = 'https://api.chksz.top/api';
 
 export const CHART_DEFINITIONS = Object.freeze({
   hot: Object.freeze({
@@ -56,23 +54,23 @@ export const ARTIST_SCOPES = Object.freeze({
 export const VIDEO_CATEGORIES = Object.freeze({
   trending: Object.freeze({
     name: '趋势视频',
-    description: '根据国内实时榜单歌手自动发现近期音乐视频。',
+    description: '根据实时榜单歌手自动发现近期音乐视频。',
     fallbackTerms: Object.freeze(['周杰伦', '林俊杰', '邓紫棋', '陈奕迅']),
   }),
   mandopop: Object.freeze({
     name: '华语现场',
     description: '聚合华语流行音乐视频与现场作品。',
-    terms: Object.freeze(['华语流行 MV', '国语流行 MV', '华语音乐现场']),
+    terms: Object.freeze(['华语流行', 'Mandopop', '国语流行']),
   }),
   global: Object.freeze({
-    name: '经典影像',
-    description: '回顾华语经典歌曲与高人气音乐影像。',
-    terms: Object.freeze(['经典华语 MV', '怀旧金曲 MV', '经典歌曲 MV']),
+    name: '全球流行',
+    description: '浏览全球流行音乐人的官方视频作品。',
+    terms: Object.freeze(['global pop', 'pop music video', 'international pop']),
   }),
   live: Object.freeze({
     name: '现场精选',
     description: '发现演唱会、现场演出与不插电音乐影像。',
-    terms: Object.freeze(['华语音乐 现场', '演唱会 现场', '不插电 音乐']),
+    terms: Object.freeze(['live concert', 'acoustic live', 'music performance']),
   }),
 });
 export const DEFAULT_ARTIST_SCOPE = 'trending';
@@ -143,8 +141,7 @@ function stableTextId(value, prefix) {
 
 function httpsUrl(value, allowedHosts = null) {
   try {
-    const raw = text(value);
-    const url = new URL(raw.startsWith('//') ? `https:${raw}` : raw);
+    const url = new URL(text(value));
     if (url.protocol !== 'https:') return '';
     if (allowedHosts && !allowedHosts.some(host => (
       url.hostname === host || url.hostname.endsWith(`.${host}`)
@@ -153,6 +150,12 @@ function httpsUrl(value, allowedHosts = null) {
   } catch {
     return '';
   }
+}
+
+function appleArtworkUrl(value) {
+  const safe = httpsUrl(value, ['mzstatic.com']);
+  if (!safe) return '';
+  return safe.replace(/\/\d+x\d+bb(?:-\d+)?\.(jpg|png)$/i, '/900x506bb.$1');
 }
 
 function playlistRoot(payload) {
@@ -251,30 +254,9 @@ export function normalizeChkszChartPayload(
   };
 }
 
-export function chartProviderUrl(
-  chartKey,
-  {
-    apiKey = '',
-    origin = apiKey ? CHKSZ_PRIMARY_API_ORIGIN : CHKSZ_FALLBACK_API_ORIGIN,
-  } = {},
-) {
+export function chartProviderUrl(chartKey) {
   const resolvedKey = resolveChartKey(chartKey);
-  const url = new URL(`${origin}/163_playlist`);
-  url.searchParams.set('id', CHART_DEFINITIONS[resolvedKey].id);
-  if (apiKey) url.searchParams.set('apikey', apiKey);
-  return url.href;
-}
-
-export function chartProviderUrls(chartKey, apiKey = '') {
-  const urls = [];
-  if (text(apiKey)) {
-    urls.push(chartProviderUrl(chartKey, {
-      apiKey: text(apiKey),
-      origin: CHKSZ_PRIMARY_API_ORIGIN,
-    }));
-  }
-  urls.push(chartProviderUrl(chartKey, { origin: CHKSZ_FALLBACK_API_ORIGIN }));
-  return urls;
+  return `${CHKSZ_API_ORIGIN}/163_playlist?id=${CHART_DEFINITIONS[resolvedKey].id}`;
 }
 
 export function normalizeArtistsFromCharts(
@@ -372,48 +354,33 @@ export function normalizeArtistsFromCharts(
   };
 }
 
-export function bilibiliVideoProviderUrl(term, limit = 8) {
-  const url = new URL(BILIBILI_SEARCH_ORIGIN);
-  url.searchParams.set('keyword', text(term));
-  url.searchParams.set('search_type', 'video');
-  url.searchParams.set('order', 'click');
-  url.searchParams.set('page', '1');
-  url.searchParams.set('pagesize', String(resolveContentLimit(limit, 8, 20)));
+export function appleVideoProviderUrl(term, limit = 8) {
+  const url = new URL('https://itunes.apple.com/search');
+  url.searchParams.set('term', text(term));
+  url.searchParams.set('entity', 'musicVideo');
+  url.searchParams.set('limit', String(resolveContentLimit(limit, 8, 24)));
+  url.searchParams.set('country', 'CN');
+  url.searchParams.set('lang', 'zh_cn');
   return url.href;
 }
 
-function cleanProviderTitle(value) {
-  return text(value)
-    .replace(/<[^>]*>/g, '')
-    .replaceAll('&amp;', '&')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .trim();
-}
-
-export function normalizeBilibiliVideoPayload(payload, { category = DEFAULT_VIDEO_CATEGORY } = {}) {
+export function normalizeAppleVideoPayload(payload, { category = DEFAULT_VIDEO_CATEGORY } = {}) {
   const resolvedCategory = resolveVideoCategory(category);
-  return (Array.isArray(payload?.data?.result) ? payload.data.result : [])
+  return (Array.isArray(payload?.results) ? payload.results : [])
+    .filter(item => item?.kind === 'music-video' && item?.trackId !== undefined)
     .map(item => ({
-      id: text(item.bvid),
-      name: cleanProviderTitle(item.title) || '未命名音乐视频',
-      artist: text(item.author, '未知上传者'),
-      artistId: text(item.mid),
-      poster: httpsUrl(item.pic, ['hdslb.com']),
-      previewUrl: '',
-      externalUrl: httpsUrl(
-        item.bvid ? `https://www.bilibili.com/video/${item.bvid}` : item.arcurl,
-        ['bilibili.com'],
-      ),
-      artistUrl: item.mid
-        ? httpsUrl(`https://space.bilibili.com/${item.mid}`, ['bilibili.com'])
-        : '',
-      releasedAt: Number(item.pubdate) > 0
-        ? new Date(Number(item.pubdate) * 1000).toISOString()
-        : '',
-      genre: resolvedCategory === 'live' ? '现场影像' : '音乐视频',
-      explicit: false,
-      provider: '哔哩哔哩',
+      id: text(item.trackId),
+      name: text(item.trackName, '未命名音乐视频'),
+      artist: text(item.artistName, '未知艺术家'),
+      artistId: text(item.artistId),
+      poster: appleArtworkUrl(item.artworkUrl100 ?? item.artworkUrl60 ?? item.artworkUrl30),
+      previewUrl: httpsUrl(item.previewUrl, ['apple.com', 'mzstatic.com']),
+      externalUrl: httpsUrl(item.trackViewUrl, ['music.apple.com']),
+      artistUrl: httpsUrl(item.artistViewUrl, ['music.apple.com']),
+      releasedAt: text(item.releaseDate),
+      genre: text(item.primaryGenreName, '音乐视频'),
+      explicit: item.trackExplicitness === 'explicit',
+      provider: 'Apple Music',
       category: resolvedCategory,
     }))
     .filter(item => item.poster && item.externalUrl);
@@ -457,14 +424,7 @@ function jsonResponse(payload, { status = 200, cache = false, method = 'GET' } =
   return new Response(method === 'HEAD' ? null : JSON.stringify(payload), { status, headers });
 }
 
-async function requestProviderJson(
-  url,
-  {
-    fetchImpl,
-    timeoutMs = 8_000,
-    headers = {},
-  } = {},
-) {
+async function requestProviderJson(url, { fetchImpl, timeoutMs = 8_000 } = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -472,32 +432,19 @@ async function requestProviderJson(
       headers: {
         accept: 'application/json',
         'user-agent': 'CPlayer5/5.3 content',
-        ...headers,
       },
       signal: controller.signal,
     });
-    if (!response.ok) throw new Error(`Content provider failed with ${response.status}`);
+    if (!response.ok) throw new Error(`Chart provider failed with ${response.status}`);
     return await response.json();
   } finally {
     clearTimeout(timeoutId);
   }
 }
 
-async function requestChartPayload(chartKey, { fetchImpl, apiKey = '' } = {}) {
-  let lastError = null;
-  for (const providerUrl of chartProviderUrls(chartKey, apiKey)) {
-    try {
-      return await requestProviderJson(providerUrl, { fetchImpl });
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError || new Error('No chart provider is available');
-}
-
-async function fetchNormalizedCharts(chartKeys, fetchImpl, apiKey = '') {
+async function fetchNormalizedCharts(chartKeys, fetchImpl) {
   const results = await Promise.allSettled(chartKeys.map(async chartKey => {
-    const payload = await requestChartPayload(chartKey, { fetchImpl, apiKey });
+    const payload = await requestProviderJson(chartProviderUrl(chartKey), { fetchImpl });
     return normalizeChkszChartPayload(payload, { chartKey, limit: 100 });
   }));
   return results
@@ -521,10 +468,7 @@ export async function handleChartsRequest(request, env = {}) {
   }
 
   try {
-    const payload = await requestChartPayload(chartKey, {
-      fetchImpl,
-      apiKey: text(env.CHKSZ_API_KEY),
-    });
+    const payload = await requestProviderJson(chartProviderUrl(chartKey), { fetchImpl });
     const normalized = normalizeChkszChartPayload(payload, { chartKey, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });
   } catch (error) {
@@ -555,11 +499,7 @@ export async function handleArtistsRequest(request, env = {}) {
   }
 
   try {
-    const charts = await fetchNormalizedCharts(
-      ARTIST_SCOPES[scope].chartKeys,
-      fetchImpl,
-      text(env.CHKSZ_API_KEY),
-    );
+    const charts = await fetchNormalizedCharts(ARTIST_SCOPES[scope].chartKeys, fetchImpl);
     const normalized = normalizeArtistsFromCharts(charts, { scope, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });
   } catch (error) {
@@ -578,10 +518,11 @@ export async function handleVideosRequest(request, env = {}) {
   const url = new URL(request.url);
   const category = resolveVideoCategory(url.searchParams.get('category'));
   const limit = resolveContentLimit(url.searchParams.get('limit'), 24, MAX_VIDEO_LIMIT);
-  const musicFetch = typeof env.MUSIC_FETCH === 'function' ? env.MUSIC_FETCH : globalThis.fetch;
-  const videoFetch = typeof env.VIDEO_FETCH === 'function' ? env.VIDEO_FETCH : globalThis.fetch;
+  const fetchImpl = typeof env.VIDEO_FETCH === 'function'
+    ? env.VIDEO_FETCH
+    : (typeof env.MUSIC_FETCH === 'function' ? env.MUSIC_FETCH : globalThis.fetch);
 
-  if (typeof musicFetch !== 'function' || typeof videoFetch !== 'function') {
+  if (typeof fetchImpl !== 'function') {
     return jsonResponse({
       error: {
         code: 'provider_unavailable',
@@ -595,29 +536,22 @@ export async function handleVideosRequest(request, env = {}) {
     let terms = definition.terms ? [...definition.terms] : [];
     if (category === 'trending') {
       try {
-        const chartPayload = await requestChartPayload('hot', {
-          fetchImpl: musicFetch,
-          apiKey: text(env.CHKSZ_API_KEY),
-        });
+        const chartPayload = await requestProviderJson(chartProviderUrl('hot'), { fetchImpl });
         const chart = normalizeChkszChartPayload(chartPayload, { chartKey: 'hot', limit: 30 });
-        terms = trendingArtistTerms(chart).map(term => `${term} 官方 MV`);
+        terms = trendingArtistTerms(chart);
       } catch {
         terms = [];
       }
-      if (!terms.length) terms = definition.fallbackTerms.map(term => `${term} 官方 MV`);
+      if (!terms.length) terms = [...definition.fallbackTerms];
     }
 
     const perTermLimit = Math.max(4, Math.min(12, Math.ceil(limit / Math.max(1, terms.length)) + 2));
     const results = await Promise.allSettled(terms.map(async term => {
-      const payload = await requestProviderJson(bilibiliVideoProviderUrl(term, perTermLimit), {
-        fetchImpl: videoFetch,
+      const payload = await requestProviderJson(appleVideoProviderUrl(term, perTermLimit), {
+        fetchImpl,
         timeoutMs: 10_000,
-        headers: {
-          origin: 'https://www.bilibili.com',
-          referer: 'https://www.bilibili.com/',
-        },
       });
-      return normalizeBilibiliVideoPayload(payload, { category });
+      return normalizeAppleVideoPayload(payload, { category });
     }));
     const videos = uniqueById(
       results
@@ -637,10 +571,10 @@ export async function handleVideosRequest(request, env = {}) {
         key: category,
         name: definition.name,
         description: definition.description,
-        provider: 'bilibili',
-        sourceName: 'ChKSz 热榜 · 哔哩哔哩',
+        provider: 'apple-music',
+        sourceName: 'Apple Music',
         videoCount: videos.length,
-        previewCount: 0,
+        previewCount: videos.filter(video => video.previewUrl).length,
         fetchedAt: new Date().toISOString(),
       },
       items: videos,
