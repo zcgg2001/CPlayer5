@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  fetchArtistsPayload,
   formatReleaseDate,
   normalizeArtistsPayload,
+  normalizeDirectArtistsPayload,
   normalizeVideosPayload,
 } from '../js/music-explore.js';
 
@@ -51,20 +53,91 @@ test('rejects artist payloads without playable track identities', () => {
   );
 });
 
+test('aggregates ChKSz chart tracks into ranked artist cards', () => {
+  const result = normalizeDirectArtistsPayload([
+    {
+      chart: { key: 'hot' },
+      items: [{
+        id: '101',
+        playbackId: '101',
+        name: '第一首',
+        artist: '歌手甲/歌手乙',
+        album: '专辑一',
+        cover: 'https://p1.music.126.net/song.jpg',
+        rank: 1,
+        playable: true,
+      }],
+    },
+    {
+      chart: { key: 'soaring' },
+      items: [{
+        id: '102',
+        playbackId: '102',
+        name: '第二首',
+        artist: '歌手甲',
+        album: '专辑二',
+        cover: 'https://p1.music.126.net/song-2.jpg',
+        rank: 2,
+        playable: true,
+      }],
+    },
+  ], { scope: 'trending' });
 
-test('normalizes allowlisted Apple video links and drops unsafe cards', () => {
+  assert.equal(result.collection.key, 'trending');
+  assert.equal(result.collection.sourceName, 'ChKSz 国内榜单 · 直连模式');
+  assert.equal(result.items[0].name, '歌手甲');
+  assert.equal(result.items[0].chartCount, 2);
+  assert.equal(result.items[0].tracks.length, 2);
+});
+
+test('uses direct ChKSz feeds when the page is opened from a local file', async () => {
+  const requestedUrls = [];
+  const payload = {
+    data: {
+      id: '3778678',
+      name: '热歌榜',
+      tracks: [{
+        id: 101,
+        name: '第一首',
+        ar: [{ name: '歌手甲' }],
+        al: {
+          name: '专辑一',
+          picUrl: 'https://p1.music.126.net/song.jpg',
+        },
+      }],
+    },
+  };
+  const fetchImpl = async url => {
+    requestedUrls.push(String(url));
+    return {
+      ok: true,
+      json: async () => payload,
+    };
+  };
+
+  const result = await fetchArtistsPayload(fetchImpl, 'trending', {
+    locationProtocol: 'file:',
+  });
+
+  assert.equal(result.items[0].name, '歌手甲');
+  assert.equal(requestedUrls.length, 2);
+  assert.ok(requestedUrls.every(url => url.startsWith('https://api.chksz.top/api/163_playlist')));
+  assert.ok(requestedUrls.every(url => !url.includes('/api/v1/artists')));
+});
+
+
+test('normalizes allowlisted Bilibili video links and drops unsafe cards', () => {
   const result = normalizeVideosPayload({
-    collection: { key: 'global', name: '全球流行' },
+    collection: { key: 'global', name: '经典影像' },
     items: [
       {
-        id: '201',
-        name: 'Music Video',
-        artist: 'Artist',
-        poster: 'https://is1-ssl.mzstatic.com/image/thumb/video/900x506bb.jpg',
-        externalUrl: 'https://music.apple.com/cn/music-video/example/201',
-        previewUrl: 'https://video-ssl.itunes.apple.com/video/example.mov',
+        id: 'BV123',
+        name: '晴天 MV',
+        artist: '国内音乐频道',
+        poster: 'https://i1.hdslb.com/bfs/archive/example.jpg',
+        externalUrl: 'https://www.bilibili.com/video/BV123',
         releasedAt: '2026-03-24T07:00:00Z',
-        genre: 'Pop',
+        genre: '音乐视频',
       },
       {
         id: 'unsafe',
@@ -78,8 +151,9 @@ test('normalizes allowlisted Apple video links and drops unsafe cards', () => {
 
   assert.equal(result.collection.key, 'global');
   assert.equal(result.items.length, 1);
-  assert.equal(result.items[0].id, '201');
-  assert.match(result.items[0].previewUrl, /^https:\/\/video-ssl\.itunes\.apple\.com\//);
+  assert.equal(result.items[0].id, 'BV123');
+  assert.equal(result.items[0].previewUrl, '');
+  assert.match(result.items[0].externalUrl, /^https:\/\/www\.bilibili\.com\//);
 });
 
 

@@ -56,7 +56,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         return match.group(1).strip()
 
     def test_shell_assets_and_1024_breakpoint_exist(self):
-        self.assertIn('href="./css/app-shell.css"', self.source)
+        self.assertIn('href="./css/app-shell.css?v=22"', self.source)
         self.assertIn("@media (min-width: 1024px)", self.css)
         self.assertIn("@media (max-width: 1023.98px)", self.css)
         self.assertIn("grid-template-columns: 240px minmax(0, 1fr)", self.css)
@@ -291,7 +291,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         anime_css = (ROOT / "css/anime-progress-thumb.css").read_text(encoding="utf-8")
         self.assertIn("--anime-progress-thumb-size: 34px", anime_css)
         self.assertIn("translate3d(var(--anime-progress-x)", anime_css)
-        self.assertIn('src="./js/anime-progress-thumb.js"', self.source)
+        self.assertIn('src="./js/anime-progress-thumb.js?v=22"', self.source)
         self.assertTrue((ROOT / "img/doraemon-progress-thumb.png").is_file())
 
     def test_desktop_download_controls_and_dialog_are_exposed(self):

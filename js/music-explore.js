@@ -5,15 +5,41 @@ const ARTIST_SCOPES = Object.freeze({
   all: '全部歌手',
 });
 
+const ARTIST_SCOPE_FEEDS = Object.freeze({
+  trending: Object.freeze({
+    description: '综合热歌榜与飙升榜，发现此刻最受关注的音乐人。',
+    chartKeys: Object.freeze(['hot', 'soaring']),
+  }),
+  new: Object.freeze({
+    description: '从新歌榜中发现近期有新作品发布的音乐人。',
+    chartKeys: Object.freeze(['new']),
+  }),
+  original: Object.freeze({
+    description: '聚焦原创榜中持续创作与表达的音乐人。',
+    chartKeys: Object.freeze(['original']),
+  }),
+  all: Object.freeze({
+    description: '汇总热歌、新歌、飙升与原创榜中的活跃音乐人。',
+    chartKeys: Object.freeze(['hot', 'new', 'soaring', 'original']),
+  }),
+});
+
+const CHKSZ_CHART_IDS = Object.freeze({
+  hot: '3778678',
+  new: '3779629',
+  soaring: '19723756',
+  original: '2884035',
+});
+
 const VIDEO_CATEGORIES = Object.freeze({
   trending: '趋势视频',
   mandopop: '华语现场',
-  global: '全球流行',
+  global: '经典影像',
   live: '现场精选',
 });
 
 const ARTIST_CACHE_PREFIX = 'cp_artist_snapshot_v1_';
-const VIDEO_CACHE_PREFIX = 'cp_video_snapshot_v1_';
+const VIDEO_CACHE_PREFIX = 'cp_video_snapshot_v2_';
 
 function text(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
@@ -134,8 +160,8 @@ export function normalizeVideosPayload(payload) {
   const items = rawItems
     .map(item => {
       const id = text(item?.id);
-      const poster = safeHttpsUrl(item?.poster, ['mzstatic.com']);
-      const externalUrl = safeHttpsUrl(item?.externalUrl, ['music.apple.com']);
+      const poster = safeHttpsUrl(item?.poster, ['hdslb.com']);
+      const externalUrl = safeHttpsUrl(item?.externalUrl, ['bilibili.com']);
       if (!id || !poster || !externalUrl) return null;
       return {
         id,
@@ -143,13 +169,13 @@ export function normalizeVideosPayload(payload) {
         artist: text(item.artist, '未知艺术家'),
         artistId: text(item.artistId),
         poster,
-        previewUrl: safeHttpsUrl(item.previewUrl, ['apple.com', 'mzstatic.com']),
+        previewUrl: '',
         externalUrl,
-        artistUrl: safeHttpsUrl(item.artistUrl, ['music.apple.com']),
+        artistUrl: safeHttpsUrl(item.artistUrl, ['bilibili.com']),
         releasedAt: text(item.releasedAt),
         genre: text(item.genre, '音乐视频'),
         explicit: Boolean(item.explicit),
-        provider: text(item.provider, 'Apple Music'),
+        provider: text(item.provider, '哔哩哔哩'),
       };
     })
     .filter(Boolean);
@@ -163,7 +189,7 @@ export function normalizeVideosPayload(payload) {
         : 'trending',
       name: text(payload?.collection?.name, '趋势视频'),
       description: text(payload?.collection?.description, '自动发现音乐视频。'),
-      sourceName: text(payload?.collection?.sourceName, 'Apple Music'),
+      sourceName: text(payload?.collection?.sourceName, 'ChKSz 热榜 · 哔哩哔哩'),
       videoCount: Number(payload?.collection?.videoCount) || items.length,
       previewCount: Number(payload?.collection?.previewCount) || 0,
       fetchedAt: text(payload?.collection?.fetchedAt, new Date().toISOString()),
@@ -206,6 +232,221 @@ async function requestJson(url, fetchImpl) {
     return payload;
   } finally {
     clearTimeout(timeoutId);
+  }
+}
+
+function providerTracks(payload) {
+  if (Array.isArray(payload?.data?.tracks)) return payload.data.tracks;
+  if (Array.isArray(payload?.playlist?.tracks)) return payload.playlist.tracks;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function providerArtistText(item) {
+  const artists = item?.artists ?? item?.artist ?? item?.ar;
+  if (typeof artists === 'string') return text(artists, '未知艺术家');
+  if (Array.isArray(artists)) {
+    const names = artists
+      .map(artist => typeof artist === 'string' ? artist : artist?.name)
+      .map(name => text(name))
+      .filter(Boolean);
+    if (names.length) return names.join('/');
+  }
+  if (artists && typeof artists === 'object') {
+    return text(artists.name, '未知艺术家');
+  }
+  return '未知艺术家';
+}
+
+function providerAlbumText(item) {
+  const album = item?.album ?? item?.al;
+  return typeof album === 'string' ? text(album) : text(album?.name);
+}
+
+function providerCover(item) {
+  for (const candidate of [
+    item?.picUrl,
+    item?.cover,
+    item?.coverImgUrl,
+    item?.album?.picUrl,
+    item?.al?.picUrl,
+  ]) {
+    const value = text(candidate);
+    if (value) return value;
+  }
+  return '';
+}
+
+function stableTextId(value, prefix) {
+  let hash = 2166136261;
+  for (const character of text(value).toLowerCase()) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${prefix}-${(hash >>> 0).toString(36)}`;
+}
+
+function normalizeDirectChartPayload(payload, chartKey) {
+  const tracks = providerTracks(payload);
+  if (!tracks.length) throw new Error('国内榜单没有返回歌曲');
+  const items = tracks
+    .filter(item => text(item?.id))
+    .slice(0, 100)
+    .map((item, index) => ({
+      rank: index + 1,
+      id: text(item.id),
+      playbackId: text(item.id),
+      name: text(item.name, '未知歌曲'),
+      artist: providerArtistText(item),
+      album: providerAlbumText(item),
+      cover: providerCover(item),
+      chart: chartKey,
+      playable: true,
+    }));
+  if (!items.length) throw new Error('国内榜单没有返回可播放歌曲');
+  return { chart: { key: chartKey }, items };
+}
+
+function splitArtistNames(value) {
+  return text(value)
+    .split(/[\/／]/)
+    .map(name => text(name))
+    .filter(name => name && name !== '未知艺术家');
+}
+
+export function normalizeDirectArtistsPayload(
+  charts,
+  {
+    scope = 'trending',
+    limit = 24,
+    fetchedAt = new Date().toISOString(),
+  } = {},
+) {
+  const resolvedScope = Object.hasOwn(ARTIST_SCOPE_FEEDS, scope) ? scope : 'trending';
+  const definition = ARTIST_SCOPE_FEEDS[resolvedScope];
+  const artistMap = new Map();
+
+  for (const chartPayload of Array.isArray(charts) ? charts : []) {
+    const chartKey = text(chartPayload?.chart?.key, 'hot');
+    const chartWeight = chartKey === 'hot' ? 1.2 : chartKey === 'soaring' ? 1.1 : 1;
+    for (const item of Array.isArray(chartPayload?.items) ? chartPayload.items : []) {
+      const rank = Math.max(1, Number(item.rank) || 100);
+      const score = Math.max(1, 101 - rank) * chartWeight;
+      for (const name of splitArtistNames(item.artist)) {
+        const canonical = name.toLocaleLowerCase('zh-CN');
+        let artist = artistMap.get(canonical);
+        if (!artist) {
+          artist = {
+            id: stableTextId(name, 'artist'),
+            name,
+            cover: item.cover || '',
+            score: 0,
+            appearances: 0,
+            charts: new Set(),
+            tracks: new Map(),
+          };
+          artistMap.set(canonical, artist);
+        }
+        artist.score += score;
+        artist.appearances += 1;
+        artist.charts.add(chartKey);
+        if (!artist.cover && item.cover) artist.cover = item.cover;
+        const trackId = text(item.playbackId || item.id);
+        if (trackId && !artist.tracks.has(trackId)) {
+          artist.tracks.set(trackId, {
+            id: text(item.id, trackId),
+            playbackId: trackId,
+            name: text(item.name, '未知歌曲'),
+            artist: text(item.artist, name),
+            album: text(item.album),
+            cover: text(item.cover),
+            chart: chartKey,
+            rank,
+            playable: item.playable !== false,
+          });
+        }
+      }
+    }
+  }
+
+  const resolvedLimit = Math.max(1, Math.min(48, Number(limit) || 24));
+  const items = Array.from(artistMap.values())
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name, 'zh-CN'))
+    .slice(0, resolvedLimit)
+    .map((artist, index) => {
+      const tracks = Array.from(artist.tracks.values())
+        .sort((left, right) => left.rank - right.rank)
+        .slice(0, 8);
+      return {
+        rank: index + 1,
+        id: artist.id,
+        name: artist.name,
+        cover: artist.cover,
+        appearances: artist.appearances,
+        chartCount: artist.charts.size,
+        charts: Array.from(artist.charts),
+        score: Math.round(artist.score),
+        featuredTrack: tracks[0] || null,
+        tracks,
+      };
+    });
+
+  return normalizeArtistsPayload({
+    version: 1,
+    collection: {
+      key: resolvedScope,
+      name: ARTIST_SCOPES[resolvedScope],
+      description: definition.description,
+      sourceName: 'ChKSz 国内榜单 · 直连模式',
+      artistCount: items.length,
+      fetchedAt,
+    },
+    items,
+  });
+}
+
+async function fetchDirectArtists(fetchImpl, scope) {
+  const chartKeys = ARTIST_SCOPE_FEEDS[scope].chartKeys;
+  const results = await Promise.allSettled(chartKeys.map(async chartKey => {
+    const url = new URL('https://api.chksz.top/api/163_playlist');
+    url.searchParams.set('id', CHKSZ_CHART_IDS[chartKey]);
+    const payload = await requestJson(url.href, fetchImpl);
+    return normalizeDirectChartPayload(payload, chartKey);
+  }));
+  const charts = results
+    .filter(result => result.status === 'fulfilled')
+    .map(result => result.value);
+  if (!charts.length) throw new Error('ChKSz 国内歌手数据源暂时不可用');
+  return normalizeDirectArtistsPayload(charts, { scope, limit: 24 });
+}
+
+export async function fetchArtistsPayload(
+  fetchImpl = globalThis.fetch?.bind(globalThis),
+  scope = 'trending',
+  {
+    locationProtocol = globalThis.location?.protocol,
+  } = {},
+) {
+  if (typeof fetchImpl !== 'function') throw new Error('当前浏览器不支持获取歌手数据');
+  const resolvedScope = Object.hasOwn(ARTIST_SCOPE_FEEDS, scope) ? scope : 'trending';
+  let endpointError = null;
+
+  if (locationProtocol !== 'file:') {
+    try {
+      const payload = await requestJson(
+        `/api/v1/artists?scope=${encodeURIComponent(resolvedScope)}&limit=24`,
+        fetchImpl,
+      );
+      return normalizeArtistsPayload(payload);
+    } catch (error) {
+      endpointError = error;
+    }
+  }
+
+  try {
+    return await fetchDirectArtists(fetchImpl, resolvedScope);
+  } catch (error) {
+    throw endpointError || error;
   }
 }
 
@@ -566,8 +807,7 @@ export function createArtistsController({
       surfaces.forEach(surface => renderArtists(surface, cached, { onPlay, onAdd }));
     }
 
-    const pending = requestJson(`/api/v1/artists?scope=${encodeURIComponent(resolved)}&limit=24`, fetchImpl)
-      .then(normalizeArtistsPayload)
+    const pending = fetchArtistsPayload(fetchImpl, resolved)
       .then(payload => {
         state.payloads.set(resolved, payload);
         writeSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, payload);

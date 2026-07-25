@@ -1,4 +1,4 @@
-import { normalizeMediaUrl } from './security.js';
+import { normalizeMediaUrl } from './security.js?v=22';
 
 export const DOWNLOAD_QUALITY_OPTIONS = Object.freeze([
   { level: 'standard', label: '标准 128K' },
