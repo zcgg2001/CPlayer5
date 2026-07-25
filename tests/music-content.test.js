@@ -2,12 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  ARTIST_SCOPES,
   CHART_DEFINITIONS,
+  VIDEO_CATEGORIES,
+  appleVideoProviderUrl,
   chartProviderUrl,
+  handleArtistsRequest,
   handleChartsRequest,
+  handleVideosRequest,
+  normalizeAppleVideoPayload,
+  normalizeArtistsFromCharts,
   normalizeChkszChartPayload,
+  resolveArtistScope,
   resolveChartKey,
   resolveChartLimit,
+  resolveVideoCategory,
 } from '../sites/music-content.js';
 
 
@@ -37,6 +46,26 @@ function providerPayload() {
   };
 }
 
+function appleVideoPayload() {
+  return {
+    resultCount: 1,
+    results: [{
+      wrapperType: 'track',
+      kind: 'music-video',
+      artistId: 300117743,
+      trackId: 1887481475,
+      artistName: '周杰伦',
+      trackName: '太阳之子',
+      artistViewUrl: 'https://music.apple.com/cn/artist/example/300117743?uo=4',
+      trackViewUrl: 'https://music.apple.com/cn/music-video/example/1887481475?uo=4',
+      artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/Video211/example/100x100bb.jpg',
+      releaseDate: '2026-03-24T07:00:00Z',
+      trackExplicitness: 'notExplicit',
+      primaryGenreName: '国语流行',
+    }],
+  };
+}
+
 
 test('resolves supported chart keys and clamps limits', () => {
   assert.equal(resolveChartKey('soaring'), 'soaring');
@@ -44,6 +73,16 @@ test('resolves supported chart keys and clamps limits', () => {
   assert.equal(resolveChartLimit('0'), 1);
   assert.equal(resolveChartLimit('500'), 100);
   assert.equal(resolveChartLimit('invalid'), 50);
+});
+
+
+test('resolves allowlisted artist scopes and video categories', () => {
+  assert.equal(resolveArtistScope('original'), 'original');
+  assert.equal(resolveArtistScope('unknown'), 'trending');
+  assert.equal(resolveVideoCategory('live'), 'live');
+  assert.equal(resolveVideoCategory('unknown'), 'trending');
+  assert.deepEqual(ARTIST_SCOPES.trending.chartKeys, ['hot', 'soaring']);
+  assert.equal(VIDEO_CATEGORIES.global.name, '全球流行');
 });
 
 
@@ -85,6 +124,39 @@ test('builds provider URLs from allowlisted chart definitions', () => {
 });
 
 
+test('aggregates chart tracks into ranked artists with playable selections', () => {
+  const hot = normalizeChkszChartPayload(providerPayload(), {
+    chartKey: 'hot',
+    fetchedAt: '2026-07-25T00:00:00.000Z',
+  });
+  const result = normalizeArtistsFromCharts([hot], {
+    scope: 'all',
+    fetchedAt: '2026-07-25T01:00:00.000Z',
+  });
+
+  assert.equal(result.collection.key, 'all');
+  assert.equal(result.collection.fetchedAt, '2026-07-25T01:00:00.000Z');
+  assert.equal(result.items[0].name, '歌手甲');
+  assert.equal(result.items[0].featuredTrack.playbackId, '101');
+  assert.equal(result.items[0].tracks[0].playable, true);
+  assert.equal(result.items.length, 3);
+});
+
+
+test('normalizes Apple music videos and upgrades artwork size', () => {
+  const videos = normalizeAppleVideoPayload(appleVideoPayload(), { category: 'mandopop' });
+
+  assert.equal(videos.length, 1);
+  assert.equal(videos[0].id, '1887481475');
+  assert.equal(videos[0].artist, '周杰伦');
+  assert.equal(videos[0].category, 'mandopop');
+  assert.match(videos[0].poster, /900x506bb\.jpg$/);
+  assert.equal(videos[0].externalUrl, 'https://music.apple.com/cn/music-video/example/1887481475?uo=4');
+  assert.equal(videos[0].previewUrl, '');
+  assert.match(appleVideoProviderUrl('周杰伦', 6), /entity=musicVideo/);
+});
+
+
 test('serves normalized charts with cache and security headers', async () => {
   let requestedUrl = '';
   const response = await handleChartsRequest(
@@ -122,4 +194,47 @@ test('returns a stable user-facing error when the provider fails', async () => {
   assert.equal(payload.error.code, 'provider_failed');
   assert.equal(payload.error.message, '排行榜暂时无法更新，请稍后重试');
   assert.equal(response.headers.get('cache-control'), 'no-store');
+});
+
+
+test('serves artists aggregated from the selected chart scope', async () => {
+  const requestedUrls = [];
+  const response = await handleArtistsRequest(
+    new Request('https://player.example/api/v1/artists?scope=new&limit=2'),
+    {
+      async MUSIC_FETCH(url) {
+        requestedUrls.push(url);
+        return Response.json(providerPayload());
+      },
+    },
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedUrls, [chartProviderUrl('new')]);
+  assert.equal(payload.collection.key, 'new');
+  assert.equal(payload.items.length, 2);
+  assert.equal(payload.items[0].tracks[0].playbackId, '101');
+});
+
+
+test('serves video cards from the Apple music video directory', async () => {
+  const requestedUrls = [];
+  const response = await handleVideosRequest(
+    new Request('https://player.example/api/v1/videos?category=global&limit=3'),
+    {
+      async VIDEO_FETCH(url) {
+        requestedUrls.push(url);
+        return Response.json(appleVideoPayload());
+      },
+    },
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(requestedUrls.length, VIDEO_CATEGORIES.global.terms.length);
+  assert.ok(requestedUrls.every(url => url.startsWith('https://itunes.apple.com/search?')));
+  assert.equal(payload.collection.key, 'global');
+  assert.equal(payload.collection.sourceName, 'Apple Music');
+  assert.equal(payload.items[0].name, '太阳之子');
 });

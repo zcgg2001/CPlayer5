@@ -14,11 +14,13 @@ REQUIRED_CORE_ASSETS = {
     "./css/all.min.css",
     "./css/app-shell.css",
     "./css/charts.css",
+    "./css/music-explore.css",
     "./css/anime-progress-thumb.css",
     "./css/noto-sans-sc.css",
     "./css/oneko-butterfly.css",
     "./js/app-shell.js",
     "./js/charts-page.js",
+    "./js/music-explore.js",
     "./js/anime-progress-thumb.js",
     "./js/tailwindcss.js",
     "./js/color-thief.umd.js",
@@ -64,7 +66,7 @@ class PwaContractTests(unittest.TestCase):
         worker_source = (ROOT / "sw.js").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v18';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v19';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",

@@ -77,12 +77,21 @@ class DesktopShellMarkupTests(unittest.TestCase):
     def test_library_is_default_and_navigation_has_no_placeholders(self):
         library = self.markup.by_id["desktopNavLibrary"]
         charts = self.markup.by_id["desktopNavCharts"]
+        artists = self.markup.by_id["desktopNavArtists"]
+        videos = self.markup.by_id["desktopNavVideos"]
         self.assertEqual(library.get("aria-current"), "page")
         self.assertEqual(library.get("data-shell-destination"), "library")
         self.assertEqual(charts.get("data-shell-destination"), "charts")
         self.assertEqual(charts.get("aria-controls"), "desktopChartsView")
-        self.assertNotRegex(self.source, r'data-shell-destination="(?:artists|video|radio)"')
-        for nav_id in ("desktopNavLibrary", "desktopNavCharts", "desktopNavSearch"):
+        self.assertEqual(artists.get("data-shell-destination"), "artists")
+        self.assertEqual(artists.get("aria-controls"), "desktopArtistsView")
+        self.assertEqual(videos.get("data-shell-destination"), "videos")
+        self.assertEqual(videos.get("aria-controls"), "desktopVideosView")
+        self.assertNotRegex(self.source, r'data-shell-destination="(?:video|radio)"')
+        for nav_id in (
+            "desktopNavLibrary", "desktopNavCharts", "desktopNavArtists",
+            "desktopNavVideos", "desktopNavSearch",
+        ):
             self.assertNotEqual(self.markup.by_id[nav_id].get("aria-disabled"), "true")
 
     def test_search_is_a_standalone_theme_below_discovery(self):
@@ -99,9 +108,33 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertRegex(
             self.source,
             r'(?s)id="desktopNavLibrary".*?</button>\s*<button id="desktopNavCharts"'
+            r'.*?</button>\s*<button id="desktopNavArtists"'
+            r'.*?</button>\s*<button id="desktopNavVideos"'
             r'.*?</button>\s*<button id="desktopNavSearch"',
         )
         self.assertIn("desktopSearchPageTitle", self.markup.by_id)
+
+    def test_artist_and_video_destinations_expose_real_content_surfaces(self):
+        for element_id in (
+            "desktopArtistsView", "desktopArtistsPageTitle", "desktopArtistWorkspace",
+            "desktopArtistTabs", "desktopArtistGrid", "desktopArtistDetail",
+            "desktopVideosView", "desktopVideosPageTitle", "desktopVideoWorkspace",
+            "desktopVideoTabs", "desktopVideoGrid", "videoPreviewDialog",
+            "mobileExploreTabs", "mobileExploreArtistsPane", "mobileArtistGrid",
+            "mobileExploreVideosPane", "mobileVideoGrid",
+        ):
+            self.assertIn(element_id, self.markup.by_id)
+
+        self.assertEqual(self.markup.by_id["desktopArtistsView"].get("aria-hidden"), "true")
+        self.assertEqual(self.markup.by_id["desktopVideosView"].get("aria-hidden"), "true")
+        self.assertEqual(self.markup.by_id["desktopArtistGrid"].get("role"), "list")
+        self.assertEqual(self.markup.by_id["desktopVideoGrid"].get("aria-live"), "polite")
+        self.assertEqual(self.markup.by_id["videoPreviewDialog"]["tag"], "dialog")
+        self.assertEqual(self.source.count('data-artist-scope="trending"'), 2)
+        self.assertEqual(self.source.count('data-video-category="trending"'), 2)
+        self.assertEqual(self.source.count('data-mobile-explore="charts"'), 1)
+        self.assertEqual(self.source.count('data-mobile-explore="artists"'), 1)
+        self.assertEqual(self.source.count('data-mobile-explore="videos"'), 1)
 
     def test_chart_destination_exposes_filters_and_live_regions(self):
         for element_id in (

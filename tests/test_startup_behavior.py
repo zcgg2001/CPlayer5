@@ -46,6 +46,14 @@ class StartupBehaviorTests(unittest.TestCase):
             "import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js';",
             self.source,
         )
+        self.assertIn(
+            "createArtistsController,",
+            self.source,
+        )
+        self.assertIn(
+            "createVideosController,",
+            self.source,
+        )
         startup = function_block(
             self.source,
             "document.addEventListener('DOMContentLoaded', async () => {",
@@ -106,6 +114,8 @@ class StartupBehaviorTests(unittest.TestCase):
         for fragment in (
             "showDesktopMainView('discovery');",
             "showDesktopMainView('charts');",
+            "showDesktopMainView('artists');",
+            "showDesktopMainView('videos');",
             "showDesktopMainView('search');",
             "document.getElementById('searchInput')?.focus();",
         ):
@@ -119,9 +129,13 @@ class StartupBehaviorTests(unittest.TestCase):
         for fragment in (
             "element: dom.desktopDiscoveryView",
             "element: dom.desktopChartsView",
+            "element: dom.desktopArtistsView",
+            "element: dom.desktopVideosView",
             "element: dom.desktopSearchView",
             "desktopSearchPageTitle",
             "desktopChartsPageTitle",
+            "desktopArtistsPageTitle",
+            "desktopVideosPageTitle",
             "desktopLibraryTitle",
             "config.element.hidden = hidden",
             "dom.desktopTopbarTitle.textContent",
@@ -129,6 +143,30 @@ class StartupBehaviorTests(unittest.TestCase):
             "dom.desktopLibraryView.scrollTop = 0",
         ):
             self.assertIn(fragment, switcher)
+
+    def test_content_hubs_support_deep_links_and_mobile_section_switching(self):
+        for fragment in (
+            "function contentViewFromHash()",
+            "['charts', 'artists', 'videos'].includes(view)",
+            "function syncContentRoute(view)",
+            "function setMobileExploreView(view",
+            "function setMobileExploreOpen(open",
+            "data-mobile-explore",
+            "artistsController?.ensureLoaded();",
+            "videosController?.ensureLoaded();",
+            "desktopShell.navigate(initialContentView",
+        ):
+            self.assertIn(fragment, self.source)
+
+        listeners = function_block(
+            self.source,
+            "function initEventListeners()",
+            "function toggleSearchPanel(forceState)",
+        )
+        self.assertIn("dom.mobileExploreTabs?.addEventListener('click'", listeners)
+        self.assertIn("dom.mobileExploreTabs?.addEventListener('keydown'", listeners)
+        self.assertIn("setMobileExploreOpen(Boolean(view)", listeners)
+        self.assertIn("dom.videoPreviewDialog?.addEventListener('close'", listeners)
 
     def test_shell_owned_destinations_do_not_keep_legacy_desktop_bindings(self):
         listeners = function_block(

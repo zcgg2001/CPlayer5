@@ -120,8 +120,10 @@ test('precaches the desktop shell assets', () => {
 
   assert.ok(coreAssets.includes('./css/app-shell.css'));
   assert.ok(coreAssets.includes('./css/charts.css'));
+  assert.ok(coreAssets.includes('./css/music-explore.css'));
   assert.ok(coreAssets.includes('./js/app-shell.js'));
   assert.ok(coreAssets.includes('./js/charts-page.js'));
+  assert.ok(coreAssets.includes('./js/music-explore.js'));
 });
 
 test('precaches the anime progress thumb component and artwork', () => {
