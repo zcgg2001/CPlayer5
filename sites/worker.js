@@ -1,3 +1,9 @@
+import {
+  handleArtistsRequest,
+  handleChartsRequest,
+  handleVideosRequest,
+} from './music-content.js';
+
 const HTML_ROUTES = new Map([
   ['/', '/index.html'],
   ['/playlist-downloader', '/playlist-downloader.html'],
@@ -32,6 +38,16 @@ const worker = {
     }
 
     const url = new URL(request.url);
+    if (url.pathname === '/api/v1/charts') {
+      return handleChartsRequest(request, env);
+    }
+    if (url.pathname === '/api/v1/artists') {
+      return handleArtistsRequest(request, env);
+    }
+    if (url.pathname === '/api/v1/videos') {
+      return handleVideosRequest(request, env);
+    }
+
     const routeAsset = HTML_ROUTES.get(url.pathname.replace(/\/$/, '') || '/');
     if (routeAsset) {
       const response = await env.ASSETS.fetch(assetRequest(request, routeAsset));

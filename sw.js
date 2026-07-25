@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v17';
+const SHELL_CACHE = 'cplayer5-shell-v19';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -10,10 +10,14 @@ const CORE_ASSETS = [
   './playlist-downloader.html',
   './css/all.min.css',
   './css/app-shell.css',
+  './css/charts.css',
+  './css/music-explore.css',
   './css/anime-progress-thumb.css',
   './css/noto-sans-sc.css',
   './css/oneko-butterfly.css',
   './js/app-shell.js',
+  './js/charts-page.js',
+  './js/music-explore.js',
   './js/anime-progress-thumb.js',
   './js/tailwindcss.js',
   './js/color-thief.umd.js',
@@ -34,14 +38,21 @@ function isNetEaseHost(hostname) {
   return hostname === 'music.126.net' || hostname.endsWith('.music.126.net');
 }
 
+function isArtworkHost(hostname) {
+  return isNetEaseHost(hostname)
+    || hostname === 'mzstatic.com'
+    || hostname.endsWith('.mzstatic.com');
+}
+
 function classifyRequest(request) {
   if (request.method !== 'GET') return 'ignore';
 
   const url = new URL(request.url);
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
   if (url.hostname === 'api.chksz.top') return 'api';
 
   const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);
-  if (isNetEaseHost(url.hostname) && (request.destination === 'image' || imagePath)) {
+  if (isArtworkHost(url.hostname) && (request.destination === 'image' || imagePath)) {
     return 'cover';
   }
 
