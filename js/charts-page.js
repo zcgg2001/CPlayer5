@@ -370,13 +370,19 @@ async function fetchJson(fetchImpl, url, { signal } = {}) {
     signal,
   });
   const payload = await response.json().catch(() => null);
-  if (!response.ok || payload?.error) {
+  if (!response.ok) {
     throw new Error(payload?.error?.message || '排行榜加载失败');
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    throw new Error('排行榜服务返回了无法识别的数据');
+  }
+  if (payload.error) {
+    throw new Error(payload.error?.message || '排行榜加载失败');
   }
   return payload;
 }
 
-async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
+export async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
   try {
     return await fetchJson(
       fetchImpl,
