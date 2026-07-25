@@ -313,6 +313,31 @@ i[data-lucide-rendered] > .lucide-glyph {
     -webkit-backdrop-filter: blur(22px) saturate(120%);
   }
 
+  #desktopContentSearch #searchInput {
+    color: var(--art-text);
+    -webkit-text-fill-color: var(--art-text);
+    caret-color: var(--art-acid);
+    background: #15151f;
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
+  }
+
+  #desktopContentSearch #searchInput::placeholder {
+    color: #a9a5b8;
+    -webkit-text-fill-color: #a9a5b8;
+    opacity: 1;
+  }
+
+  #desktopContentSearch #searchInput:focus {
+    background: #1c1c28;
+    border-color: var(--art-acid);
+    box-shadow: 0 0 0 3px rgba(184, 255, 79, 0.14);
+  }
+
+  #desktopContentSearch #searchButton {
+    color: var(--art-ink);
+  }
+
   #desktopLibraryView .discovery-panel {
     margin-bottom: 44px;
   }

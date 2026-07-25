@@ -32,6 +32,7 @@ REQUIRED_CORE_ASSETS = {
     "./js/oneko-butterfly.js",
     "./img/icon.svg",
     "./img/icon.png",
+    "./img/favicon.svg",
     "./img/doraemon-progress-thumb.png",
     "./img/oneko-tora.gif",
     "./manifest.json",
@@ -44,6 +45,11 @@ class PwaContractTests(unittest.TestCase):
         manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertIn('<link rel="manifest" href="manifest.json">', index_source)
+        self.assertIn(
+            '<link rel="icon" href="img/favicon.svg?v=24" '
+            'type="image/svg+xml" sizes="any">',
+            index_source,
+        )
         self.assertIn("navigator.serviceWorker.register('./sw.js', {", index_source)
         self.assertIn("updateViaCache: 'none'", index_source)
         self.assertIn("navigator.serviceWorker.addEventListener('controllerchange'", index_source)
@@ -70,7 +76,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v23';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v24';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",
@@ -108,6 +114,7 @@ class PwaContractTests(unittest.TestCase):
             "css/app-shell.css?v=22",
             "css/charts.css?v=22",
             "css/music-explore.css?v=22",
+            "css/art-direction.css?v=24",
             "js/app-shell.js?v=22",
             "js/charts-page.js?v=23",
             "js/music-explore.js?v=22",

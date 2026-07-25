@@ -376,3 +376,24 @@ class DesktopShellMarkupTests(unittest.TestCase):
         )
         self.assertGreaterEqual(contrast_ratio(muted, surface), 4.5)
         self.assertGreaterEqual(contrast_ratio(muted, input_background), 4.5)
+
+    def test_dark_art_direction_keeps_search_text_readable(self):
+        art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
+
+        input_rule = re.search(
+            r"#desktopContentSearch #searchInput\s*\{([^}]*)\}",
+            art_css,
+        )
+        self.assertIsNotNone(input_rule)
+        declarations = input_rule.group(1)
+        self.assertIn("color: var(--art-text);", declarations)
+        self.assertIn("-webkit-text-fill-color: var(--art-text);", declarations)
+        self.assertIn("background: #15151f;", declarations)
+        self.assertGreaterEqual(contrast_ratio("#f5f3ff", "#15151f"), 4.5)
+
+        button_rule = re.search(
+            r"#desktopContentSearch #searchButton\s*\{([^}]*)\}",
+            art_css,
+        )
+        self.assertIsNotNone(button_rule)
+        self.assertIn("color: var(--art-ink);", button_rule.group(1))

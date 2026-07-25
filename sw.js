@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v23';
+const SHELL_CACHE = 'cplayer5-shell-v24';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -32,6 +32,7 @@ const CORE_ASSETS = [
   './js/oneko-butterfly.js',
   './img/icon.svg',
   './img/icon.png',
+  './img/favicon.svg',
   './img/doraemon-progress-thumb.png',
   './img/oneko-tora.gif',
   './manifest.json'
