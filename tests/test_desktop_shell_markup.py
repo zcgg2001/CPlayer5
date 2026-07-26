@@ -397,3 +397,38 @@ class DesktopShellMarkupTests(unittest.TestCase):
         )
         self.assertIsNotNone(button_rule)
         self.assertIn("color: var(--art-ink);", button_rule.group(1))
+
+    def test_theme_controls_are_accessible_and_persist_the_preference(self):
+        for element_id in ("desktopThemeBtn", "mobileThemeBtn"):
+            control = self.markup.by_id[element_id]
+            self.assertEqual(control["tag"], "button")
+            self.assertEqual(control.get("type"), "button")
+            self.assertTrue(control.get("aria-label"))
+            self.assertEqual(control.get("aria-pressed"), "true")
+
+        self.assertIn("localStorage.getItem('cp_theme')", self.source)
+        self.assertIn("localStorage.setItem('cp_theme', nextTheme)", self.source)
+        self.assertIn("function applyTheme(theme,", self.source)
+        art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
+        self.assertIn('html[data-theme="light"]', art_css)
+        self.assertIn("color-scheme: light;", art_css)
+
+    def test_queue_exposes_clear_remove_and_undo_actions(self):
+        for element_id in (
+            "clearPlaylistBtn",
+            "mobileClearPlaylistBtn",
+            "mobileQueueCount",
+            "toastActionBtn",
+        ):
+            self.assertIn(element_id, self.markup.by_id)
+
+        self.assertIn("disabled", self.markup.by_id["clearPlaylistBtn"])
+        self.assertIn("disabled", self.markup.by_id["mobileClearPlaylistBtn"])
+        self.assertEqual(self.markup.by_id["clearPlaylistBtn"].get("aria-label"), "清空播放队列")
+        self.assertEqual(self.markup.by_id["mobileClearPlaylistBtn"].get("aria-label"), "清空播放队列")
+        self.assertIn("function removeSongFromPlaylist(index)", self.source)
+        self.assertIn("function clearPlaylist()", self.source)
+        self.assertIn("function restoreQueueSnapshot(snapshot)", self.source)
+        self.assertIn("actionLabel: '撤销'", self.source)
+        self.assertIn("min-width: 44px", self.css_rule(".queue-remove-button"))
+        self.assertIn("min-height: 44px", self.css_rule(".queue-remove-button"))

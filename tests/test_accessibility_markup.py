@@ -56,6 +56,8 @@ class AccessibilityMarkupTests(unittest.TestCase):
             "settingsBtn",
             "fullscreenBtn",
             "volumeBtn",
+            "desktopThemeBtn",
+            "mobileThemeBtn",
             "mobileSettingsBtn",
             "closeSheetBtn",
             "closeSettingsBtn",
@@ -140,6 +142,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
         markup = parse_markup("index.html")
         for element_id in (
             "mobileSettingsBtn",
+            "mobileThemeBtn",
             "mobilePrevBtn",
             "mobileNextBtn",
             "closeSheetBtn",

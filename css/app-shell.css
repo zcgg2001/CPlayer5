@@ -2652,6 +2652,13 @@
   font-size: 11px;
 }
 
+#floatingPlaylistPanel .queue-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
 #floatingPlaylistPanel #desktopTabPlaylist,
 #floatingPlaylistPanel #desktopTabSearch {
   min-height: 44px;
@@ -2663,6 +2670,119 @@
   font: inherit;
   font-size: 12px;
   font-weight: 700;
+}
+
+.queue-clear-button,
+.queue-remove-button {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  color: #ffd1d6;
+  background: rgba(255, 83, 104, 0.1);
+  border: 1px solid rgba(255, 116, 132, 0.22);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  touch-action: manipulation;
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, opacity 180ms ease;
+}
+
+.queue-clear-button:hover:not(:disabled),
+.queue-remove-button:hover:not(:disabled),
+.queue-clear-button:focus-visible,
+.queue-remove-button:focus-visible {
+  color: #fff;
+  background: rgba(230, 62, 82, 0.78);
+  border-color: rgba(255, 174, 184, 0.62);
+}
+
+.queue-clear-button:disabled {
+  cursor: default;
+  opacity: 0.36;
+}
+
+.queue-remove-button {
+  flex: 0 0 44px;
+  padding: 0;
+  opacity: 0.62;
+}
+
+.playlist-item:hover .queue-remove-button,
+.playlist-item:focus-within .queue-remove-button,
+.mobile-queue-item:focus-within .queue-remove-button {
+  opacity: 1;
+}
+
+#mobileThemeBtn {
+  position: absolute;
+  right: 60px;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  opacity: 0.72;
+  touch-action: manipulation;
+}
+
+.mobile-queue-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 14px;
+  background: rgba(8, 8, 13, 0.92);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.mobile-queue-toolbar > span {
+  font-size: 12px;
+  opacity: 0.66;
+}
+
+.mobile-queue-item {
+  color: inherit;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-queue-item.is-playing {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toast-action {
+  min-width: 52px;
+  min-height: 36px;
+  margin-left: 4px;
+  padding: 0 12px;
+  color: #07070b;
+  background: #b8ff4f;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#copyToast.has-action {
+  pointer-events: auto;
 }
 
 #floatingPlaylistPanel #desktopContentPlaylist {
