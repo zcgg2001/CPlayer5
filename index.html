@@ -16,13 +16,11 @@
     <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-art-direction.png">
 
     <!-- Favicon -->
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 24 24'><path fill='black' fill-rule='evenodd' d='m10.09 11.963l9.273-3.332L21 7.952v-.46c0-1.12 0-2.059-.088-2.807a7 7 0 0 0-.043-.31c-.085-.51-.234-.988-.523-1.386a2.2 2.2 0 0 0-.675-.617l-.01-.005c-.77-.461-1.638-.428-2.532-.224c-.864.198-1.935.6-3.249 1.095l-2.284.859c-.616.231-1.138.427-1.547.63c-.436.216-.811.471-1.092.851s-.399.79-.452 1.234c-.05.418-.05.926-.05 1.525v4.265z' clip-rule='evenodd'/><path fill='black' d='M8.455 16.13a3.8 3.8 0 0 0-1.91-.5C4.587 15.63 3 17.056 3 18.815S4.587 22 6.545 22c1.959 0 3.546-1.426 3.546-3.185v-6.852l-1.636.638zm10.909-7.5v5.54a3.8 3.8 0 0 0-1.91-.5c-1.958 0-3.545 1.426-3.545 3.185s1.587 3.185 3.545 3.185c1.959 0 3.546-1.426 3.546-3.185V7.952z' opacity='.5'/></svg>"
-        type="image/svg+xml">
+    <link rel="icon" href="img/favicon.svg?v=24" type="image/svg+xml" sizes="any">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#dceeff">
+    <meta name="theme-color" content="#07070b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="CPlayer 5">
@@ -39,6 +37,19 @@
     <script>
         // ★ Hotfix: Define variable to prevent ReferenceError in cached/legacy scripts
         window.isGradientMode = false;
+
+        // 在样式绘制前恢复主题，避免刷新时先亮后暗。
+        try {
+            const savedTheme = localStorage.getItem('cp_theme');
+            const initialTheme = savedTheme === 'light' || savedTheme === 'night'
+                ? savedTheme
+                : 'night';
+            document.documentElement.dataset.theme = initialTheme;
+            document.documentElement.style.colorScheme = initialTheme === 'night' ? 'dark' : 'light';
+        } catch (error) {
+            document.documentElement.dataset.theme = 'night';
+            document.documentElement.style.colorScheme = 'dark';
+        }
     </script>
 
     <style>
@@ -1387,7 +1398,7 @@
     <link rel="stylesheet" href="./css/charts.css?v=22">
     <link rel="stylesheet" href="./css/music-explore.css?v=22">
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=22">
-    <link rel="stylesheet" href="./css/art-direction.css?v=23">
+    <link rel="stylesheet" href="./css/art-direction.css?v=25">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=23"></script>
     <script src="./js/anime-progress-thumb.js?v=22"></script>
@@ -1409,6 +1420,7 @@
         class="fixed top-20 left-1/2 transform -translate-x-1/2 bg-surface-container-high-color text-on-surface-color px-6 py-3 rounded-full shadow-xl z-[100] opacity-0 pointer-events-none transition-all duration-300 scale-90 flex items-center gap-2 border border-primary-color/20 backdrop-blur-md">
         <i class="fas fa-check-circle text-primary-color"></i>
         <span class="font-bold text-sm">已复制到剪贴板</span>
+        <button id="toastActionBtn" class="toast-action hidden" type="button">撤销</button>
     </div>
 
     <!-- Desktop application shell -->
@@ -1512,6 +1524,11 @@
                         <i class="fas fa-search" aria-hidden="true"></i>
                         <span>搜索</span>
                     </a>
+                    <button id="desktopThemeBtn" class="app-topbar-action theme-toggle" type="button"
+                        aria-label="切换到明亮模式" aria-pressed="true">
+                        <i class="fas fa-sun" aria-hidden="true"></i>
+                        <span>明亮</span>
+                    </button>
                     <button id="fullscreenBtn" class="app-topbar-action mobile-hide" type="button"
                         title="全屏模式" aria-label="切换全屏模式">
                         <i class="fas fa-expand" aria-hidden="true"></i>
@@ -1902,7 +1919,8 @@
                         <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲" disabled>
                             <i class="fas fa-backward" aria-hidden="true"></i>
                         </button>
-                        <button id="playPauseBtn" class="player-control-button" type="button" aria-label="打开播放队列">
+                        <button id="playPauseBtn" class="player-control-button" type="button"
+                            aria-label="打开播放队列" aria-pressed="false">
                             <i class="fas fa-list-ul" aria-hidden="true"></i>
                         </button>
                         <button id="nextBtn" class="player-control-button" type="button" aria-label="下一曲" disabled>
@@ -2007,15 +2025,22 @@
                     <strong>播放队列</strong>
                     <span>当前播放器的真实曲目列表</span>
                 </div>
-                <div role="tablist" aria-label="队列内容">
-                    <button id="desktopTabPlaylist" type="button" role="tab" aria-selected="true"
-                        aria-controls="desktopContentPlaylist">
-                        <i class="fas fa-list-ul" aria-hidden="true"></i>
-                        当前播放
-                    </button>
-                    <button id="desktopTabSearch" class="hidden" type="button" role="tab" aria-selected="false"
-                        aria-controls="desktopContentSearch" tabindex="-1">
-                        搜索添加
+                <div class="queue-header-actions">
+                    <div role="tablist" aria-label="队列内容">
+                        <button id="desktopTabPlaylist" type="button" role="tab" aria-selected="true"
+                            aria-controls="desktopContentPlaylist">
+                            <i class="fas fa-list-ul" aria-hidden="true"></i>
+                            当前播放
+                        </button>
+                        <button id="desktopTabSearch" class="hidden" type="button" role="tab" aria-selected="false"
+                            aria-controls="desktopContentSearch" tabindex="-1">
+                            搜索添加
+                        </button>
+                    </div>
+                    <button id="clearPlaylistBtn" class="queue-clear-button" type="button"
+                        aria-label="清空播放队列" disabled>
+                        <i class="fas fa-times-circle" aria-hidden="true"></i>
+                        <span>清空</span>
                     </button>
                 </div>
             </div>
@@ -2040,6 +2065,10 @@
             <button id="mobileChartsBtn" type="button" aria-label="打开音乐发现"
                 aria-controls="mobileChartsSheet" aria-expanded="false">
                 <i class="fas fa-compass" aria-hidden="true"></i>
+            </button>
+            <button id="mobileThemeBtn" class="min-w-11 min-h-11" type="button"
+                aria-label="切换到明亮模式" aria-pressed="true">
+                <i class="fas fa-sun" aria-hidden="true"></i>
             </button>
             <!-- 设置按钮 (移动端) -->
             <button id="mobileSettingsBtn" aria-label="打开设置" class="absolute right-4 min-w-11 min-h-11 p-2 opacity-70 active:opacity-100 flex items-center justify-center">
@@ -2152,7 +2181,7 @@
                 </button>
 
                 <!-- Play/Pause (Circle) -->
-                <button id="mobilePlayBtn" aria-label="播放/暂停"
+                <button id="mobilePlayBtn" aria-label="播放" aria-pressed="false"
                     class="w-16 h-16 rounded-full bg-primary-color text-on-primary-color flex items-center justify-center shadow-lg active:scale-95 transition-transform text-2xl">
                     <i class="fas fa-play pl-1"></i>
                 </button>
@@ -2209,6 +2238,14 @@
 
                 <!-- Content: Playlist -->
                 <div id="sheetContentPlaylist" class="flex-1 overflow-y-auto p-0 custom-scrollbar">
+                    <div class="mobile-queue-toolbar">
+                        <span id="mobileQueueCount" aria-live="polite">0 首歌曲</span>
+                        <button id="mobileClearPlaylistBtn" class="queue-clear-button" type="button"
+                            aria-label="清空播放队列" disabled>
+                            <i class="fas fa-times-circle" aria-hidden="true"></i>
+                            <span>清空</span>
+                        </button>
+                    </div>
                     <div id="mobilePlaylistContainer" class="pb-20">
                         <!-- Items will be injected here -->
                         <div class="p-8 text-center opacity-50 text-sm">加载中...</div>
@@ -3003,8 +3040,11 @@
         let preloadedSongId = null;
 
         let audioContext, analyser, gainNode, isPlaying = false;
+        let playbackRequestVersion = 0;
+        let playbackTransitionPending = false;
         let playlist = [], currentIndex = -1, playMode = 'random';
         let parsedLyrics = [], activeLyricIndex = -1;
+        let queueUndoSnapshot = null;
 
         // 伪随机播放：打乱后的播放顺序索引
         let shuffledOrder = [];  // 打乱后的索引顺序
@@ -3294,6 +3334,7 @@
             // dom.playlistInfo = document.querySelector('.playlist-info');
             dom.albumArtWrapper = document.getElementById('albumArtWrapper');
             dom.html = document.documentElement;
+            initThemeControls();
             initAnimeProgressThumbs();
             chartsController = createChartsController({
                 onPlay: song => addChartSong(song, { playNow: true }),
@@ -4183,6 +4224,8 @@
             if (desktopTabSearch) {
                 desktopTabSearch.addEventListener('click', () => switchDesktopTab('search'));
             }
+            dom.clearPlaylistBtn?.addEventListener('click', clearPlaylist);
+            dom.mobileClearPlaylistBtn?.addEventListener('click', clearPlaylist);
 
             dom.playPauseBtn.addEventListener('click', togglePlayPause);
             dom.prevBtn.addEventListener('click', playPreviousSong);
@@ -4426,8 +4469,28 @@
             el.addEventListener('touchmove', () => clearTimeout(pressTimer));
         }
 
-        function showToast(msg, isError = false) {
+        let toastHideTimer = null;
+
+        function hideToast() {
             const toast = document.getElementById('copyToast');
+            if (!toast) return;
+            toast.classList.add('opacity-0', 'scale-90');
+            toast.classList.remove('opacity-100', 'scale-100', 'has-action');
+            const actionButton = document.getElementById('toastActionBtn');
+            if (actionButton) {
+                actionButton.classList.add('hidden');
+                actionButton.onclick = null;
+            }
+        }
+
+        function showToast(msg, isError = false, {
+            actionLabel = '',
+            onAction = null,
+            duration = 2600,
+        } = {}) {
+            const toast = document.getElementById('copyToast');
+            if (!toast) return;
+            window.clearTimeout(toastHideTimer);
             toast.querySelector('span').textContent = msg;
             toast.setAttribute('role', isError ? 'alert' : 'status');
             toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
@@ -4441,11 +4504,72 @@
                 icon.className = "fas fa-check-circle text-primary-color";
             }
 
-            // Auto hide
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'scale-90');
-                toast.classList.remove('opacity-100', 'scale-100');
-            }, 2000);
+            const actionButton = document.getElementById('toastActionBtn');
+            if (actionButton) {
+                actionButton.onclick = null;
+                if (actionLabel && typeof onAction === 'function') {
+                    actionButton.textContent = actionLabel;
+                    actionButton.classList.remove('hidden');
+                    toast.classList.add('has-action');
+                    actionButton.onclick = () => {
+                        hideToast();
+                        onAction();
+                    };
+                } else {
+                    actionButton.classList.add('hidden');
+                    toast.classList.remove('has-action');
+                }
+            }
+
+            toastHideTimer = window.setTimeout(hideToast, duration);
+        }
+
+        function applyTheme(theme, { persist = true, announce = false } = {}) {
+            const nextTheme = theme === 'light' ? 'light' : 'night';
+            const isNight = nextTheme === 'night';
+            document.documentElement.dataset.theme = nextTheme;
+            document.documentElement.style.colorScheme = isNight ? 'dark' : 'light';
+
+            if (persist) {
+                try {
+                    localStorage.setItem('cp_theme', nextTheme);
+                } catch (error) {
+                    console.warn('Theme preference could not be saved:', error);
+                }
+            }
+
+            const themeColor = document.querySelector('meta[name="theme-color"]');
+            themeColor?.setAttribute('content', isNight ? '#07070b' : '#eef4ff');
+
+            [dom.desktopThemeBtn, dom.mobileThemeBtn].filter(Boolean).forEach(button => {
+                button.setAttribute('aria-pressed', String(isNight));
+                button.setAttribute('aria-label', isNight ? '切换到明亮模式' : '切换到夜间模式');
+                button.title = isNight ? '切换到明亮模式' : '切换到夜间模式';
+                const icon = button.querySelector('i');
+                if (icon) icon.className = `fas ${isNight ? 'fa-sun' : 'fa-moon'}`;
+                const label = button.querySelector('span');
+                if (label) label.textContent = isNight ? '明亮' : '夜间';
+            });
+
+            if (announce) showToast(isNight ? '已切换到夜间模式' : '已切换到明亮模式');
+        }
+
+        function initThemeControls() {
+            const initialTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'night';
+            applyTheme(initialTheme, { persist: false });
+
+            const toggleTheme = () => {
+                const nextTheme = document.documentElement.dataset.theme === 'night' ? 'light' : 'night';
+                applyTheme(nextTheme, { announce: true });
+            };
+            dom.desktopThemeBtn?.addEventListener('click', toggleTheme);
+            dom.mobileThemeBtn?.addEventListener('click', toggleTheme);
+
+            window.addEventListener('storage', event => {
+                if (event.key === 'cp_theme' && (event.newValue === 'light' || event.newValue === 'night')) {
+                    applyTheme(event.newValue, { persist: false });
+                }
+            });
         }
 
         // ================= 设置 UI =================
@@ -4561,34 +4685,43 @@
             }, 300);
         }
 
-        function onPlayStart() {
-            isPlaying = true;
-            document.body.classList.add('is-audio-playing');
-            animeProgressThumbs.forEach(component => component.setPlaying(true));
-            setDesktopPlayIcon('pause');
-            dom.playPauseBtn.setAttribute('aria-label', '暂停');
-            dom.albumArtWrapper.classList.add('playing');
-            if (mobileUI) mobileUI.updatePlayState(true); // ★ Mobile
-            if (!audioContext) setupAudioContext();
-            else if (audioContext.state === 'suspended') audioContext.resume();
+        function syncPlaybackControls(playing = Boolean(audio.src && !audio.paused && !audio.ended)) {
+            isPlaying = Boolean(playing);
+            document.body.classList.toggle('is-audio-playing', isPlaying);
+            animeProgressThumbs.forEach(component => component.setPlaying(isPlaying));
+            setDesktopPlayIcon(isPlaying ? 'pause' : 'play');
+            dom.playPauseBtn?.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+            dom.playPauseBtn?.setAttribute('aria-pressed', String(isPlaying));
+            dom.albumArtWrapper?.classList.toggle('playing', isPlaying);
+            mobileUI?.updatePlayState(isPlaying);
 
             if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'playing';
+                navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
             }
         }
 
-        function onPlayPause() {
-            isPlaying = false;
-            document.body.classList.remove('is-audio-playing');
-            animeProgressThumbs.forEach(component => component.setPlaying(false));
-            setDesktopPlayIcon('play');
-            dom.playPauseBtn.setAttribute('aria-label', '播放');
-            dom.albumArtWrapper.classList.remove('playing');
-            if (mobileUI) mobileUI.updatePlayState(false); // ★ Mobile
-
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'paused';
+        function setPlaybackTransitionPending(pending) {
+            playbackTransitionPending = Boolean(pending);
+            [dom.playPauseBtn, mobileUI?.dom?.playBtn].filter(Boolean).forEach(button => {
+                button.toggleAttribute('aria-busy', playbackTransitionPending);
+            });
+            if (playbackTransitionPending) {
+                setDesktopPlayIcon('circle-notch');
+                const mobileIcon = mobileUI?.dom?.playBtn?.querySelector('i');
+                if (mobileIcon) mobileIcon.className = 'fas fa-circle-notch fa-spin';
             }
+        }
+
+        function onPlayStart() {
+            setPlaybackTransitionPending(false);
+            syncPlaybackControls(true);
+            if (!audioContext) setupAudioContext();
+            else if (audioContext.state === 'suspended') audioContext.resume();
+        }
+
+        function onPlayPause() {
+            setPlaybackTransitionPending(false);
+            syncPlaybackControls(false);
         }
 
         function setDesktopPlayIcon(iconName) {
@@ -4629,8 +4762,7 @@
             if (hasSong) {
                 if (dom.currentTime?.textContent === '--:--') dom.currentTime.textContent = '0:00';
                 if (dom.totalTime?.textContent === '--:--') dom.totalTime.textContent = '0:00';
-                setDesktopPlayIcon(isPlaying ? 'pause' : 'play');
-                dom.playPauseBtn?.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+                syncPlaybackControls();
                 return;
             }
 
@@ -4646,14 +4778,16 @@
             resetBufferedProgress();
             setDesktopPlayIcon('list-ul');
             dom.playPauseBtn?.setAttribute('aria-label', '打开播放队列');
+            dom.playPauseBtn?.setAttribute('aria-pressed', 'false');
         }
 
-        function togglePlayPause() {
+        async function togglePlayPause() {
             if (!currentPlaybackSong?.id) {
                 switchDesktopTab('playlist');
                 togglePlaylistPanel(true);
                 return;
             }
+            if (playbackTransitionPending) return;
             if (!audio.src || audio.readyState === 0) {
                 // 如果还未加载过歌曲，直接播放播放列表中的当前或第一首歌
                 if (playlist.length) {
@@ -4666,8 +4800,28 @@
                     }
                     playSongAtIndex(currentIndex);
                 }
-            } else {
-                isPlaying ? audio.pause() : audio.play();
+                return;
+            }
+
+            const requestVersion = playbackRequestVersion + 1;
+            playbackRequestVersion = requestVersion;
+            const shouldPlay = audio.paused || audio.ended;
+            setPlaybackTransitionPending(true);
+
+            try {
+                if (shouldPlay) {
+                    await audio.play();
+                } else {
+                    audio.pause();
+                }
+            } catch (error) {
+                console.error('Playback toggle failed:', error);
+                showToast('播放失败，请检查网络后重试', true);
+            } finally {
+                if (requestVersion === playbackRequestVersion) {
+                    setPlaybackTransitionPending(false);
+                    syncPlaybackControls();
+                }
             }
         }
 
@@ -4719,8 +4873,7 @@
                         renderAllPlaylistItems();
                         playSongAtIndex(targetIndex);
 
-                        dom.searchResults.classList.add('hidden');
-                        dom.searchInput.value = '';
+                        setSearchStatus(dom.searchResults, `已添加并播放: ${newSong.name}`);
                         showToast(`已添加并播放: ${newSong.name}`);
                     } else {
                         throw new Error('无效的歌曲ID');
@@ -4823,8 +4976,6 @@
                             renderAllPlaylistItems();
                             playSongAtIndex(targetIndex);
 
-                            dom.searchResults.classList.add('hidden');
-                            dom.searchInput.value = '';
                             showToast(`已添加并播放: ${newSong.name}`);
                         };
                         dom.searchResults.appendChild(div);
@@ -5715,6 +5866,12 @@
                     await audio.play();
                 } catch (e) {
                     console.error("Auto-play blocked:", e);
+                    syncPlaybackControls(false);
+                    if (e?.name === 'NotAllowedError') {
+                        showToast('歌曲已加载，请点击播放键继续');
+                    } else {
+                        throw e;
+                    }
                 }
 
                 // Show Source
@@ -5786,6 +5943,8 @@
 
             } catch (e) {
                 console.error(e);
+                setPlaybackTransitionPending(false);
+                syncPlaybackControls(false);
                 showToast('无法播放该歌曲 (版权限制或接口无响应)', true);
                 dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">播放失败</div>';
                 // ★ Fix: 错误时也要关闭移动端播放列表弹窗，防止卡住
@@ -6532,12 +6691,89 @@
         }
 
         // ================= 桌面端虚拟滚动 =================
-        const VS_ITEM_H = 52;       // 每项高度 (px)
+        const VS_ITEM_H = 64;       // 每项高度 (px)，为删除按钮保留 44px 触控区
         const VS_BUFFER = 30;       // 上下各多渲染30项
         let vsDisplayOrder = [];     // 当前显示顺序
         let vsRenderedRange = { start: -1, end: -1 };  // 当前已渲染范围
         let vsScrollRAF = null;      // 防抖 requestAnimationFrame
         let vsNodeMap = new Map();   // displayIndex -> DOM node
+
+        function syncQueueActions() {
+            const count = playlist.length;
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${count}首)`;
+            if (dom.mobileQueueCount) dom.mobileQueueCount.textContent = `${count} 首歌曲`;
+            [dom.clearPlaylistBtn, dom.mobileClearPlaylistBtn].filter(Boolean).forEach(button => {
+                button.disabled = count === 0;
+            });
+
+            const transportDisabled = count === 0 || !currentPlaybackSong?.id;
+            if (dom.prevBtn) dom.prevBtn.disabled = transportDisabled;
+            if (dom.nextBtn) dom.nextBtn.disabled = transportDisabled;
+            if (mobileUI?.dom?.prevBtn) mobileUI.dom.prevBtn.disabled = transportDisabled;
+            if (mobileUI?.dom?.nextBtn) mobileUI.dom.nextBtn.disabled = transportDisabled;
+        }
+
+        function queueSnapshot() {
+            return {
+                songs: playlist.slice(),
+                currentSongId: currentPlaybackSong?.id ?? null,
+                currentIndex,
+            };
+        }
+
+        function syncQueueAfterMutation() {
+            window.playlist = playlist;
+            playlistTotalCount = playlist.length;
+            shuffledOrder = playlist.map((_, index) => index);
+            if (playMode === 'random' && playlist.length) shufflePlaylist();
+            setupVirtualScroll();
+            mobileUI?.loadPlaylist();
+            syncQueueActions();
+        }
+
+        function restoreQueueSnapshot(snapshot) {
+            if (!snapshot?.songs?.length) return;
+            playlist = snapshot.songs.slice();
+            const activeSongIndex = snapshot.currentSongId === null
+                ? -1
+                : playlist.findIndex(song => String(song?.id ?? song) === String(snapshot.currentSongId));
+            currentIndex = activeSongIndex >= 0 ? activeSongIndex : snapshot.currentIndex;
+            queueUndoSnapshot = null;
+            syncQueueAfterMutation();
+            highlightCurrentSong();
+            showToast(`已恢复 ${playlist.length} 首歌曲`);
+        }
+
+        function showQueueUndo(message, snapshot) {
+            queueUndoSnapshot = snapshot;
+            showToast(message, false, {
+                actionLabel: '撤销',
+                duration: 12000,
+                onAction: () => restoreQueueSnapshot(queueUndoSnapshot),
+            });
+        }
+
+        function removeSongFromPlaylist(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= playlist.length) return;
+            const snapshot = queueSnapshot();
+            const [removedSong] = playlist.splice(index, 1);
+            const activeSongId = currentPlaybackSong?.id;
+            currentIndex = activeSongId == null
+                ? -1
+                : playlist.findIndex(song => String(song?.id ?? song) === String(activeSongId));
+            syncQueueAfterMutation();
+            showQueueUndo(`已从队列移除《${removedSong?.name || `歌曲 ${removedSong?.id ?? removedSong}`}》`, snapshot);
+        }
+
+        function clearPlaylist() {
+            if (!playlist.length) return;
+            const snapshot = queueSnapshot();
+            const removedCount = playlist.length;
+            playlist = [];
+            currentIndex = -1;
+            syncQueueAfterMutation();
+            showQueueUndo(`已清空 ${removedCount} 首歌曲`, snapshot);
+        }
 
         function getDisplayOrder() {
             if (playMode === 'random' && shuffledOrder.length === playlist.length) {
@@ -6550,6 +6786,7 @@
             vsDisplayOrder = getDisplayOrder();
             vsRenderedRange = { start: -1, end: -1 };
             vsNodeMap.clear();
+            syncQueueActions();
 
             if (!playlist.length) {
                 const emptyState = document.createElement('div');
@@ -6590,6 +6827,9 @@
             div.dataset.idx = actualIndex;
             div.dataset.vsIdx = i;
             div.style.cssText = `position:absolute;top:${i * VS_ITEM_H}px;left:0;right:0;height:${VS_ITEM_H}px;`;
+            div.setAttribute('role', 'button');
+            div.setAttribute('tabindex', '0');
+            div.setAttribute('aria-label', `播放《${songName}》`);
 
             if (actualIndex === currentIndex) {
                 div.classList.add('bg-primary-color/20', 'text-primary-color', 'font-bold', 'border-l-4', 'border-primary-color', 'pl-2', 'playing-item', 'shadow-md');
@@ -6627,14 +6867,32 @@
             infoDiv.appendChild(titleDiv);
             infoDiv.appendChild(artistDiv);
 
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'queue-remove-button';
+            removeButton.setAttribute('aria-label', `从播放队列删除《${songName}》`);
+            removeButton.title = '从队列删除';
+            removeButton.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
+            removeButton.addEventListener('click', event => {
+                event.stopPropagation();
+                removeSongFromPlaylist(actualIndex);
+            });
+
             div.appendChild(numSpan);
             div.appendChild(coverDiv);
             div.appendChild(infoDiv);
+            div.appendChild(removeButton);
 
             div.onclick = () => {
                 currentIndex = actualIndex;
                 loadAndPlaySong(songId);
             };
+            div.addEventListener('keydown', event => {
+                if (event.target !== div) return;
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                div.click();
+            });
             return div;
         }
 
@@ -6766,9 +7024,17 @@
         }
 
         function handleSongEnd() {
+            if (!playlist.length) {
+                setPlaybackTransitionPending(false);
+                syncPlaybackControls(false);
+                return;
+            }
             if (playMode === 'single') {
                 audio.currentTime = 0;
-                audio.play();
+                audio.play().catch(error => {
+                    console.error('Single-track replay failed:', error);
+                    syncPlaybackControls(false);
+                });
             } else {
                 playNextSong();
             }
@@ -7346,6 +7612,7 @@
             loadPlaylist() { // Virtual scroll for mobile playlist (diff-based)
                 try {
                     if (!window.playlist || !Array.isArray(window.playlist)) return;
+                    syncQueueActions();
 
                     const container = this.dom.playlistContainer;
                     const scrollParent = container.parentElement; // sheetContentPlaylist
@@ -7367,7 +7634,7 @@
                         return;
                     }
 
-                    const MH = 58;  // item height
+                    const MH = 64;  // item height，包含 44px 删除按钮
                     const MB = 20;  // buffer
                     const totalHeight = displayOrder.length * MH;
 
@@ -7385,23 +7652,29 @@
                         const actualIndex = displayOrder[i];
                         const song = window.playlist[actualIndex];
                         const isPlaying = actualIndex === currentIndex;
-                        const textClass = isPlaying ? 'text-primary-color' : 'text-white/90';
+                        const textClass = isPlaying ? 'text-primary-color' : '';
                         const coverSrc = song.cover || '';
 
                         const div = document.createElement('div');
-                        div.className = `flex items-center gap-3 px-3 rounded-xl cursor-pointer border-b border-white/5 ${isPlaying ? 'bg-white/10' : ''}`;
+                        div.className = `mobile-queue-item flex items-center gap-3 px-3 rounded-xl cursor-pointer ${isPlaying ? 'is-playing' : ''}`;
                         div.style.cssText = `position:absolute;top:${i * MH}px;left:0;right:0;height:${MH}px;display:flex;align-items:center;`;
                         div.dataset.mvsIdx = i;
+                        div.setAttribute('role', 'button');
+                        div.setAttribute('tabindex', '0');
+                        div.setAttribute('aria-label', `播放《${song.name || '未知歌曲'}》`);
                         if (isPlaying) div.id = 'mobile-playing-item';
 
                         div.innerHTML = `
                             <span data-song-index class="text-xs font-mono opacity-50 w-6 text-center"></span>
                             <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none" loading="lazy" crossorigin="anonymous">
                             <div class="flex-1 min-w-0">
-                                <div data-song-title class="font-bold truncate text-sm ${textClass}"></div>
+                                <div data-song-title class="mobile-queue-title font-bold truncate text-sm ${textClass}"></div>
                                 <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
-                            <span class="opacity-40 p-2"><i class="fas ${isPlaying ? 'fa-volume-up' : 'fa-play'} text-xs"></i></span>
+                            <button data-remove-song class="queue-remove-button" type="button"
+                                aria-label="从播放队列删除歌曲" title="从队列删除">
+                                <i class="fas fa-times" aria-hidden="true"></i>
+                            </button>
                         `;
                         div.querySelector('[data-song-index]').textContent = String(i + 1);
                         div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
@@ -7410,6 +7683,17 @@
                             playSongAtIndex(actualIndex);
                             self.closeSheet();
                         };
+                        div.addEventListener('keydown', event => {
+                            if (event.target !== div || (event.key !== 'Enter' && event.key !== ' ')) return;
+                            event.preventDefault();
+                            div.click();
+                        });
+                        const removeButton = div.querySelector('[data-remove-song]');
+                        removeButton?.setAttribute('aria-label', `从播放队列删除《${song.name || '未知歌曲'}》`);
+                        removeButton?.addEventListener('click', event => {
+                            event.stopPropagation();
+                            removeSongFromPlaylist(actualIndex);
+                        });
 
                         if (coverSrc) {
                             const img = div.querySelector('img');
@@ -7421,7 +7705,7 @@
                     }
 
                     function mRender(force) {
-                        const st = scrollParent.scrollTop;
+                        const st = Math.max(0, scrollParent.scrollTop - container.offsetTop);
                         const vh = scrollParent.clientHeight;
 
                         let s = Math.max(0, Math.floor(st / MH) - MB);
@@ -7479,7 +7763,10 @@
                     if (playingPos !== -1) {
                         requestAnimationFrame(() => {
                             const targetTop = playingPos * MH - scrollParent.clientHeight / 2 + MH / 2;
-                            scrollParent.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+                            scrollParent.scrollTo({
+                                top: Math.max(0, targetTop + container.offsetTop),
+                                behavior: 'smooth'
+                            });
                         });
                     }
                 } catch (e) {
@@ -7525,9 +7812,8 @@
                             // 播放
                             window.playSongAtIndex(targetIndex);
 
-                            this.closeSheet();
+                            setSearchStatus(container, `已添加并播放: ${newSong.name}`);
                             showToast(`已添加并播放: ${newSong.name}`);
-                            if (this.dom.searchInput) this.dom.searchInput.value = '';
                         } else {
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
@@ -7600,7 +7886,6 @@
                                 window.playSongAtIndex(targetIndex);
                             }
 
-                            this.closeSheet();
                             showToast(`已添加并播放: ${song.name}`);
                         };
                         container.appendChild(div);
@@ -7702,6 +7987,8 @@
                 if (this.dom.vinyl) {
                     this.dom.vinyl.classList.toggle('playing', isPlaying);
                 }
+                this.dom.playBtn?.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
+                this.dom.playBtn?.setAttribute('aria-pressed', String(Boolean(isPlaying)));
                 const icon = this.dom.playBtn?.querySelector('i');
                 if (icon) icon.className = isPlaying ? 'fas fa-pause pl-0' : 'fas fa-play pl-1';
             }
@@ -7918,9 +8205,7 @@
         class LyricsCanvasRenderer {
             constructor(canvasId) {
                 this.canvas = document.getElementById(canvasId);
-                if (!this.canvas) return;
-
-                this.ctx = this.canvas.getContext('2d');
+                this.ctx = null;
                 this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
                 this.lines = [];
                 this.activeIndex = -1;
@@ -7932,6 +8217,12 @@
                 this.lastInteractionTime = 0;
                 this.isAnimating = false;
                 this.animationFrame = null;
+                this.width = 0;
+                this.height = 0;
+
+                // 当前版本使用 DOM 歌词；没有兼容 Canvas 时保持为空渲染器。
+                if (!this.canvas) return;
+                this.ctx = this.canvas.getContext('2d');
 
                 this.resize();
                 this.bindEvents();

@@ -5,8 +5,8 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#dceeff",
-  "theme_color": "#dceeff",
+  "background_color": "#07070b",
+  "theme_color": "#07070b",
   "orientation": "any",
   "categories": ["music", "entertainment"],
   "icons": [

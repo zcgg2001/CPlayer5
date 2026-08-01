@@ -468,6 +468,53 @@ class StartupBehaviorTests(unittest.TestCase):
             sync.index("if (continuousRendering)"),
         )
 
+    def test_play_pause_uses_the_audio_element_as_the_single_source_of_truth(self):
+        toggle = function_block(
+            self.source,
+            "async function togglePlayPause()",
+            "function setSearchStatus(",
+        )
+        sync = function_block(
+            self.source,
+            "function syncPlaybackControls(",
+            "function setDesktopPlayIcon(",
+        )
+        self.assertIn("const shouldPlay = audio.paused || audio.ended;", toggle)
+        self.assertIn("if (playbackTransitionPending) return;", toggle)
+        self.assertIn("await audio.play();", toggle)
+        self.assertIn("audio.pause();", toggle)
+        self.assertNotIn("isPlaying ? audio.pause() : audio.play()", toggle)
+        self.assertIn("!audio.paused && !audio.ended", sync)
+        self.assertIn("aria-pressed", sync)
+        self.assertIn("setPlaybackTransitionPending(false);", self.source)
+
+    def test_empty_queue_stops_end_of_track_replay(self):
+        ended = function_block(
+            self.source,
+            "function handleSongEnd()",
+            "function togglePlayMode()",
+        )
+        self.assertIn("if (!playlist.length)", ended)
+        self.assertIn("syncPlaybackControls(false);", ended)
+        self.assertIn("audio.play().catch(", ended)
+
+    def test_optional_canvas_lyrics_renderer_has_a_safe_empty_state(self):
+        renderer = function_block(
+            self.source,
+            "class LyricsCanvasRenderer",
+            "// ★ 全局实例",
+        )
+        self.assertLess(
+            renderer.index("this.lines = [];"),
+            renderer.index("if (!this.canvas) return;"),
+        )
+        self.assertLess(
+            renderer.index("this.isAnimating = false;"),
+            renderer.index("if (!this.canvas) return;"),
+        )
+        self.assertIn("this.width = 0;", renderer)
+        self.assertIn("this.height = 0;", renderer)
+
 
 if __name__ == "__main__":
     unittest.main()
