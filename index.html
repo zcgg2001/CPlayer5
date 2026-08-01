@@ -4873,8 +4873,7 @@
                         renderAllPlaylistItems();
                         playSongAtIndex(targetIndex);
 
-                        dom.searchResults.classList.add('hidden');
-                        dom.searchInput.value = '';
+                        setSearchStatus(dom.searchResults, `已添加并播放: ${newSong.name}`);
                         showToast(`已添加并播放: ${newSong.name}`);
                     } else {
                         throw new Error('无效的歌曲ID');
@@ -4977,8 +4976,6 @@
                             renderAllPlaylistItems();
                             playSongAtIndex(targetIndex);
 
-                            dom.searchResults.classList.add('hidden');
-                            dom.searchInput.value = '';
                             showToast(`已添加并播放: ${newSong.name}`);
                         };
                         dom.searchResults.appendChild(div);
@@ -7815,9 +7812,8 @@
                             // 播放
                             window.playSongAtIndex(targetIndex);
 
-                            this.closeSheet();
+                            setSearchStatus(container, `已添加并播放: ${newSong.name}`);
                             showToast(`已添加并播放: ${newSong.name}`);
-                            if (this.dom.searchInput) this.dom.searchInput.value = '';
                         } else {
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
@@ -7890,7 +7886,6 @@
                                 window.playSongAtIndex(targetIndex);
                             }
 
-                            this.closeSheet();
                             showToast(`已添加并播放: ${song.name}`);
                         };
                         container.appendChild(div);
