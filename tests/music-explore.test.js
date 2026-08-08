@@ -84,13 +84,13 @@ test('aggregates ChKSz chart tracks into ranked artist cards', () => {
   ], { scope: 'trending' });
 
   assert.equal(result.collection.key, 'trending');
-  assert.equal(result.collection.sourceName, 'ChKSz 国内榜单 · 直连模式');
+  assert.equal(result.collection.sourceName, 'ChKSz 国内榜单 · 安全代理');
   assert.equal(result.items[0].name, '歌手甲');
   assert.equal(result.items[0].chartCount, 2);
   assert.equal(result.items[0].tracks.length, 2);
 });
 
-test('uses direct ChKSz feeds when the page is opened from a local file', async () => {
+test('keeps the API key behind the secure proxy when opened from a local file', async () => {
   const requestedUrls = [];
   const payload = {
     data: {
@@ -121,7 +121,7 @@ test('uses direct ChKSz feeds when the page is opened from a local file', async 
 
   assert.equal(result.items[0].name, '歌手甲');
   assert.equal(requestedUrls.length, 2);
-  assert.ok(requestedUrls.every(url => url.startsWith('https://api.chksz.top/api/163_playlist')));
+  assert.ok(requestedUrls.every(url => url.startsWith('/api/v1/music/playlist')));
   assert.ok(requestedUrls.every(url => !url.includes('/api/v1/artists')));
 });
 

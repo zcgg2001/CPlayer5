@@ -30,7 +30,7 @@ test('normalizes direct playlist responses for local fallback', () => {
   assert.equal(payload.items[0].artist, '歌手');
 });
 
-test('falls back to ChKSz when the same-origin endpoint returns HTML with status 200', async () => {
+test('falls back to the secure music proxy when the chart endpoint returns HTML', async () => {
   const requests = [];
   const fetchImpl = async url => {
     requests.push(String(url));
@@ -62,7 +62,7 @@ test('falls back to ChKSz when the same-origin endpoint returns HTML with status
   const payload = await fetchChartPayload(fetchImpl, 'hot');
 
   assert.equal(requests.length, 2);
-  assert.match(requests[1], /^https:\/\/api\.chksz\.top\/api\/163_playlist\?/);
+  assert.match(requests[1], /^\/api\/v1\/music\/playlist\?/);
   assert.equal(payload.chart.provider, 'chksz');
   assert.equal(payload.items[0].name, '降级成功');
 });

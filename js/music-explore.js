@@ -397,7 +397,7 @@ export function normalizeDirectArtistsPayload(
       key: resolvedScope,
       name: ARTIST_SCOPES[resolvedScope],
       description: definition.description,
-      sourceName: 'ChKSz 国内榜单 · 直连模式',
+      sourceName: 'ChKSz 国内榜单 · 安全代理',
       artistCount: items.length,
       fetchedAt,
     },
@@ -405,12 +405,11 @@ export function normalizeDirectArtistsPayload(
   });
 }
 
-async function fetchDirectArtists(fetchImpl, scope) {
+async function fetchProxyArtists(fetchImpl, scope) {
   const chartKeys = ARTIST_SCOPE_FEEDS[scope].chartKeys;
   const results = await Promise.allSettled(chartKeys.map(async chartKey => {
-    const url = new URL('https://api.chksz.top/api/163_playlist');
-    url.searchParams.set('id', CHKSZ_CHART_IDS[chartKey]);
-    const payload = await requestJson(url.href, fetchImpl);
+    const url = `/api/v1/music/playlist?id=${encodeURIComponent(CHKSZ_CHART_IDS[chartKey])}`;
+    const payload = await requestJson(url, fetchImpl);
     return normalizeDirectChartPayload(payload, chartKey);
   }));
   const charts = results
@@ -444,7 +443,7 @@ export async function fetchArtistsPayload(
   }
 
   try {
-    return await fetchDirectArtists(fetchImpl, resolvedScope);
+    return await fetchProxyArtists(fetchImpl, resolvedScope);
   } catch (error) {
     throw endpointError || error;
   }

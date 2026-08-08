@@ -1,5 +1,4 @@
 const CHKSZ_PRIMARY_API_ORIGIN = 'https://api.chksz.com/api';
-const CHKSZ_FALLBACK_API_ORIGIN = 'https://api.chksz.top/api';
 const BILIBILI_SEARCH_ORIGIN = 'https://api.bilibili.com/x/web-interface/search/type';
 
 export const CHART_DEFINITIONS = Object.freeze({
@@ -255,7 +254,7 @@ export function chartProviderUrl(
   chartKey,
   {
     apiKey = '',
-    origin = apiKey ? CHKSZ_PRIMARY_API_ORIGIN : CHKSZ_FALLBACK_API_ORIGIN,
+    origin = CHKSZ_PRIMARY_API_ORIGIN,
   } = {},
 ) {
   const resolvedKey = resolveChartKey(chartKey);
@@ -266,15 +265,10 @@ export function chartProviderUrl(
 }
 
 export function chartProviderUrls(chartKey, apiKey = '') {
-  const urls = [];
-  if (text(apiKey)) {
-    urls.push(chartProviderUrl(chartKey, {
-      apiKey: text(apiKey),
-      origin: CHKSZ_PRIMARY_API_ORIGIN,
-    }));
-  }
-  urls.push(chartProviderUrl(chartKey, { origin: CHKSZ_FALLBACK_API_ORIGIN }));
-  return urls;
+  return [chartProviderUrl(chartKey, {
+    apiKey: text(apiKey),
+    origin: CHKSZ_PRIMARY_API_ORIGIN,
+  })];
 }
 
 export function normalizeArtistsFromCharts(
@@ -510,6 +504,16 @@ export async function handleChartsRequest(request, env = {}) {
   const chartKey = resolveChartKey(url.searchParams.get('chart'));
   const limit = resolveChartLimit(url.searchParams.get('limit'));
   const fetchImpl = typeof env.MUSIC_FETCH === 'function' ? env.MUSIC_FETCH : globalThis.fetch;
+  const apiKey = text(env.CHKSZ_API_KEY);
+
+  if (!apiKey) {
+    return jsonResponse({
+      error: {
+        code: 'api_key_missing',
+        message: '排行榜服务尚未配置，请联系站点管理员',
+      },
+    }, { status: 503, method: request.method });
+  }
 
   if (typeof fetchImpl !== 'function') {
     return jsonResponse({
@@ -523,7 +527,7 @@ export async function handleChartsRequest(request, env = {}) {
   try {
     const payload = await requestChartPayload(chartKey, {
       fetchImpl,
-      apiKey: text(env.CHKSZ_API_KEY),
+      apiKey,
     });
     const normalized = normalizeChkszChartPayload(payload, { chartKey, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });
@@ -544,6 +548,16 @@ export async function handleArtistsRequest(request, env = {}) {
   const scope = resolveArtistScope(url.searchParams.get('scope'));
   const limit = resolveContentLimit(url.searchParams.get('limit'), 24, MAX_ARTIST_LIMIT);
   const fetchImpl = typeof env.MUSIC_FETCH === 'function' ? env.MUSIC_FETCH : globalThis.fetch;
+  const apiKey = text(env.CHKSZ_API_KEY);
+
+  if (!apiKey) {
+    return jsonResponse({
+      error: {
+        code: 'api_key_missing',
+        message: '歌手中心尚未配置，请联系站点管理员',
+      },
+    }, { status: 503, method: request.method });
+  }
 
   if (typeof fetchImpl !== 'function') {
     return jsonResponse({
@@ -558,7 +572,7 @@ export async function handleArtistsRequest(request, env = {}) {
     const charts = await fetchNormalizedCharts(
       ARTIST_SCOPES[scope].chartKeys,
       fetchImpl,
-      text(env.CHKSZ_API_KEY),
+      apiKey,
     );
     const normalized = normalizeArtistsFromCharts(charts, { scope, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });

@@ -113,15 +113,14 @@ test('normalizes provider playlists into the chart contract', () => {
 test('builds provider URLs from allowlisted chart definitions', () => {
   assert.equal(
     chartProviderUrl('original'),
-    `https://api.chksz.top/api/163_playlist?id=${CHART_DEFINITIONS.original.id}`,
+    `https://api.chksz.com/api/163_playlist?id=${CHART_DEFINITIONS.original.id}`,
   );
   assert.equal(
     chartProviderUrl('not-allowed'),
-    `https://api.chksz.top/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}`,
+    `https://api.chksz.com/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}`,
   );
   assert.deepEqual(chartProviderUrls('hot', 'secret-key'), [
     `https://api.chksz.com/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}&apikey=secret-key`,
-    `https://api.chksz.top/api/163_playlist?id=${CHART_DEFINITIONS.hot.id}`,
   ]);
 });
 
@@ -164,6 +163,7 @@ test('serves normalized charts with cache and security headers', async () => {
   const response = await handleChartsRequest(
     new Request('https://player.example/api/v1/charts?chart=new&limit=1'),
     {
+      CHKSZ_API_KEY: 'private-key',
       async MUSIC_FETCH(url) {
         requestedUrl = url;
         return Response.json(providerPayload());
@@ -175,7 +175,7 @@ test('serves normalized charts with cache and security headers', async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get('cache-control'), /stale-while-revalidate/);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-  assert.equal(requestedUrl, chartProviderUrl('new'));
+  assert.equal(requestedUrl, chartProviderUrl('new', { apiKey: 'private-key' }));
   assert.equal(payload.chart.key, 'new');
   assert.equal(payload.items.length, 1);
 });
@@ -185,6 +185,7 @@ test('returns a stable user-facing error when the provider fails', async () => {
   const response = await handleChartsRequest(
     new Request('https://player.example/api/v1/charts'),
     {
+      CHKSZ_API_KEY: 'private-key',
       async MUSIC_FETCH() {
         return new Response('Unavailable', { status: 503 });
       },
@@ -198,7 +199,7 @@ test('returns a stable user-facing error when the provider fails', async () => {
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
-test('prefers authenticated chksz.com and falls back to chksz.top', async () => {
+test('uses only authenticated chksz.com and never retries the retired host', async () => {
   const requestedUrls = [];
   const response = await handleChartsRequest(
     new Request('https://player.example/api/v1/charts?chart=hot&limit=1'),
@@ -206,18 +207,15 @@ test('prefers authenticated chksz.com and falls back to chksz.top', async () => 
       CHKSZ_API_KEY: 'private-key',
       async MUSIC_FETCH(url) {
         requestedUrls.push(url);
-        if (url.startsWith('https://api.chksz.com/')) {
-          return Response.json({ code: 401 }, { status: 401 });
-        }
-        return Response.json(providerPayload());
+        return Response.json({ code: 401 }, { status: 401 });
       },
     },
   );
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 502);
+  assert.equal(requestedUrls.length, 1);
   assert.match(requestedUrls[0], /^https:\/\/api\.chksz\.com\/api\//);
   assert.match(requestedUrls[0], /apikey=private-key/);
-  assert.match(requestedUrls[1], /^https:\/\/api\.chksz\.top\/api\//);
 });
 
 
@@ -226,6 +224,7 @@ test('serves artists aggregated from the selected chart scope', async () => {
   const response = await handleArtistsRequest(
     new Request('https://player.example/api/v1/artists?scope=new&limit=2'),
     {
+      CHKSZ_API_KEY: 'private-key',
       async MUSIC_FETCH(url) {
         requestedUrls.push(url);
         return Response.json(providerPayload());
@@ -235,7 +234,7 @@ test('serves artists aggregated from the selected chart scope', async () => {
   const payload = await response.json();
 
   assert.equal(response.status, 200);
-  assert.deepEqual(requestedUrls, [chartProviderUrl('new')]);
+  assert.deepEqual(requestedUrls, [chartProviderUrl('new', { apiKey: 'private-key' })]);
   assert.equal(payload.collection.key, 'new');
   assert.equal(payload.items.length, 2);
   assert.equal(payload.items[0].tracks[0].playbackId, '101');

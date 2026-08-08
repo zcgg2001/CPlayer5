@@ -230,8 +230,8 @@
             btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>解析获取中...';
 
             try {
-                // 使用原播放器中的 ChKSz API 获取数据
-                const url = `https://api.chksz.top/api/163_playlist?id=${listId}`;
+                // 通过站点服务端代理获取数据，避免在浏览器中暴露 API 密钥
+                const url = `/api/v1/music/playlist?id=${encodeURIComponent(listId)}`;
                 const json = await requestJson(url);
                 const tracks = normalizePlaylistPayload(json).map(song => ({
                     id: song.id,
