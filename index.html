@@ -3072,6 +3072,7 @@
                 if (song?.provider === 'ors' && song.platform) {
                     return musicSourceOption(`ors-${song.platform}`);
                 }
+                if (song && !song.provider) return musicSourceOption('chksz');
                 if (
                     song?.provider === 'chksz'
                     || ['ChKSz', 'id_search', 'netease'].includes(String(song?.source || ''))
