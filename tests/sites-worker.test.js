@@ -164,6 +164,102 @@ test('maps every public music route to its authenticated provider endpoint', asy
 });
 
 
+test('proxies ORS search requests with the selected platform', async () => {
+  const { env, requestedPaths } = createEnv();
+  const requestedUrls = [];
+  env.MUSIC_FETCH = async url => {
+    requestedUrls.push(new URL(url));
+    return Response.json([{ id: '0039MnYb0qxYhV', name: '晴天' }]);
+  };
+
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/search?source=ors&platform=qq&keyword=%E6%99%B4%E5%A4%A9&limit=10'),
+    env,
+  );
+  const payload = await response.json();
+  const providerUrl = requestedUrls[0];
+
+  assert.equal(response.status, 200);
+  assert.equal(providerUrl.origin, 'https://music.ors.de5.net');
+  assert.equal(providerUrl.pathname, '/search');
+  assert.equal(providerUrl.searchParams.get('source'), 'qq');
+  assert.equal(providerUrl.searchParams.get('keyword'), '晴天');
+  assert.equal(providerUrl.searchParams.get('limit'), '10');
+  assert.equal(payload[0].id, '0039MnYb0qxYhV');
+  assert.deepEqual(requestedPaths, []);
+});
+
+
+test('proxies ORS parse requests and normalizes relative audio URLs', async () => {
+  const { env, requestedPaths } = createEnv();
+  const requestedUrls = [];
+  env.MUSIC_FETCH = async url => {
+    requestedUrls.push(new URL(url));
+    return Response.json({
+      url: '/play/qq/0039MnYb0qxYhV.flac',
+      picture: 'data:image/png;base64,AAAA',
+      lrc: '[00:01.00]晴天',
+      ext: 'flac',
+    });
+  };
+
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/song?source=ors&platform=qq&id=0039MnYb0qxYhV&level=lossless&name=%E6%99%B4%E5%A4%A9&singer=%E5%91%A8%E6%9D%B0%E4%BC%A6'),
+    env,
+  );
+  const payload = await response.json();
+  const providerUrl = requestedUrls[0];
+
+  assert.equal(response.status, 200);
+  assert.equal(providerUrl.pathname, '/lx/api/');
+  assert.equal(providerUrl.searchParams.get('source'), 'qq');
+  assert.equal(providerUrl.searchParams.get('songmid'), '0039MnYb0qxYhV');
+  assert.equal(providerUrl.searchParams.get('quality'), 'flac');
+  assert.equal(providerUrl.searchParams.get('name'), '晴天');
+  assert.equal(providerUrl.searchParams.get('singer'), '周杰伦');
+  assert.equal(payload.url, 'https://music.ors.de5.net/play/qq/0039MnYb0qxYhV.flac');
+  assert.deepEqual(requestedPaths, []);
+});
+
+
+test('wraps ORS plain-text lyrics in a stable response shape', async () => {
+  const { env } = createEnv();
+  let requestedUrl;
+  env.MUSIC_FETCH = async url => {
+    requestedUrl = new URL(url);
+    return new Response('[00:01.00]晴天', {
+      status: 200,
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    });
+  };
+
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/lyric?source=ors&platform=qq&url=https%3A%2F%2Fmusic.ors.de5.net%2Fplay%2Fqq%2Fsong'),
+    env,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(payload, { lrc: '[00:01.00]晴天' });
+  assert.equal(requestedUrl.pathname, '/lyric');
+  assert.equal(requestedUrl.searchParams.get('url'), 'https://music.ors.de5.net/play/qq/song');
+});
+
+
+test('rejects ORS playlist requests with an explicit unsupported-source error', async () => {
+  const { env } = createEnv();
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/playlist?source=ors&id=3778678'),
+    env,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.equal(payload.error.code, 'invalid_request');
+  assert.match(payload.error.message, /不支持歌单/);
+});
+
+
 test('fails safely when the music API key is missing', async () => {
   const { env, requestedPaths } = createEnv();
   const response = await worker.fetch(
