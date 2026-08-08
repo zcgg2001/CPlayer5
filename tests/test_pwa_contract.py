@@ -79,7 +79,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v27';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v28';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",
@@ -119,7 +119,7 @@ class PwaContractTests(unittest.TestCase):
             "css/music-explore.css?v=22",
             "css/art-direction.css?v=27",
             "js/app-shell.js?v=22",
-            "js/charts-page.js?v=23",
-            "js/music-explore.js?v=22",
+            "js/charts-page.js?v=28",
+            "js/music-explore.js?v=28",
         ):
             self.assertIn(versioned_asset, index_source)

@@ -50,12 +50,6 @@ test('classifies API, navigation and local asset requests', () => {
 
   assert.equal(classifyRequest({
     method: 'GET',
-    url: 'https://api.chksz.top/api/163_search',
-    destination: '',
-    mode: 'cors',
-  }), 'api');
-  assert.equal(classifyRequest({
-    method: 'GET',
     url: 'https://api.chksz.com/api/163_playlist',
     destination: '',
     mode: 'cors',

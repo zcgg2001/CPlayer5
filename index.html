@@ -2791,12 +2791,12 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';
-        import { createChartsController } from './js/charts-page.js?v=23';
+        import { createChartsController } from './js/charts-page.js?v=28';
         import {
             createArtistsController,
             createVideosController,
             formatReleaseDate
-        } from './js/music-explore.js?v=22';
+        } from './js/music-explore.js?v=28';
         import { normalizeMediaUrl } from './js/security.js?v=22';
         import {
             RequestCancelledError,
@@ -2948,14 +2948,14 @@
 
         class ChKSzAPI {
             static get baseUrl() {
-                return 'https://api.chksz.top/api';
+                return '/api/v1/music';
             }
         }
 
         class MusicService {
             constructor() {
                 this.loadSettings();
-                this.baseUrl = 'https://api.chksz.top/api';
+                this.baseUrl = ChKSzAPI.baseUrl;
             }
 
             loadSettings() {
@@ -2981,25 +2981,25 @@
             }
 
             async search(query, { signal } = {}) {
-                const url = `${this.baseUrl}/163_search?keyword=${encodeURIComponent(query)}&limit=30`;
+                const url = `${this.baseUrl}/search?keyword=${encodeURIComponent(query)}&limit=30`;
                 const json = await requestJson(url, { signal });
                 return normalizeSearchPayload(json);
             }
 
             async getNewSongs({ signal } = {}) {
-                const url = `${this.baseUrl}/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}`;
+                const url = `${this.baseUrl}/playlist?id=${NEW_SONGS_PLAYLIST_ID}`;
                 const json = await requestJson(url, { signal });
                 return normalizePlaylistPayload(json).slice(0, 12);
             }
 
             async getPlaylistCollection(id, { signal } = {}) {
-                const url = `${this.baseUrl}/163_playlist?id=${encodeURIComponent(id)}`;
+                const url = `${this.baseUrl}/playlist?id=${encodeURIComponent(id)}`;
                 const json = await requestJson(url, { signal });
                 return normalizePlaylistCollectionPayload(json);
             }
 
             async getSongAtLevel(id, level, { signal } = {}) {
-                const url = this.baseUrl + '/163_music?id=' + id + '&level=' + level;
+                const url = `${this.baseUrl}/song?id=${encodeURIComponent(id)}&level=${encodeURIComponent(level)}`;
                 const json = await requestJson(url, { signal });
                 return normalizeSongPayload(json, level);
             }
@@ -3013,7 +3013,7 @@
             }
 
             async getLyric(id) {
-                const url = `${this.baseUrl}/163_lyric?id=${id}`;
+                const url = `${this.baseUrl}/lyric?id=${encodeURIComponent(id)}`;
                 try {
                     const json = await requestJson(url);
                     return normalizeLyricsPayload(json);
@@ -6201,7 +6201,7 @@
         // 歌单服务 - ChKSz API（无分页，一次获取全部）
         class PlaylistService {
             static async fetchPlaylist(listId) {
-                const url = `${ChKSzAPI.baseUrl}/163_playlist?id=${listId}`;
+                const url = `${ChKSzAPI.baseUrl}/playlist?id=${encodeURIComponent(listId)}`;
                 const json = await requestJson(url);
                 return normalizePlaylistPayload(json);
             }

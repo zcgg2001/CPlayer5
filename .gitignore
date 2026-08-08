@@ -5,3 +5,8 @@ __pycache__/
 .superpowers/
 .worktrees/
 dist/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*

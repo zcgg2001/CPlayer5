@@ -51,6 +51,7 @@ test('injects an absolute social image URL into the player shell', async () => {
 
 test('serves the same-origin chart API without touching static assets', async () => {
   const { env, requestedPaths } = createEnv();
+  env.CHKSZ_API_KEY = 'private-key';
   env.MUSIC_FETCH = async () => Response.json({
     data: {
       id: 3778678,
@@ -79,6 +80,7 @@ test('serves the same-origin chart API without touching static assets', async ()
 
 test('serves the same-origin artist API without touching static assets', async () => {
   const { env, requestedPaths } = createEnv();
+  env.CHKSZ_API_KEY = 'private-key';
   env.MUSIC_FETCH = async () => Response.json({
     data: {
       id: 3779629,
@@ -103,6 +105,93 @@ test('serves the same-origin artist API without touching static assets', async (
   assert.equal(payload.collection.key, 'new');
   assert.equal(payload.items[0].name, '新声歌手');
   assert.deepEqual(requestedPaths, []);
+});
+
+
+test('proxies authenticated music requests to chksz.com without exposing the key', async () => {
+  const { env, requestedPaths } = createEnv();
+  const requestedUrls = [];
+  env.CHKSZ_API_KEY = 'private-key';
+  env.MUSIC_FETCH = async url => {
+    requestedUrls.push(url);
+    return Response.json({ data: { id: 101, url: 'https://media.example/song.flac' } });
+  };
+
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/song?id=101&level=lossless'),
+    env,
+  );
+  const body = await response.text();
+  const providerUrl = new URL(requestedUrls[0]);
+
+  assert.equal(response.status, 200);
+  assert.equal(providerUrl.origin, 'https://api.chksz.com');
+  assert.equal(providerUrl.pathname, '/api/163_music');
+  assert.equal(providerUrl.searchParams.get('id'), '101');
+  assert.equal(providerUrl.searchParams.get('level'), 'lossless');
+  assert.equal(providerUrl.searchParams.get('apikey'), 'private-key');
+  assert.doesNotMatch(body, /private-key/);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(requestedPaths, []);
+});
+
+
+test('maps every public music route to its authenticated provider endpoint', async () => {
+  const { env } = createEnv();
+  const requestedPaths = [];
+  env.CHKSZ_API_KEY = 'private-key';
+  env.MUSIC_FETCH = async url => {
+    requestedPaths.push(new URL(url).pathname);
+    return Response.json({ data: [] });
+  };
+
+  for (const path of [
+    '/api/v1/music/search?keyword=test&limit=30',
+    '/api/v1/music/playlist?id=3778678',
+    '/api/v1/music/song?id=101&level=standard',
+    '/api/v1/music/lyric?id=101',
+  ]) {
+    const response = await worker.fetch(new Request(`https://player.example${path}`), env);
+    assert.equal(response.status, 200);
+  }
+
+  assert.deepEqual(requestedPaths, [
+    '/api/163_search',
+    '/api/163_playlist',
+    '/api/163_music',
+    '/api/163_lyric',
+  ]);
+});
+
+
+test('fails safely when the music API key is missing', async () => {
+  const { env, requestedPaths } = createEnv();
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/playlist?id=3778678'),
+    env,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 503);
+  assert.equal(payload.error.code, 'api_key_missing');
+  assert.deepEqual(requestedPaths, []);
+});
+
+
+test('turns provider authentication payloads into a stable server error', async () => {
+  const { env } = createEnv();
+  env.CHKSZ_API_KEY = 'invalid-key';
+  env.MUSIC_FETCH = async () => Response.json({ code: 401, message: 'Unauthorized' });
+
+  const response = await worker.fetch(
+    new Request('https://player.example/api/v1/music/song?id=101&level=standard'),
+    env,
+  );
+  const body = await response.text();
+
+  assert.equal(response.status, 502);
+  assert.match(body, /音乐接口鉴权失败/);
+  assert.doesNotMatch(body, /invalid-key|Unauthorized/);
 });
 
 

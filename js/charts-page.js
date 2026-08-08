@@ -395,7 +395,7 @@ export async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
     try {
       const direct = await fetchJson(
         fetchImpl,
-        `https://api.chksz.top/api/163_playlist?id=${encodeURIComponent(chart.id)}`,
+        `/api/v1/music/playlist?id=${encodeURIComponent(chart.id)}`,
         { signal },
       );
       return normalizeDirectChartPayload(direct, chartKey, 50);

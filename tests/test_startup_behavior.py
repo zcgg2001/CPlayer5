@@ -208,7 +208,7 @@ class StartupBehaviorTests(unittest.TestCase):
             "class LyricService",
         )
         self.assertIn("async getNewSongs", service)
-        self.assertIn("/163_playlist?id=${NEW_SONGS_PLAYLIST_ID}", service)
+        self.assertIn("/playlist?id=${NEW_SONGS_PLAYLIST_ID}", service)
         self.assertIn("normalizePlaylistPayload(json).slice(0, 12)", service)
 
         startup = function_block(
