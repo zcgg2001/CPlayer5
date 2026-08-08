@@ -351,19 +351,29 @@ class StartupBehaviorTests(unittest.TestCase):
             "function updatePlayerState()",
             "// ================= 歌词逻辑",
         )
+        progress_render = function_block(
+            self.source,
+            "function updateDoraemonProgress(",
+            "function getPlaybackProgressState(",
+        )
         self.assertIn(
-            "bindProgressScrubber(dom.progressBarContainer);",
+            "[dom.desktopProgressBarContainer, dom.mobileProgressBarContainer]",
             listeners,
         )
+        self.assertIn(".forEach(bindProgressScrubber);", listeners)
         for key in ("ArrowLeft", "ArrowRight", "Home", "End"):
             self.assertIn(key, scrubber)
         self.assertIn("event.preventDefault();", scrubber)
-        self.assertIn("aria-valuenow", player_state)
+        self.assertIn("aria-valuenow", progress_render)
+        self.assertIn("aria-valuetext", progress_render)
+        self.assertIn("getPlaybackProgressState(audio.currentTime, audio.duration)", player_state)
+        self.assertIn("if (state.duration) updateLyrics(state.currentTime);", player_state)
         availability = function_block(
             self.source,
             "function syncDesktopPlayerAvailability()",
             "function togglePlayPause()",
         )
+        self.assertIn("[dom.desktopProgressBarContainer, dom.mobileProgressBarContainer]", availability)
         self.assertIn("setAttribute('aria-disabled', String(!hasSong))", availability)
         self.assertIn("tabIndex = hasSong ? 0 : -1", availability)
 

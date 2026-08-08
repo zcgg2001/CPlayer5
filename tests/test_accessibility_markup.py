@@ -159,6 +159,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
         for element_id in ("desktopProgressBarContainer", "mobileProgressBarContainer"):
             scrubber = markup.by_id[element_id]
             self.assertEqual(scrubber.get("role"), "slider", element_id)
+            self.assertEqual(scrubber.get("aria-disabled"), "true", element_id)
             expected_tabindex = "-1" if scrubber.get("aria-disabled") == "true" else "0"
             self.assertEqual(scrubber.get("tabindex"), expected_tabindex, element_id)
             self.assertEqual(scrubber.get("aria-valuemin"), "0", element_id)

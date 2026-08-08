@@ -4,11 +4,28 @@
   --art-surface: rgba(18, 18, 29, 0.78);
   --art-line: rgba(255, 255, 255, 0.11);
   --art-text: #f5f3ff;
-  --art-muted: #a9a5b8;
+  --art-muted: #b6b2c3;
   --art-acid: #b8ff4f;
   --art-violet: #8f78ff;
   --art-cyan: #77e8ff;
+  --art-progress-track: rgba(245, 243, 255, 0.18);
+  --art-progress-buffer: rgba(119, 232, 255, 0.34);
   --art-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-buffer {
+  background: var(--art-progress-buffer);
+}
+
+#mobileProgressBarContainer .mobile-progress-track {
+  background: var(--art-progress-track) !important;
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.progress-scrubber[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.52;
 }
 
 html {
@@ -62,6 +79,7 @@ i[data-lucide-rendered] > .lucide-glyph {
     --shell-accent-strong: var(--art-acid);
     --shell-player: #09090e;
     --shell-player-soft: #151521;
+    --shell-progress-fill: var(--art-acid);
     --shell-shadow: 0 26px 70px rgba(0, 0, 0, 0.34);
     color-scheme: dark;
     font-family: "Noto Sans SC", "Inter", "Helvetica Neue", sans-serif;
@@ -134,7 +152,7 @@ i[data-lucide-rendered] > .lucide-glyph {
 
   #desktopShell .app-nav-label {
     margin-bottom: 10px;
-    color: rgba(245, 243, 255, 0.42);
+    color: var(--art-muted);
     font-size: 10px;
     letter-spacing: 0.2em;
   }
@@ -234,7 +252,7 @@ i[data-lucide-rendered] > .lucide-glyph {
   }
 
   #desktopShell .app-topbar-copy span {
-    color: rgba(245, 243, 255, 0.48);
+    color: var(--art-muted);
   }
 
   #desktopLibraryView {
@@ -570,7 +588,7 @@ i[data-lucide-rendered] > .lucide-glyph {
 
   #desktopPlayerBar #progressBar,
   #desktopPlayerBar .desktop-progress-thumb {
-    background: var(--art-acid);
+    background: var(--shell-progress-fill) !important;
   }
 
   #desktopPlayerBar .desktop-progress-thumb {
@@ -665,6 +683,7 @@ i[data-lucide-rendered] > .lucide-glyph {
 
   #mobileArtist {
     color: var(--art-muted);
+    opacity: 1;
   }
 
   #mobileSongIdTag,
@@ -672,6 +691,18 @@ i[data-lucide-rendered] > .lucide-glyph {
     color: rgba(245, 243, 255, 0.72);
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  #mobileSongIdTag,
+  .mobile-empty-lyrics {
+    color: var(--art-muted);
+    opacity: 1;
+  }
+
+  #mobilePlaylistContainer .opacity-50,
+  #mobileSearchResults .opacity-50,
+  #floatingPlaylistPanel .opacity-50 {
+    opacity: 0.78;
   }
 
   .mobile-control-deck {
@@ -729,10 +760,12 @@ html[data-theme="light"] {
   --art-surface: rgba(255, 255, 255, 0.82);
   --art-line: rgba(31, 45, 72, 0.13);
   --art-text: #172033;
-  --art-muted: #536078;
+  --art-muted: #4f5d75;
   --art-acid: #5541cc;
   --art-violet: #745ee8;
   --art-cyan: #1687a3;
+  --art-progress-track: rgba(23, 32, 51, 0.18);
+  --art-progress-buffer: rgba(85, 65, 204, 0.28);
   background: #eef4ff;
   color-scheme: light;
 }
@@ -756,6 +789,7 @@ html[data-theme="light"] body {
     --shell-active: rgba(85, 65, 204, 0.1);
     --shell-accent: #5541cc;
     --shell-accent-strong: #4935bd;
+    --shell-progress-fill: #c4b8ff;
     --shell-shadow: 0 24px 70px rgba(53, 67, 104, 0.12);
     color-scheme: light;
   }
@@ -786,7 +820,7 @@ html[data-theme="light"] body {
   }
 
   html[data-theme="light"] #desktopShell .app-nav-label {
-    color: rgba(23, 32, 51, 0.5);
+    color: var(--art-muted);
   }
 
   html[data-theme="light"] #desktopShell .app-nav-item {
@@ -1011,6 +1045,11 @@ html[data-theme="light"] body {
   html[data-theme="light"] #mobileProgressBar {
     background: var(--art-acid) !important;
     box-shadow: 0 0 12px rgba(85, 65, 204, 0.35);
+  }
+
+  html[data-theme="light"] #mobileProgressBarContainer .mobile-progress-track {
+    border-color: rgba(31, 45, 72, 0.18);
+    box-shadow: inset 0 1px 3px rgba(31, 45, 72, 0.14);
   }
 
   html[data-theme="light"] #mobileChartsSheet,
