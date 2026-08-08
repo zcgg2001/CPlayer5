@@ -3,6 +3,8 @@
   "type": "module",
   "scripts": {
     "build": "sh scripts/build_sites.sh",
+    "start": "node server.js",
+    "serve": "node server.js",
     "test": "python3 -m unittest discover -s tests -v && node --test tests/*.test.js && python3 scripts/check_static_site.py"
   }
 }
