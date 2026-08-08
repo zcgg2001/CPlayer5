@@ -30,9 +30,10 @@ class LyricsFocusTests(unittest.TestCase):
     def test_lyrics_define_active_near_and_distant_focus(self):
         self.assertIn(".lrc-line.near {", self.source)
         self.assertIn("#mobileLyricsScroller .lrc-line.near {", self.source)
-        self.assertGreaterEqual(self.source.count("filter: blur(1px);"), 2)
-        self.assertGreaterEqual(self.source.count("filter: blur(0.35px);"), 2)
-        self.assertGreaterEqual(self.source.count("filter: none;"), 2)
+        self.assertGreaterEqual(self.source.count("opacity: 0.62;"), 2)
+        self.assertGreaterEqual(self.source.count("opacity: 0.82;"), 2)
+        self.assertGreaterEqual(self.source.count("filter: none;"), 6)
+        self.assertNotIn("filter: blur(1px);", self.source)
 
     def test_lyric_updates_assign_near_lines_and_preserve_vertical_centering(self):
         update = source_block(

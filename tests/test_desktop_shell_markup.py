@@ -398,6 +398,26 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertIsNotNone(button_rule)
         self.assertIn("color: var(--art-ink);", button_rule.group(1))
 
+    def test_art_direction_uses_readable_semantic_text_and_progress_colors(self):
+        art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
+
+        self.assertGreaterEqual(contrast_ratio("#b6b2c3", "#07070b"), 4.5)
+        self.assertGreaterEqual(contrast_ratio("#4f5d75", "#ffffff"), 4.5)
+        self.assertRegex(
+            art_css,
+            r"(?s)#desktopShell \.app-nav-label\s*\{[^}]*color:\s*var\(--art-muted\)",
+        )
+        self.assertRegex(
+            art_css,
+            r"(?s)#mobileProgressBarContainer \.mobile-progress-track\s*\{[^}]*background:\s*var\(--art-progress-track\) !important",
+        )
+        self.assertRegex(
+            art_css,
+            r"(?s)#mobileArtist\s*\{[^}]*color:\s*var\(--art-muted\);[^}]*opacity:\s*1",
+        )
+        self.assertIn(".mobile-empty-lyrics", art_css)
+        self.assertIn("--shell-progress-fill: #c4b8ff;", art_css)
+
     def test_theme_controls_are_accessible_and_persist_the_preference(self):
         for element_id in ("desktopThemeBtn", "mobileThemeBtn"):
             control = self.markup.by_id[element_id]

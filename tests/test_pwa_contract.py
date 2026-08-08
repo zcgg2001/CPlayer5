@@ -18,6 +18,7 @@ REQUIRED_CORE_ASSETS = {
     "./css/anime-progress-thumb.css",
     "./css/noto-sans-sc.css",
     "./css/oneko-butterfly.css",
+    "./css/page-scroll-spider.css",
     "./js/app-shell.js",
     "./js/charts-page.js",
     "./js/music-explore.js",
@@ -30,11 +31,13 @@ REQUIRED_CORE_ASSETS = {
     "./js/music-download.js",
     "./js/download-session.js",
     "./js/oneko-butterfly.js",
+    "./js/page-scroll-spider.js",
     "./img/icon.svg",
     "./img/icon.png",
     "./img/favicon.svg",
     "./img/doraemon-progress-thumb.png",
     "./img/oneko-tora.gif",
+    "./img/key-spider-scroll.png",
     "./manifest.json",
 }
 
@@ -76,7 +79,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v25';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v27';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",
@@ -114,7 +117,7 @@ class PwaContractTests(unittest.TestCase):
             "css/app-shell.css?v=22",
             "css/charts.css?v=22",
             "css/music-explore.css?v=22",
-            "css/art-direction.css?v=25",
+            "css/art-direction.css?v=27",
             "js/app-shell.js?v=22",
             "js/charts-page.js?v=23",
             "js/music-explore.js?v=22",

@@ -1,0 +1,124 @@
+:root {
+  --page-scroll-spider-size: 92px;
+}
+
+.page-scroll-spider {
+  --page-scroll-y: 0px;
+  --page-scroll-tilt: 0deg;
+  position: fixed;
+  top: 0;
+  right: max(0px, env(safe-area-inset-right));
+  z-index: 42;
+  width: 96px;
+  height: 320px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  contain: layout style;
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.page-scroll-spider[data-visible='true'] {
+  opacity: 0.96;
+  visibility: visible;
+}
+
+.page-scroll-spider__web {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.page-scroll-spider__handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--page-scroll-spider-size);
+  height: var(--page-scroll-spider-size);
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+  transform-origin: 50% 12px;
+  transform: translate3d(-50%, var(--page-scroll-y), 0) rotate(var(--page-scroll-tilt));
+  will-change: transform;
+}
+
+.page-scroll-spider__handle::before {
+  position: absolute;
+  inset: 17% 12% 8%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 44% 42%, rgba(116, 220, 255, 0.23), rgba(116, 220, 255, 0) 58%),
+    radial-gradient(circle at 60% 58%, rgba(177, 132, 255, 0.2), rgba(177, 132, 255, 0) 70%);
+  opacity: 0.4;
+  content: '';
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 180ms ease;
+}
+
+.page-scroll-spider__handle:hover::before,
+.page-scroll-spider__handle:focus-visible::before,
+.page-scroll-spider[data-moving='true'] .page-scroll-spider__handle::before {
+  opacity: 0.92;
+  transform: scale(1.12);
+}
+
+.page-scroll-spider__handle:focus-visible {
+  border-radius: 24px;
+  box-shadow: 0 0 0 2px rgba(201, 239, 255, 0.94), 0 0 0 6px rgba(151, 111, 255, 0.22);
+}
+
+.page-scroll-spider__handle[data-dragging='true'] {
+  cursor: grabbing;
+}
+
+.page-scroll-spider__sprite {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.52)) drop-shadow(0 0 8px rgba(99, 202, 255, 0.24));
+  transition: filter 160ms ease, transform 180ms ease;
+}
+
+.page-scroll-spider[data-moving='true'] .page-scroll-spider__sprite,
+.page-scroll-spider__handle:hover .page-scroll-spider__sprite,
+.page-scroll-spider__handle:focus-visible .page-scroll-spider__sprite {
+  filter: drop-shadow(0 5px 7px rgba(0, 0, 0, 0.56)) drop-shadow(0 0 11px rgba(153, 111, 255, 0.38));
+  transform: scale(1.035);
+}
+
+@media (max-width: 1023.98px) {
+  :root {
+    --page-scroll-spider-size: 74px;
+  }
+
+  .page-scroll-spider {
+    width: 78px;
+    opacity: 0.9;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-scroll-spider,
+  .page-scroll-spider__handle,
+  .page-scroll-spider__handle::before,
+  .page-scroll-spider__sprite {
+    transition: none;
+  }
+
+  .page-scroll-spider__handle {
+    will-change: auto;
+  }
+}
