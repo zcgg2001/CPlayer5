@@ -114,10 +114,10 @@ class PwaContractTests(unittest.TestCase):
         self.assertIn("self.addEventListener('fetch'", worker_source)
 
         for versioned_asset in (
-            "css/app-shell.css?v=22",
+            "css/app-shell.css?v=23",
             "css/charts.css?v=22",
             "css/music-explore.css?v=22",
-            "css/art-direction.css?v=27",
+            "css/art-direction.css?v=28",
             "js/app-shell.js?v=22",
             "js/charts-page.js?v=28",
             "js/music-explore.js?v=28",

@@ -301,6 +301,17 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("normalizeSongPayload(json, level)", service)
         self.assertIn("if (song) return song;", service)
 
+    def test_discovery_and_settings_music_source_controls_stay_in_sync(self):
+        controls = function_block(
+            self.source,
+            "function initMusicSourceControl()",
+            "const dialogTriggers",
+        )
+        self.assertIn("document.getElementById('discoveryMusicSourceSelect')", controls)
+        self.assertIn("document.getElementById('musicSourceSelect')", controls)
+        self.assertIn("controls.forEach(({ select, hint })", controls)
+        self.assertIn("musicService.saveSettings('source', nextSource)", controls)
+
     def test_playback_quality_is_selectable_and_preserves_progress(self):
         for fragment in (
             "function openPlaybackQualityDialog(opener)",

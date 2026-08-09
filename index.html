@@ -1395,11 +1395,11 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="./css/app-shell.css?v=22">
+    <link rel="stylesheet" href="./css/app-shell.css?v=23">
     <link rel="stylesheet" href="./css/charts.css?v=22">
     <link rel="stylesheet" href="./css/music-explore.css?v=22">
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=27">
-    <link rel="stylesheet" href="./css/art-direction.css?v=27">
+    <link rel="stylesheet" href="./css/art-direction.css?v=28">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=23"></script>
     <script src="./js/anime-progress-thumb.js?v=22"></script>
@@ -1542,12 +1542,30 @@
                 <div class="library-content">
                     <div id="desktopDiscoveryView" class="desktop-main-view" aria-hidden="false">
                         <header class="library-heading">
-                            <div>
+                            <div class="library-heading-copy">
                                 <p class="library-kicker">DISCOVER</p>
                                 <h1 id="desktopLibraryTitle">发现音乐</h1>
                                 <p class="library-description">
                                     浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
                                 </p>
+                            </div>
+                            <div class="discovery-source-switcher">
+                                <label for="discoveryMusicSourceSelect">
+                                    <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
+                                    音乐源
+                                </label>
+                                <div class="discovery-source-select-wrap">
+                                    <select id="discoveryMusicSourceSelect"
+                                        aria-describedby="discoveryMusicSourceHint">
+                                        <option value="chksz">ChKSz · 网易云</option>
+                                        <option value="ors-qq">ORS · QQ音乐</option>
+                                        <option value="ors-kg">ORS · 酷狗</option>
+                                        <option value="ors-kw">ORS · 酷我</option>
+                                        <option value="ors-mg">ORS · 咪咕</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </div>
+                                <p id="discoveryMusicSourceHint">网易云搜索、解析与歌词</p>
                             </div>
                         </header>
 
@@ -4760,23 +4778,35 @@
         }
 
         function initMusicSourceControl() {
-            const select = document.getElementById('musicSourceSelect');
-            const hint = document.getElementById('musicSourceHint');
-            if (!select) return;
+            const controls = [
+                {
+                    select: document.getElementById('discoveryMusicSourceSelect'),
+                    hint: document.getElementById('discoveryMusicSourceHint'),
+                },
+                {
+                    select: document.getElementById('musicSourceSelect'),
+                    hint: document.getElementById('musicSourceHint'),
+                },
+            ].filter(control => control.select);
+            if (!controls.length) return;
 
             const sync = () => {
                 const source = supportedMusicSource(musicService.config.source);
                 const option = musicSourceOption(source);
-                select.value = source;
-                if (hint) hint.textContent = option.detail;
+                controls.forEach(({ select, hint }) => {
+                    select.value = source;
+                    if (hint) hint.textContent = option.detail;
+                });
             };
 
             sync();
-            select.addEventListener('change', event => {
-                const nextSource = supportedMusicSource(event.target.value);
-                musicService.saveSettings('source', nextSource);
-                sync();
-                showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
+            controls.forEach(({ select }) => {
+                select.addEventListener('change', event => {
+                    const nextSource = supportedMusicSource(event.target.value);
+                    musicService.saveSettings('source', nextSource);
+                    sync();
+                    showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
+                });
             });
         }
 
