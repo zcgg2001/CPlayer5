@@ -2279,6 +2279,24 @@
                             class="w-full bg-white/10 rounded-full px-4 py-3 pl-11 outline-none focus:bg-white/20 transition-all text-sm font-medium">
                         <i class="fas fa-search absolute left-4 top-3.5 opacity-50"></i>
                     </div>
+                    <div class="mobile-source-switcher mb-4 flex-none">
+                        <label for="mobileMusicSourceSelect">
+                            <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
+                            <span>音乐源</span>
+                            <span id="mobileMusicSourceHint">网易云搜索、解析与歌词</span>
+                        </label>
+                        <div class="mobile-source-select-wrap">
+                            <select id="mobileMusicSourceSelect"
+                                aria-describedby="mobileMusicSourceHint">
+                                <option value="chksz">ChKSz · 网易云</option>
+                                <option value="ors-qq">ORS · QQ音乐</option>
+                                <option value="ors-kg">ORS · 酷狗</option>
+                                <option value="ors-kw">ORS · 酷我</option>
+                                <option value="ors-mg">ORS · 咪咕</option>
+                            </select>
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                        </div>
+                    </div>
                     <div id="mobileSearchResults" class="flex-1 overflow-y-auto no-scrollbar pb-20 space-y-2">
                         <!-- Search Results -->
                     </div>
@@ -4782,6 +4800,10 @@
                 {
                     select: document.getElementById('discoveryMusicSourceSelect'),
                     hint: document.getElementById('discoveryMusicSourceHint'),
+                },
+                {
+                    select: document.getElementById('mobileMusicSourceSelect'),
+                    hint: document.getElementById('mobileMusicSourceHint'),
                 },
                 {
                     select: document.getElementById('musicSourceSelect'),
