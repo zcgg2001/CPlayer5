@@ -276,8 +276,8 @@ i[data-lucide-rendered] > .lucide-glyph {
     margin-bottom: 42px;
   }
 
-  #desktopLibraryView .library-heading > div {
-    width: 100%;
+  #desktopLibraryView .library-heading-copy {
+    flex: 1 1 auto;
   }
 
   #desktopLibraryView .library-kicker,
@@ -314,6 +314,47 @@ i[data-lucide-rendered] > .lucide-glyph {
     color: rgba(245, 243, 255, 0.58);
     font-size: 15px;
     line-height: 1.8;
+  }
+
+  #desktopLibraryView .discovery-source-switcher {
+    width: min(100%, 292px);
+    padding: 16px;
+    color: var(--art-text);
+    background: rgba(12, 12, 20, 0.76);
+    border-color: var(--art-line);
+    border-radius: 2px 22px 2px 2px;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(22px) saturate(120%);
+    -webkit-backdrop-filter: blur(22px) saturate(120%);
+  }
+
+  #desktopLibraryView .discovery-source-switcher label {
+    color: var(--art-text);
+  }
+
+  #desktopLibraryView .discovery-source-switcher label i,
+  #desktopLibraryView .discovery-source-select-wrap > i {
+    color: var(--art-acid);
+  }
+
+  #desktopLibraryView #discoveryMusicSourceSelect {
+    color: var(--art-text);
+    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  #desktopLibraryView #discoveryMusicSourceSelect:hover,
+  #desktopLibraryView #discoveryMusicSourceSelect:focus-visible {
+    border-color: var(--art-acid);
+  }
+
+  #desktopLibraryView #discoveryMusicSourceSelect option {
+    color: var(--art-text);
+    background: #12121b;
+  }
+
+  #desktopLibraryView #discoveryMusicSourceHint {
+    color: var(--art-muted);
   }
 
   #desktopLibraryView .discovery-panel,
@@ -627,6 +668,14 @@ i[data-lucide-rendered] > .lucide-glyph {
   #desktopLibraryView .library-description {
     margin-left: 24vw;
   }
+
+  #desktopLibraryView .library-heading {
+    align-items: end;
+  }
+
+  #desktopLibraryView .discovery-source-switcher {
+    width: 250px;
+  }
 }
 
 @media (max-width: 1023.98px) {
@@ -882,6 +931,7 @@ html[data-theme="light"] body {
   }
 
   html[data-theme="light"] #desktopLibraryView .discovery-panel,
+  html[data-theme="light"] #desktopLibraryView .discovery-source-switcher,
   html[data-theme="light"] #desktopContentSearch,
   html[data-theme="light"] .charts-workspace,
   html[data-theme="light"] .content-workspace {
@@ -891,6 +941,17 @@ html[data-theme="light"] body {
       rgba(255, 255, 255, 0.84);
     border-color: var(--art-line);
     box-shadow: 0 30px 80px rgba(53, 67, 104, 0.12);
+  }
+
+  html[data-theme="light"] #desktopLibraryView #discoveryMusicSourceSelect {
+    color: var(--art-text);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(31, 45, 72, 0.18);
+  }
+
+  html[data-theme="light"] #desktopLibraryView #discoveryMusicSourceSelect option {
+    color: var(--art-text);
+    background: #fff;
   }
 
   html[data-theme="light"] #desktopContentSearch #searchInput {

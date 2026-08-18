@@ -56,7 +56,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         return match.group(1).strip()
 
     def test_shell_assets_and_1024_breakpoint_exist(self):
-        self.assertIn('href="./css/app-shell.css?v=22"', self.source)
+        self.assertIn('href="./css/app-shell.css?v=23"', self.source)
         self.assertIn("@media (min-width: 1024px)", self.css)
         self.assertIn("@media (max-width: 1023.98px)", self.css)
         self.assertIn("grid-template-columns: 240px minmax(0, 1fr)", self.css)
@@ -239,6 +239,23 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertEqual(refresh.get("type"), "button")
         self.assertEqual(refresh.get("aria-label"), "刷新新歌速递")
         self.assertIn("网易云新歌榜", self.source)
+
+    def test_discovery_exposes_an_accessible_music_source_switcher(self):
+        selector = self.markup.by_id["discoveryMusicSourceSelect"]
+        hint = self.markup.by_id["discoveryMusicSourceHint"]
+        self.assertEqual(selector["tag"], "select")
+        self.assertEqual(selector.get("aria-describedby"), "discoveryMusicSourceHint")
+        self.assertEqual(hint["tag"], "p")
+        self.assertRegex(
+            self.source,
+            r'<label for="discoveryMusicSourceSelect">',
+        )
+        for source in ("chksz", "ors-qq", "ors-kg", "ors-kw", "ors-mg"):
+            self.assertIn(f'<option value="{source}">', self.source)
+        self.assertEqual(
+            self.css_property("#desktopLibraryView #discoveryMusicSourceSelect", "min-height"),
+            "44px",
+        )
 
     def test_discovery_rows_use_a_dense_table_like_layout(self):
         selector = "#desktopLibraryView .discovery-song-row"

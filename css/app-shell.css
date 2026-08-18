@@ -458,6 +458,88 @@
   margin-bottom: 22px;
 }
 
+#desktopLibraryView .library-heading-copy {
+  min-width: 0;
+}
+
+#desktopLibraryView .discovery-source-switcher {
+  display: grid;
+  width: min(100%, 280px);
+  flex: 0 0 auto;
+  gap: 7px;
+  padding: 14px;
+  color: var(--shell-text);
+  background: var(--shell-surface);
+  border: 1px solid var(--shell-border);
+  border-radius: 16px;
+  box-shadow: var(--shell-shadow);
+}
+
+#desktopLibraryView .discovery-source-switcher label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--shell-text);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#desktopLibraryView .discovery-source-switcher label i {
+  color: var(--shell-accent-strong);
+}
+
+#desktopLibraryView .discovery-source-select-wrap {
+  position: relative;
+}
+
+#desktopLibraryView #discoveryMusicSourceSelect {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 42px 0 13px;
+  color: var(--shell-text);
+  appearance: none;
+  background: var(--shell-surface-soft);
+  border: 1px solid var(--shell-border);
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+#desktopLibraryView #discoveryMusicSourceSelect:hover {
+  border-color: var(--shell-accent-strong);
+}
+
+#desktopLibraryView #discoveryMusicSourceSelect:focus-visible {
+  outline: none;
+  border-color: var(--shell-accent-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shell-accent-strong) 24%, transparent);
+}
+
+#desktopLibraryView #discoveryMusicSourceSelect option {
+  color: var(--shell-text);
+  background: var(--shell-surface);
+}
+
+#desktopLibraryView .discovery-source-select-wrap > i {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  color: var(--shell-muted);
+  font-size: 11px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+#desktopLibraryView #discoveryMusicSourceHint {
+  margin: 0;
+  color: var(--shell-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 #desktopLibraryView .library-kicker {
   margin: 0 0 6px;
   color: var(--shell-accent-strong);
