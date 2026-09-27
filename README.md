@@ -25,12 +25,16 @@
 
 ## 简介
 
-CPlayer 5 是一个纯前端、免构建的单页音乐播放器。项目基于浏览器原生能力实现播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入，打开静态服务器即可运行。
+项目文档：[项目梳理、重点与优势](docs/PROJECT_OVERVIEW.md) · [分阶段优化方案](docs/OPTIMIZATION_PLAN.md)
+
+CPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入。在线内容通过同源服务端接口访问，不能仅靠静态文件服务运行。
 
 当前版本除了基础播放体验，还加入了更完整的歌单加载链路：支持远程歌单 ID 拉取、`playlist.js` 本地离线歌单、JSON 文件导入、拖拽导入，以及 IndexedDB 歌单缓存与静默更新。
 
 ## 最新功能
 
+- 移除 ORS 音源，新增 Bilibili 公开音乐视频热榜、分类、关键词搜索和 BV/完整视频链接点播，可与网易云内容共用队列
+- Bilibili 使用公开 AAC 音轨，显示真实码率并提供原视频链接；允许下载的视频可保存为 M4A。可匿名读取的视频字幕自动作为同步歌词显示，优先中文，并标明自动生成字幕。需要登录、没有字幕或下载受限时会明确提示。本版不提供登录收藏夹，具体边界和参考研究见 [接入说明](docs/bilibili-preview.md)
 - 支持通过歌单 ID 直接加载远程歌单，并自动写入本地缓存
 - 支持导入 `playlist.js` 或 `.json` 歌单文件，适合离线或自定义场景
 - 新增 `playlist-downloader.html`，可一键导出兼容 `playlist.js`
@@ -40,6 +44,7 @@ CPlayer 5 是一个纯前端、免构建的单页音乐播放器。项目基于�
 - 支持移动端底部抽屉、拖拽关闭、左右滑动切换歌词/封面
 - 支持 Media Session 与 Wake Lock，改善锁屏控制和移动端连续播放体验
 - 支持动态渐变背景与 WebGL 流体背景，增强沉浸式视觉效果
+- 恢复可拖动的像素小猫桌宠，以及位于页面右侧、可拖动或用键盘控制上下滚动的蜘蛛挂件
 
 ## 在线体验
 
@@ -101,6 +106,7 @@ CPlayer 5 是一个纯前端、免构建的单页音乐播放器。项目基于�
 - WebGL 流体背景渲染
 - 全屏沉浸播放模式
 - 移动端左右滑动切换内容、底部抽屉操作
+- 像素小猫支持追逐、休息、睡眠和拖动；右侧蜘蛛同步显示并控制页面滚动进度
 
 ### 系统集成
 
@@ -119,7 +125,7 @@ CPlayer 5 是一个纯前端、免构建的单页音乐播放器。项目基于�
 | 图形 | Canvas API、WebGL |
 | 存储 | IndexedDB、LocalStorage、Cache Storage |
 | PWA | Service Worker、Web App Manifest |
-| 图标 | Font Awesome |
+| 图标 | Lucide |
 | 字体 | Noto Sans SC |
 | 工具库 | Color Thief |
 
@@ -132,23 +138,27 @@ git clone https://github.com/ChKSz/CPlayer.git
 cd CPlayer
 ```
 
-### 2. 启动静态服务
+### 2. 构建与启动服务
 
-项目无需安装依赖，直接使用任意 HTTP 服务器即可：
-
-```bash
-python -m http.server 8080
-```
-
-或：
+项目无需安装 npm 依赖，本地已在 Node.js 26.3.1 验证（运行环境需要支持 `AbortSignal.any` 和原生流）。网易云功能需要在服务进程中配置 `CHKSZ_API_KEY`，Bilibili 公开内容不需要此密钥。
 
 ```bash
-npx serve .
+npm run build
+npm start
 ```
+
+构建会先清理并重新生成 `dist/static` 与 `dist/server`，随后可运行发布产物检查和同源服务冒烟测试：
+
+```bash
+npm run check:build
+npm run smoke:server
+```
+
+服务默认只监听 `127.0.0.1:8787`。使用 `PORT` 指定其他端口；`CHKSZ_API_KEY` 仅应保存在本地环境变量或部署平台的 Secret 中，不要放进前端文件。
 
 ### 3. 打开浏览器
 
-访问 `http://localhost:8080`。
+访问 `http://127.0.0.1:8787/`，或 `http://127.0.0.1:8787/?source=bilibili` 预览 Bilibili 音源。
 
 ### 4. 运行项目检查
 
@@ -160,22 +170,27 @@ node --test tests/*.test.js
 python3 scripts/check_static_site.py
 ```
 
+CI 还会对构建产物、字体 MIME 类型、页面路由以及缺少音乐服务密钥时的结构化错误响应进行验证。
+
 GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探测播放器、歌单下载器、离线页、Service Worker 和 PWA 清单。
 
 ## 项目结构
 
 ```text
-CPlayer/
-├── index.html               # 主播放器页面
-├── playlist.js              # 本地离线歌单数据
+CPlayer5/
+├── index.html               # 主播放器页面与应用启动逻辑
 ├── playlist-downloader.html # 歌单导出工具页
-├── sw.js                    # Service Worker
+├── offline.html             # 离线提示页
+├── server.js                # 本地服务入口
+├── sw.js                    # PWA 离线缓存
 ├── manifest.json            # PWA 清单
-├── css/                     # 字体与图标样式
-├── js/                      # 前端运行时依赖
-├── fonts/                   # 本地字体
-├── webfonts/                # 图标字体
-└── img/                     # 图标与资源
+├── css/                     # 页面、播放器、Bilibili 与挂件样式
+├── js/                      # 播放、下载、页面交互与挂件逻辑
+├── img/                     # 图标、封面预览与像素挂件素材
+├── sites/                   # 同源接口与 Sites 运行入口
+├── scripts/                 # 构建与静态检查脚本
+├── tests/                   # Python 与 Node.js 回归测试
+└── docs/                    # 开发说明与功能接入文档
 ```
 
 ## 使用说明
@@ -249,7 +264,7 @@ CPlayer/
 ## 致谢
 
 - [Color Thief](https://lokeshdhakar.com/projects/color-thief/) - 专辑封面主色提取
-- [Font Awesome](https://fontawesome.com/) - 图标资源
+- [Lucide](https://lucide.dev/) - 界面图标
 - [Noto Sans SC](https://fonts.google.com/noto/specimen/Noto+Sans+SC) - 开源中文字体
 - [oneko.js](https://github.com/adryd325/oneko.js) - MIT 许可的像素猫精灵与追逐逻辑
 - [LINUX DO社区](https://linux.do) - 佬友们的支持

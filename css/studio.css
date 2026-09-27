@@ -1,0 +1,586 @@
+:root {
+  --studio-bg: #111314;
+  --studio-surface: #191c1e;
+  --studio-raised: #232729;
+  --studio-ink: #f4f5f3;
+  --studio-muted: #a5abad;
+  --studio-line: #34393c;
+  --studio-accent: #ff5a49;
+  --studio-accent-ink: #101314;
+  --studio-spring: cubic-bezier(0.16, 1.2, 0.3, 1);
+  --studio-glass: rgba(29, 33, 35, 0.58);
+  --studio-glass-strong: rgba(38, 42, 44, 0.72);
+  --studio-glass-edge: rgba(255, 255, 255, 0.16);
+  --studio-glass-highlight: rgba(255, 255, 255, 0.26);
+  --studio-glass-shadow: rgba(0, 0, 0, 0.38);
+}
+
+html[data-theme="light"] {
+  --studio-bg: #f5f6f4;
+  --studio-surface: #ffffff;
+  --studio-raised: #e8ecea;
+  --studio-ink: #171b1d;
+  --studio-muted: #5a6468;
+  --studio-line: #d1d8d5;
+  --studio-accent: #c83727;
+  --studio-accent-ink: #ffffff;
+  --studio-glass: rgba(248, 250, 249, 0.68);
+  --studio-glass-strong: rgba(255, 255, 255, 0.82);
+  --studio-glass-edge: rgba(255, 255, 255, 0.9);
+  --studio-glass-highlight: rgba(255, 255, 255, 0.98);
+  --studio-glass-shadow: rgba(38, 49, 54, 0.16);
+}
+
+html:root,
+html:root :is(#desktopApp, #mobileLayout, #desktopLayout, #desktopPlayerBar, #floatingPlaylistPanel, #settingsModal) {
+  --art-ink: var(--studio-bg);
+  --art-ink-soft: var(--studio-surface);
+  --art-surface: var(--studio-surface);
+  --art-text: var(--studio-ink);
+  --art-muted: var(--studio-muted);
+  --art-line: var(--studio-line);
+  --art-acid: var(--studio-accent);
+  --art-violet: var(--studio-accent);
+  --art-cyan: #43acb0;
+  --art-progress-track: var(--studio-line);
+  --art-progress-buffer: #738086;
+  --shell-bg: var(--studio-bg);
+  --shell-surface: var(--studio-surface);
+  --shell-surface-soft: var(--studio-raised);
+  --shell-text: var(--studio-ink);
+  --shell-muted: var(--studio-muted);
+  --shell-border: var(--studio-line);
+  --shell-active: var(--studio-raised);
+  --shell-accent: var(--studio-accent);
+  --shell-accent-strong: var(--studio-accent);
+  --shell-progress-fill: var(--studio-accent);
+  --shell-player: var(--studio-surface);
+  --shell-player-soft: var(--studio-raised);
+  --shell-shadow: none;
+  --primary-color: var(--studio-accent);
+  --on-primary-color: var(--studio-accent-ink);
+  --bg-color: var(--studio-bg);
+  --on-bg-color: var(--studio-ink);
+  --surface-color: var(--studio-surface);
+  --surface-container-color: var(--studio-surface);
+  --surface-container-high-color: var(--studio-raised);
+  --on-surface-color: var(--studio-ink);
+  --liquid-ink: var(--studio-ink);
+  --liquid-border: var(--studio-line);
+  --liquid-shadow: none;
+  --liquid-ease: var(--studio-spring);
+  --ink: var(--studio-ink);
+  --muted: var(--studio-muted);
+  --anime-progress-track: var(--studio-line);
+  --anime-progress-buffer: #738086;
+}
+
+html:root body {
+  color: var(--studio-ink);
+  background: var(--studio-bg) !important;
+  font-family: var(--cplayer-font, system-ui, sans-serif);
+}
+
+body *, body *::before, body *::after { letter-spacing: 0 !important; }
+body::before, #fluidBg, #fluidNoise, .animated-bg, .liquid-glass-glow { display: none !important; }
+html:root :focus-visible { outline: 2px solid var(--studio-accent); outline-offset: 4px; }
+::selection { color: var(--studio-accent-ink); background: var(--studio-accent); }
+
+i[class*="fa-"] { display: inline-grid; place-items: center; min-width: 1em; font-style: normal; }
+i[class*="fa-"]::before, .chart-overview-art::after { display: none !important; content: none !important; }
+i[data-lucide-rendered] > svg { width: 1em; height: 1em; flex: none; }
+.fa-spin { animation: studio-spin 900ms linear infinite; }
+
+html:root :is(#desktopShell .app-sidebar, #desktopShell .app-topbar, #desktopLibraryView, #desktopPlayerBar) {
+  background: var(--studio-bg) !important;
+  border-color: var(--studio-line);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html:root #desktopShell .app-sidebar::after { display: none; }
+html:root #desktopShell .app-sidebar { padding: 32px 18px; border-width: 0 1px 0 0; }
+html:root #desktopShell .app-brand { min-width: 0; gap: 8px; padding: 0 6px; }
+html:root #desktopShell .app-brand-mark {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  color: var(--studio-accent);
+  background: var(--studio-raised);
+  border: 1px solid var(--studio-line);
+  border-radius: 8px;
+  box-shadow: none;
+}
+html:root #desktopShell .app-brand-mark .lucide-glyph {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.8;
+}
+html:root #desktopShell .app-brand-copy { flex: 1 1 auto; min-width: 0; }
+html:root #desktopShell .app-brand-copy strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+html:root #desktopShell .app-navigation { gap: 6px; margin-top: 56px; }
+html:root #desktopShell .app-nav-item { min-height: 46px; border-radius: 4px; font-size: 14px; color: var(--studio-muted) !important; background: transparent; transform: none; }
+html:root #desktopShell .app-nav-item i { color: inherit; font-size: 18px; }
+html:root #desktopShell .app-nav-item[aria-current="page"] { color: var(--studio-ink) !important; background: var(--studio-raised); }
+html:root #desktopShell .app-nav-item[aria-current="page"] i { color: var(--studio-accent); }
+html:root #desktopShell .app-nav-item[aria-current="page"]::before { left: -18px; width: 2px; border-radius: 0; box-shadow: none; }
+html:root #desktopShell .app-nav-label { color: var(--studio-muted); font-size: 11px; font-weight: 500; }
+html:root #desktopShell .app-nav-count { color: var(--studio-muted); background: transparent; border: 0; }
+html:root #desktopShell .app-topbar { padding-inline: 40px; border-width: 0 0 1px; }
+html:root #desktopShell .app-topbar-copy strong { font-size: 12px; font-weight: 500; }
+html:root #desktopShell .app-topbar-copy > span { display: none; }
+html:root #desktopShell :is(.app-icon-button, .app-topbar-action, #desktopSearchShortcut) { width: 44px; padding: 0; color: var(--studio-muted) !important; background: transparent; border-color: transparent; box-shadow: none; }
+html:root #desktopShell .app-topbar-action > span { display: none; }
+html:root #desktopShell :is(.app-icon-button, .app-topbar-action):hover:not(:disabled) { color: var(--studio-ink) !important; background: var(--studio-raised); }
+
+html:root #desktopLibraryView { padding: 40px 48px 64px; border: 0; scrollbar-color: var(--studio-line) transparent; }
+html:root #desktopLibraryView .library-content { width: min(100%, 1320px); margin-inline: auto; }
+html:root #desktopLibraryView .library-heading { min-height: 200px; margin-bottom: 36px; align-items: center; gap: 24px; }
+html:root #desktopLibraryView h1 { max-width: 100%; font-size: 76px; font-weight: 750; line-height: 1.1; margin: 10px 0 18px; text-wrap: balance; }
+html:root #desktopLibraryView :is(.library-kicker, .music-shelf-kicker) { color: var(--studio-accent); font-family: ui-monospace, monospace; font-size: 11px; }
+html:root #desktopLibraryView .library-kicker::before { width: 20px; height: 2px; }
+html:root #desktopLibraryView .library-description { margin: 0; max-width: 100%; color: var(--studio-muted); font-size: 14px; }
+html:root #desktopLibraryView .discovery-source-switcher { width: 240px; flex: 0 0 240px; padding: 16px 0 16px 20px; background: transparent; border: 0; border-left: 1px solid var(--studio-line); border-radius: 0; box-shadow: none; backdrop-filter: none; }
+html:root :is(#discoveryMusicSourceSelect, #searchMusicSourceSelect, #mobileMusicSourceSelect) { color: var(--studio-ink); background: var(--studio-surface) !important; border: 1px solid var(--studio-line); border-radius: 4px; }
+html:root :is(.charts-workspace, .content-workspace, #desktopLibraryView .discovery-panel, #desktopLibraryView .music-shelf) { border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+html:root #desktopLibraryView .music-shelf { padding: 30px 0 0; margin-top: 40px; border-top: 1px solid var(--studio-line); }
+html:root #desktopLibraryView .music-shelf::before { display: none; }
+html:root #desktopLibraryView .discovery-heading { padding: 0 0 24px; }
+html:root :is(.chart-overview, .content-overview) { padding: 22px 0; background: transparent; border-color: var(--studio-line); }
+html:root :is(.chart-overview-copy, .content-overview-copy) h2 { font-size: 26px; }
+html:root #desktopLibraryView .music-shelf-heading h2 { font-size: 28px; font-weight: 650; }
+html:root :is(.music-shelf-note, .discovery-source, .content-meta span:first-child, .chart-meta span:first-child) { color: var(--studio-muted); background: transparent; border: 0; font-size: 11px; }
+html:root :is(.chart-tabs, .content-filter-tabs, .bilibili-categories) { gap: 18px; padding: 0 0 14px; border-bottom: 1px solid var(--studio-line); }
+html:root :is(.chart-tab, .content-filter-tab, .bilibili-categories button, .mobile-explore-tab) { border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--studio-muted); background: transparent; padding-inline: 0; }
+html:root :is(.chart-tab, .content-filter-tab, .bilibili-categories button, .mobile-explore-tab)[aria-selected="true"] { color: var(--studio-ink); background: transparent; border-color: var(--studio-accent); }
+html:root :is(.discovery-refresh, .chart-refresh, .content-refresh) { min-width: 44px; min-height: 44px; padding-inline: 12px; color: var(--studio-muted); background: transparent; border: 1px solid var(--studio-line); border-radius: 4px; box-shadow: none; }
+html:root #desktopLibraryView :is(.discovery-refresh, .chart-refresh, .content-refresh) { color: var(--studio-muted); background: transparent; border-color: var(--studio-line); border-radius: 4px; box-shadow: none; }
+html:root #desktopLibraryView :is(.discovery-source, .music-shelf-note) { color: var(--studio-muted); background: transparent; border: 0; }
+html:root #desktopLibraryView #discoveryMusicSourceSelect { border-radius: 4px; border-color: var(--studio-line); }
+html:root :is(.collection-skeleton-cover, .collection-skeleton-line, .artist-card-skeleton span, .video-card-skeleton span) { background: var(--studio-raised); border-radius: 4px; }
+
+html:root #desktopLibraryView .discovery-list { gap: 0; padding: 0; }
+html:root #desktopLibraryView .discovery-list-header { padding-inline: 10px; background: transparent; color: var(--studio-muted); }
+html:root #desktopLibraryView .discovery-song-row { padding: 8px 10px; border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; transform: none; }
+html:root #desktopLibraryView .discovery-song-row:hover { background: var(--studio-surface); }
+html:root #desktopLibraryView .discovery-song-copy strong { color: var(--studio-ink); font-weight: 550; }
+html:root #desktopLibraryView :is(.discovery-song-cover, .collection-cover, .scene-cover, .chart-overview-art) { border-radius: 4px; box-shadow: none; }
+html:root #desktopLibraryView :is(.discovery-song-action, .discovery-download, .collection-add-button, .scene-play-button) { min-height: 40px; color: var(--studio-ink); background: var(--studio-raised); border: 0; border-radius: 4px; box-shadow: none; }
+html:root #desktopLibraryView .discovery-song-action { background: transparent; color: var(--studio-accent); }
+html:root #desktopLibraryView .bilibili-discovery .discovery-list { gap: 24px 20px; }
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-row {
+  position: relative;
+  isolation: isolate;
+  gap: 12px;
+  padding: 10px 10px 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.11), transparent 38%, rgba(255, 255, 255, 0.035) 72%),
+    var(--studio-glass) !important;
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 24px;
+  box-shadow:
+    inset 0 1px 0 var(--studio-glass-highlight),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.035),
+    0 18px 44px var(--studio-glass-shadow);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  transition: transform 260ms var(--studio-spring), border-color 220ms ease, box-shadow 260ms ease;
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-row::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(ellipse at 16% -8%, rgba(255, 255, 255, 0.2), transparent 42%),
+    radial-gradient(ellipse at 96% 112%, rgba(109, 219, 232, 0.08), transparent 38%);
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-row:hover,
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-row:focus-within {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 58%, var(--studio-ink));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--studio-glass-highlight) 84%, white),
+    0 24px 58px color-mix(in srgb, var(--studio-glass-shadow) 86%, transparent);
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-cover {
+  border-radius: 16px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-copy { padding-inline: 6px; }
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-copy strong { min-height: 44px; font-size: 15px; }
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-actions {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-action {
+  min-width: 112px;
+  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: var(--studio-ink) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent 56%),
+    rgba(255, 255, 255, 0.065) !important;
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-action .lucide-glyph {
+  width: 17px;
+  height: 17px;
+  color: var(--studio-accent);
+  stroke-width: 1.8;
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-action:hover,
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-action:focus-visible {
+  color: var(--studio-ink) !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 58%),
+    rgba(255, 255, 255, 0.12) !important;
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 66%, var(--studio-ink));
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-secondary-actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.13), transparent 58%),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-secondary-actions .discovery-download {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  color: var(--studio-muted) !important;
+  background: transparent !important;
+  border: 0;
+  border-radius: 50%;
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-secondary-actions .discovery-download:hover,
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-secondary-actions .discovery-download:focus-visible {
+  color: var(--studio-ink) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+html:root #desktopLibraryView .bilibili-discovery .discovery-song-secondary-actions .lucide-glyph {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.7;
+}
+html:root :is(.collection-card, .artist-card, .video-card, .scene-card) { background: transparent; border-radius: 6px; box-shadow: none; border-color: var(--studio-line); }
+html:root :is(.artist-card-portrait, .video-card-artwork, .collection-cover-button, .collection-artwork) { border-radius: 4px; box-shadow: none; }
+html:root #desktopLibraryView .editorial-grid .collection-card:first-child { grid-column: auto; }
+html:root :is(.artist-grid, .video-grid) { padding: 20px 0; gap: 22px; }
+html:root :is(.artist-card-main, .video-card-main) { padding: 0 0 12px; }
+html:root :is(.chart-list-header, .chart-track-row, .artist-detail, .artist-detail-header, .video-card-badges span) { color: var(--studio-ink); background: transparent; border-color: var(--studio-line); box-shadow: none; }
+html:root :is(.chart-track-row:hover, .artist-card:hover, .artist-card.is-selected) { background: var(--studio-surface); }
+
+html:root #desktopPlayerBar { margin: 0; min-height: 104px; padding: 16px 28px; border-width: 1px 0 0; background: var(--studio-surface) !important; color: var(--studio-ink); }
+html:root #desktopPlayerBar :is(.player-song-title, #artistName, #sourceTag, .player-control-button, .player-action-button, .player-timeline, .playback-quality-trigger) { color: var(--studio-ink); }
+html:root #desktopPlayerBar :is(#artistName, #sourceTag, .player-timeline) { color: var(--studio-muted); }
+html:root #desktopPlayerBar :is(#currentTime, #totalTime, #desktopPlaybackQualityLabel, .playback-quality-trigger) { color: var(--studio-muted); }
+html:root #desktopPlayerBar .player-actions { gap: 2px; }
+html:root #desktopPlayerBar .player-actions .player-action-button {
+  color: var(--studio-muted) !important;
+  opacity: 1;
+  border-radius: 8px;
+}
+html:root #desktopPlayerBar .player-actions .player-action-button:hover:not(:disabled),
+html:root #desktopPlayerBar .player-actions .player-action-button:focus-visible {
+  color: var(--studio-ink) !important;
+  background: var(--studio-raised);
+}
+html:root #desktopPlayerBar .player-actions .player-action-button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+html:root #desktopPlayerBar .player-actions .player-action-button:disabled {
+  color: var(--studio-muted) !important;
+  opacity: 0.34;
+}
+html:root #desktopPlayerBar .player-actions .lucide-glyph {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.7;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger {
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 13px;
+  color: var(--studio-ink);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 52%),
+    var(--studio-glass) !important;
+  border-color: var(--studio-glass-edge);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 8px 22px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  font-weight: 650;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger:hover:not(:disabled),
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger:focus-visible {
+  color: var(--studio-ink);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 56%),
+    var(--studio-glass-strong) !important;
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 68%, var(--studio-ink));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 10px 28px rgba(0, 0, 0, 0.24);
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger:disabled {
+  color: var(--studio-muted);
+  opacity: 1;
+  cursor: default;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger:disabled > i {
+  display: none;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-dot {
+  width: 6px;
+  height: 6px;
+  background: #9ee9ee;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #9ee9ee 12%, transparent), 0 0 10px rgba(158, 233, 238, 0.36);
+}
+html:root #desktopPlayerBar .player-timeline > span { color: var(--studio-muted); }
+html:root #desktopPlayerBar #desktopMiniCover { border-radius: 4px; border: 0; }
+html:root :is(#desktopPlayerBar #playPauseBtn, #mobileLayout #mobilePlayBtn, .liquid-primary-button, .content-primary-action, #downloadBtn) { color: var(--studio-accent-ink) !important; background: var(--studio-accent) !important; box-shadow: none !important; border-color: transparent; }
+html:root :is(#desktopPlayerBar #playPauseBtn, #mobileLayout #mobilePlayBtn):hover { background: var(--studio-accent) !important; }
+html:root :is(.playback-quality-trigger, .mobile-playback-quality, .quality-badge) { color: var(--studio-muted); background: transparent !important; box-shadow: none; border-color: var(--studio-line); }
+html:root :is(#desktopPlayerBar #progressBar, #mobileLayout #mobileProgressBar) { background: var(--studio-accent) !important; box-shadow: none !important; }
+html:root :is(#desktopPlayerBar .progress-track, #mobileProgressBarContainer .mobile-progress-track) { background: var(--studio-line) !important; border: 0; box-shadow: none; height: 2px; }
+.anime-progress-thumb__tooltip { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-line); box-shadow: none; }
+.anime-progress-thumb__tooltip::after { display: none; }
+
+html:root #desktopLayout { inset: 0 0 104px; background: var(--studio-bg); color: var(--studio-ink); padding: 28px 36px; }
+html:root :is(.album-art-wrapper, #mobileAlbumArtWrapper) { border-color: var(--studio-line); box-shadow: 0 24px 48px #0003; }
+html:root #desktopLayout :is(.lrc-line.active, .lrc-line.active .lrc-text) { color: var(--studio-ink); }
+html:root :is(.immersive-header, .immersive-heading, .immersive-heading strong) { color: var(--studio-ink); }
+html:root :is(#floatingPlaylistPanel, #mobilePlaylistSheet, #mobileChartsSheet, #settingsCard, #welcomeCard, .collection-dialog-card, .download-dialog-card, .liquid-choice-card, .video-preview-shell) { color: var(--studio-ink); background: var(--studio-surface) !important; border: 1px solid var(--studio-line) !important; border-radius: 8px; box-shadow: 0 24px 80px #0004 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+html:root #floatingPlaylistPanel { top: 72px; right: 0; bottom: 104px; }
+html:root :is(#floatingPlaylistPanel .playlist-item, #mobilePlaylistSheet .mobile-queue-item, #settingsCard [class*="bg-white/"]) { color: var(--studio-ink) !important; background: transparent !important; border-color: var(--studio-line) !important; box-shadow: none !important; }
+html:root :is(.download-dialog-header h2, .download-song-name, .liquid-choice-description, .download-status) { color: var(--studio-ink); }
+html:root .download-dialog-header h2 { font-size: 26px; line-height: 1.2; }
+html:root :is(.download-backdrop-art, .liquid-glass-glow) { display: none; }
+html:root :is(.download-dialog-card, .liquid-choice-card)::after { display: none; }
+html:root :is(#downloadDialog, .liquid-choice-dialog)::backdrop { background: #0a0c0dcc; backdrop-filter: blur(10px); }
+html:root :is(.liquid-quality-trigger, .liquid-quality-menu, .liquid-quality-option, #downloadCancel, #playbackQualityCancel, .queue-clear-button, .queue-remove-button) { color: var(--studio-ink); background: var(--studio-raised); border-color: var(--studio-line); border-radius: 4px; box-shadow: none; }
+html:root #playbackQualityCancel { border-color: var(--studio-ink); }
+html:root #playbackQualityCancel:hover { color: var(--studio-bg); background: var(--studio-ink); }
+html:root :is(.liquid-quality-option[aria-selected="true"], .liquid-quality-option:hover) { background: var(--studio-surface); border-color: var(--studio-accent); }
+html:root :is(#playbackQualityDialog, #downloadDialog)::backdrop {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.075), transparent 42%),
+    rgba(4, 6, 7, 0.58);
+  backdrop-filter: blur(14px) saturate(115%);
+  -webkit-backdrop-filter: blur(14px) saturate(115%);
+}
+html:root :is(#playbackQualityDialog .liquid-choice-card, #downloadDialog .download-dialog-card) {
+  overflow: hidden;
+  color: var(--studio-ink);
+  background:
+    radial-gradient(ellipse at 18% -8%, rgba(255, 255, 255, 0.2), transparent 43%),
+    radial-gradient(ellipse at 104% 112%, rgba(93, 210, 226, 0.1), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.085), transparent 44%),
+    var(--studio-glass-strong) !important;
+  border: 1px solid var(--studio-glass-edge) !important;
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.045),
+    0 36px 96px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(28px) saturate(155%) contrast(1.02) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(155%) contrast(1.02) !important;
+}
+html:root :is(#playbackQualityDialog .liquid-choice-card, #downloadDialog .download-dialog-card)::after {
+  display: block;
+  border-radius: 29px;
+  opacity: 0.68;
+}
+html:root :is(#playbackQualityDialog, #downloadDialog)[open] { animation-duration: 340ms; }
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-glass-glow {
+  display: block;
+  opacity: 0.7;
+  background:
+    radial-gradient(ellipse at 26% 82%, rgba(255, 255, 255, 0.2), transparent 44%),
+    radial-gradient(ellipse at 76% 76%, rgba(116, 225, 237, 0.12), transparent 40%),
+    linear-gradient(105deg, transparent 14%, rgba(255, 90, 73, 0.07), transparent 68%);
+}
+html:root #downloadDialog .download-backdrop-art {
+  display: block;
+  opacity: 0.17;
+  filter: blur(48px) brightness(0.58) saturate(1.15);
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) :is(.liquid-choice-content, .download-dialog-content) {
+  padding: 28px;
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .download-dialog-kicker { color: var(--studio-muted); }
+html:root :is(#playbackQualityDialog, #downloadDialog) .download-dialog-header h2 { color: var(--studio-ink); }
+html:root :is(#playbackQualityDialog, #downloadDialog) :is(.liquid-choice-description, .download-song-name, .download-status) { color: var(--studio-muted); }
+html:root :is(#playbackQualityCancel, #downloadCancel) {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--studio-ink);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.16), transparent 56%),
+    rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 8px 22px rgba(0, 0, 0, 0.15);
+}
+html:root #playbackQualityCancel > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+html:root :is(#playbackQualityCancel, #downloadCancel):hover {
+  color: var(--studio-ink);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 68%, var(--studio-ink));
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-trigger {
+  min-height: 66px;
+  color: var(--studio-ink);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.14), transparent 58%),
+    rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 10px 24px rgba(0, 0, 0, 0.13);
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-trigger:hover,
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-trigger[aria-expanded="true"] {
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.22), transparent 58%),
+    rgba(255, 255, 255, 0.1);
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 68%, var(--studio-ink));
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) :is(.liquid-quality-trigger-label, .liquid-quality-option-meta) { color: var(--studio-muted); }
+html:root :is(#playbackQualityDialog, #downloadDialog) :is(.liquid-quality-trigger-value, .liquid-quality-option-name) { color: var(--studio-ink); }
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-menu {
+  gap: 5px;
+  padding: 7px;
+  background:
+    radial-gradient(ellipse at 12% -12%, rgba(255, 255, 255, 0.17), transparent 46%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 60%),
+    var(--studio-glass) !important;
+  border: 1px solid var(--studio-glass-edge);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 20px 52px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px) saturate(145%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-option {
+  min-height: 54px;
+  color: var(--studio-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 16px;
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-option:hover,
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-option:focus-visible {
+  color: var(--studio-ink);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-option[aria-selected="true"] {
+  color: var(--studio-ink);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 64%),
+    rgba(255, 255, 255, 0.095);
+  border-color: color-mix(in srgb, var(--studio-glass-edge) 72%, var(--studio-ink));
+  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 9px 24px rgba(0, 0, 0, 0.14);
+}
+html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-option[aria-selected="true"] .liquid-quality-check {
+  color: var(--studio-accent-ink);
+  background: var(--studio-accent);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.3), 0 6px 16px color-mix(in srgb, var(--studio-accent) 24%, transparent);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html:root #desktopLibraryView .bilibili-discovery .discovery-song-row,
+  html:root :is(#playbackQualityDialog .liquid-choice-card, #downloadDialog .download-dialog-card),
+  html:root :is(#playbackQualityDialog, #downloadDialog) .liquid-quality-menu { background: var(--studio-surface) !important; }
+}
+html:root :is(#copyToast, #toast) { max-width: min(440px, calc(100% - 32px)); color: var(--studio-ink); background: var(--studio-raised) !important; border: 1px solid var(--studio-line) !important; border-radius: 6px; box-shadow: 0 8px 30px #0003 !important; backdrop-filter: none !important; }
+html:root :is(input, select, textarea) { accent-color: var(--studio-accent); }
+
+@media (min-width: 1024px) {
+  html:root #desktopShell { grid-template-columns: 218px minmax(0, 1fr); grid-template-rows: 72px minmax(0, 1fr) 104px; gap: 0; padding: 0; background: var(--studio-bg); }
+}
+
+@media (min-width: 1024px) and (max-width: 1200px) {
+  html:root #desktopShell { grid-template-columns: 190px minmax(0, 1fr); }
+  html:root #desktopLibraryView { padding-inline: 30px; }
+  html:root #desktopLibraryView h1 { font-size: 52px; }
+  html:root #desktopLibraryView .discovery-source-switcher { width: 216px; flex-basis: 216px; }
+  html:root #desktopShell .app-brand-copy strong { font-size: 14px; }
+}
+
+@media (max-width: 1023.98px) {
+  html:root #mobileLayout { background: var(--studio-bg); padding-bottom: env(safe-area-inset-bottom); }
+  html:root #mobileLayout > header { height: 64px; margin: 0 16px; background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--studio-line) !important; border-radius: 0; box-shadow: none !important; backdrop-filter: none !important; }
+  html:root #mobileLayout > header h1 { color: var(--studio-ink); font-size: 18px; font-weight: 650; }
+  html:root #mobileLayout :is(#mobileChartsBtn, #mobileThemeBtn, #mobileSettingsBtn, #mobileModeBtn, #mobilePrevBtn, #mobileNextBtn, #mobilePlaylistToggleBtn) { color: var(--studio-ink) !important; background: transparent !important; border: 0 !important; box-shadow: none; }
+  html:root #mobileMainView { margin: 12px 8px; color: var(--studio-ink); background: transparent !important; border: 0 !important; border-radius: 0; box-shadow: none !important; backdrop-filter: none !important; }
+  html:root #mobileCoverContainer { padding: 14px 16px 4px; gap: 20px; }
+  html:root #mobileTitle { font-size: 26px !important; line-height: 1.3; font-weight: 650; color: var(--studio-ink); text-shadow: none; filter: none; }
+  html:root #mobileArtist { font-size: 14px !important; color: var(--studio-muted); }
+  html:root #mobileSongIdTag { color: var(--studio-muted); border: 0; background: transparent; font-size: 10px; }
+  html:root #mobileLayout .mobile-control-deck { margin: 0 16px 12px; padding: 10px 8px 0 !important; color: var(--studio-muted); border: 0 !important; border-top: 1px solid var(--studio-line) !important; border-radius: 0; background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
+  html:root #mobileLayout button#mobilePlaybackQualityBtn { color: var(--studio-muted); background: transparent !important; border: 0; font-size: 10px; padding-inline: 6px; }
+  html:root :is(#mobilePlaylistSheet, #mobileChartsSheet) { border-radius: 8px 8px 0 0; }
+  html:root #mobilePlaylistSheet :is(#sheetTabPlaylist, #sheetTabSearch, #closeSheetBtn) { color: var(--studio-muted); }
+  html:root #mobilePlaylistSheet [role="tab"][aria-selected="true"] { color: var(--studio-ink); border-bottom-color: var(--studio-accent); }
+  html:root #mobileLyricsPage { padding-top: 12px; }
+  html:root #mobileLyricsScroller .lrc-text { color: var(--studio-muted); font-size: 24px; text-shadow: none; }
+  html:root #mobileLyricsScroller .lrc-line.active .lrc-text { color: var(--studio-ink); font-size: 28px; text-shadow: none; }
+}
+
+@media (max-width: 1023.98px) and (max-height: 540px) {
+  html:root #mobileLayout > header { height: 48px; }
+  html:root #mobileCoverContainer { padding-block: 0; }
+  html:root #mobileLayout .mobile-control-deck { margin-bottom: 4px; padding-top: 2px !important; }
+}
+
+html:root body.playlist-tool .glass-card,
+html:root body.offline-page main { color: var(--studio-ink); background: transparent; border: 0; border-radius: 0 !important; box-shadow: none; backdrop-filter: none; }
+html:root body.playlist-tool :is(.input-field, #toast) { color: var(--studio-ink) !important; background: var(--studio-surface) !important; border-color: var(--studio-line) !important; border-radius: 4px; }
+html:root body.playlist-tool :is(.glass-card h2, .glass-card .text-white) { color: var(--studio-ink) !important; }
+html:root body.playlist-tool .glass-card > div:first-child { background: var(--studio-accent); }
+html:root body.playlist-tool #downloadBtn { border-radius: 4px; }
+html:root body.playlist-tool .glass-card #downloadBtn { border-radius: 4px !important; }
+html:root body.playlist-tool .input-field::placeholder { color: var(--studio-muted); opacity: 1; }
+html:root body.playlist-tool .glass-card .w-20 { color: var(--studio-accent); background: transparent; border-color: var(--studio-line); box-shadow: none; border-radius: 4px; }
+html:root body.offline-page a { color: var(--studio-accent-ink); background: var(--studio-accent); border: 0; border-radius: 4px; box-shadow: none; }
+html:root body.offline-page h1 { font-size: 36px; }
+
+@keyframes studio-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes studio-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  #desktopLibraryView .desktop-main-view:not([hidden]) { animation: studio-enter 480ms var(--studio-spring); }
+  :is(.discovery-song-cover, .collection-cover, .video-card-artwork, .artist-card-portrait) img { transition: transform 600ms var(--studio-spring); }
+  :is(.discovery-song-play, .collection-cover-button, .video-card-main, .artist-card-main):hover img { transform: scale(1.04); }
+  button:not(:disabled) { transition: color 180ms ease, background-color 180ms ease, transform 260ms var(--studio-spring); }
+  button:not(:disabled):active { transform: scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fa-spin { animation-duration: 1.8s; }
+  body *, body *::before, body *::after { scroll-behavior: auto !important; }
+}

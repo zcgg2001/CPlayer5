@@ -5,6 +5,8 @@ __pycache__/
 .superpowers/
 .worktrees/
 dist/
+output/playwright/
+.playwright-cli/
 .env
 .env.*
 !.env.example

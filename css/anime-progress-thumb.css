@@ -77,8 +77,8 @@
 .anime-progress-thumb__image {
   object-fit: contain;
   object-position: center;
-  /* 原素材奔跑方向偏左，默认翻转为面向播放方向（右）。 */
-  transform: scaleX(-1);
+  /* 新素材已面向播放方向（右），避免再次水平翻转。 */
+  transform: none;
   transform-origin: center;
   pointer-events: none;
 }

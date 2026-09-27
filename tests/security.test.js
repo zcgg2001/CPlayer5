@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 
 import { normalizeMediaUrl } from '../js/security.js';
 
+test('preserves same-origin HTTP media for local streaming while upgrading remote HTTP', () => {
+  const baseUrl = 'http://127.0.0.1:8787/';
+  assert.equal(normalizeMediaUrl('/api/v1/bilibili/audio?id=test', { baseUrl }),
+    'http://127.0.0.1:8787/api/v1/bilibili/audio?id=test');
+  assert.equal(normalizeMediaUrl('http://media.example/audio.mp3', { baseUrl }), 'https://media.example/audio.mp3');
+});
+
 
 const BASE_URL = 'https://player.example/app/';
 

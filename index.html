@@ -27,10 +27,7 @@
     <link rel="apple-touch-icon" href="img/icon.png">
 
     <!-- Fonts & Icons -->
-    <link href="css/noto-sans-sc.css?v=22" rel="stylesheet">
-    <link rel="stylesheet" href="css/all.min.css?v=22">
-    <link rel="stylesheet" href="css/oneko-butterfly.css?v=22">
-    <link rel="stylesheet" href="css/page-scroll-spider.css?v=26">
+    <link href="css/noto-sans-sc.css?v=30" rel="stylesheet">
     <script src="js/tailwindcss.js?v=22"></script>
     <!-- ColorThief - 从图片提取主色调 -->
     <script src="js/color-thief.umd.js?v=22"></script>
@@ -209,7 +206,7 @@
         }
 
         body {
-            font-family: 'Noto Sans SC', sans-serif;
+            font-family: var(--cplayer-font);
             background-color: var(--bg-color);
             color: var(--on-bg-color);
             transition: background-color 0.5s ease, color 0.5s ease;
@@ -1395,14 +1392,18 @@
             }
         }
     </style>
-    <link rel="stylesheet" href="./css/app-shell.css?v=23">
+    <link rel="stylesheet" href="./css/app-shell.css?v=24">
     <link rel="stylesheet" href="./css/charts.css?v=22">
     <link rel="stylesheet" href="./css/music-explore.css?v=22">
-    <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=27">
-    <link rel="stylesheet" href="./css/art-direction.css?v=28">
+    <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=28">
+    <link rel="stylesheet" href="./css/art-direction.css?v=34">
+    <link rel="stylesheet" href="./css/bilibili.css?v=40">
+    <link rel="stylesheet" href="./css/studio.css?v=51">
+    <link rel="stylesheet" href="./css/oneko-butterfly.css?v=44">
+    <link rel="stylesheet" href="./css/page-scroll-spider.css?v=46">
     <script defer src="./js/lucide.min.js?v=23"></script>
-    <script defer src="./js/lucide-bridge.js?v=23"></script>
-    <script src="./js/anime-progress-thumb.js?v=22"></script>
+    <script defer src="./js/lucide-bridge.js?v=42"></script>
+    <script src="./js/anime-progress-thumb.js?v=23"></script>
     <script src="playlist.js?v=22"></script>
 </head>
 
@@ -1432,7 +1433,7 @@
             <aside class="app-sidebar" aria-label="桌面应用导航">
                 <div class="app-brand">
                     <span class="app-brand-mark" aria-hidden="true">
-                        <i class="fas fa-music"></i>
+                        <i data-lucide="AudioWaveform"></i>
                     </span>
                     <span class="app-brand-copy">
                         <strong>505音乐之家</strong>
@@ -1546,7 +1547,7 @@
                                 <p class="library-kicker">DISCOVER</p>
                                 <h1 id="desktopLibraryTitle">发现音乐</h1>
                                 <p class="library-description">
-                                    浏览真实新歌榜，点击任意歌曲即可加入当前播放队列并开始播放。
+                                    今日新歌与精选专辑
                                 </p>
                             </div>
                             <div class="discovery-source-switcher">
@@ -1558,16 +1559,21 @@
                                     <select id="discoveryMusicSourceSelect"
                                         aria-describedby="discoveryMusicSourceHint">
                                         <option value="chksz">ChKSz · 网易云</option>
-                                        <option value="ors-qq">ORS · QQ音乐</option>
-                                        <option value="ors-kg">ORS · 酷狗</option>
-                                        <option value="ors-kw">ORS · 酷我</option>
-                                        <option value="ors-mg">ORS · 咪咕</option>
+                                        <option value="bilibili">Bilibili · 哔哩哔哩</option>
                                     </select>
                                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                                 </div>
                                 <p id="discoveryMusicSourceHint">网易云搜索、解析与歌词</p>
                             </div>
                         </header>
+
+                        <div id="bilibiliCategories" class="bilibili-categories" role="tablist" aria-label="Bilibili 音乐分类" hidden>
+                            <button type="button" role="tab" data-bilibili-category="all" aria-selected="true">音乐区热榜</button>
+                            <button type="button" role="tab" data-bilibili-category="original" aria-selected="false" tabindex="-1">原创</button>
+                            <button type="button" role="tab" data-bilibili-category="cover" aria-selected="false" tabindex="-1">翻唱</button>
+                            <button type="button" role="tab" data-bilibili-category="live" aria-selected="false" tabindex="-1">现场</button>
+                            <button type="button" role="tab" data-bilibili-category="instrumental" aria-selected="false" tabindex="-1">演奏</button>
+                        </div>
 
                         <section id="desktopDiscoverySection" class="discovery-panel"
                             aria-labelledby="desktopDiscoveryTitle">
@@ -1605,7 +1611,7 @@
                                 <div>
                                     <p class="music-shelf-kicker">EDITOR'S PICKS</p>
                                     <h2 id="editorialPlaylistsTitle">编辑精选</h2>
-                                    <p>从真实榜单中挑选不同风格，点击封面即可播放。</p>
+                                    <p>网易云精选榜单</p>
                                 </div>
                                 <span class="music-shelf-note">每日更新</span>
                             </header>
@@ -1618,7 +1624,7 @@
                                 <div>
                                     <p class="music-shelf-kicker">NEW RELEASES</p>
                                     <h2 id="newAlbumsTitle">新碟上架</h2>
-                                    <p>从新歌榜同步专辑，发现刚刚发布的新声音。</p>
+                                    <p>新歌收录专辑</p>
                                 </div>
                                 <span class="music-shelf-note">实时同步</span>
                             </header>
@@ -1631,7 +1637,7 @@
                                 <div>
                                     <p class="music-shelf-kicker">MOMENTS</p>
                                     <h2 id="scenePlaylistsTitle">场景歌单</h2>
-                                    <p>让不同的声音自然进入通勤、专注、运动与夜晚。</p>
+                                    <p>网易云歌单 · 通勤、专注、运动与夜晚</p>
                                 </div>
                                 <span class="music-shelf-note">随心切换</span>
                             </header>
@@ -1889,8 +1895,15 @@
                                 </span>
                                 <div>
                                     <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
-                                    <p>支持歌曲名、歌手或歌曲 ID，结果会加入同一播放队列。</p>
+                                    <p id="desktopSearchSource">ChKSz · 网易云</p>
                                 </div>
+                            </div>
+                            <div class="bilibili-search-source">
+                                <label for="searchMusicSourceSelect">音乐源</label>
+                                <select id="searchMusicSourceSelect" aria-describedby="desktopSearchSource">
+                                    <option value="chksz">ChKSz · 网易云</option>
+                                    <option value="bilibili">Bilibili · 哔哩哔哩</option>
+                                </select>
                             </div>
                             <div class="search-box">
                                 <div class="search-input-wrap">
@@ -1904,7 +1917,6 @@
                                     <span>搜索</span>
                                 </button>
                             </div>
-                            <p class="search-help">搜索结果使用项目现有服务；网络不可用时会沿用已有错误提示。</p>
                             <div id="searchResults" class="hidden" aria-live="polite"></div>
                         </section>
                     </section>
@@ -1968,14 +1980,18 @@
                         aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
                         <span class="playback-quality-dot" aria-hidden="true"></span>
                         <span id="desktopPlaybackQualityLabel">无损</span>
-                        <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                        <i data-lucide="ChevronUp" aria-hidden="true"></i>
                     </button>
                     <button id="desktopPlayerQueueBtn" class="player-action-button" type="button"
                         data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
-                        <i class="fas fa-list-ul" aria-hidden="true"></i>
+                        <i data-lucide="ListMusic" aria-hidden="true"></i>
                     </button>
+                    <a id="desktopOriginalVideo" class="player-action-button" target="_blank" rel="noopener noreferrer"
+                        aria-label="在 Bilibili 打开原视频" title="在 Bilibili 打开原视频" hidden>
+                        <i data-lucide="ArrowUpRight" aria-hidden="true"></i>
+                    </a>
                     <button id="desktopDownloadBtn" class="player-action-button" type="button" aria-label="下载当前歌曲" disabled>
-                        <i class="fas fa-download" aria-hidden="true"></i>
+                        <i data-lucide="ArrowDownToLine" aria-hidden="true"></i>
                     </button>
                     <div class="volume-control-group">
                         <button id="volumeBtn" class="player-action-button" type="button" aria-label="调整音量">
@@ -2022,6 +2038,7 @@
 
                 <div class="immersive-lyrics-pane">
                     <div class="lyrics-card">
+                        <p id="desktopSubtitleSource" class="subtitle-source" hidden></p>
                         <div id="lyricsScroller" class="lyrics-scroller">
                             <div class="lrc-line active">
                                 <span class="lrc-text">CPlayer 5</span>
@@ -2141,6 +2158,14 @@
                             <span id="mobileQualityBadge" class="quality-badge quality-lossless">无损</span>
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
                         </button>
+                        <a id="mobileOriginalVideo" class="bilibili-original" target="_blank" rel="noopener noreferrer"
+                            aria-label="在 Bilibili 打开原视频" title="在 Bilibili 打开原视频" hidden>
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                        </a>
+                        <button id="mobileDownloadBtn" class="bilibili-original" type="button"
+                            aria-label="下载当前 Bilibili 音频" title="下载音频" hidden>
+                            <i class="fas fa-download" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -2154,6 +2179,7 @@
             <div id="mobileLyricsPage"
                 class="absolute inset-0 flex flex-col items-center justify-start pt-8 pb-4 px-4 transition-all duration-500 opacity-0 z-10 overflow-hidden transform translate-x-full pointer-events-none">
 
+                <p id="mobileSubtitleSource" class="subtitle-source" hidden></p>
                 <!-- Lyrics Scroller -->
                 <div class="w-full h-full overflow-hidden relative mask-gradient-vertical">
                     <div id="mobileLyricsScroller"
@@ -2289,14 +2315,14 @@
                             <select id="mobileMusicSourceSelect"
                                 aria-describedby="mobileMusicSourceHint">
                                 <option value="chksz">ChKSz · 网易云</option>
-                                <option value="ors-qq">ORS · QQ音乐</option>
-                                <option value="ors-kg">ORS · 酷狗</option>
-                                <option value="ors-kw">ORS · 酷我</option>
-                                <option value="ors-mg">ORS · 咪咕</option>
+                                <option value="bilibili">Bilibili · 哔哩哔哩</option>
                             </select>
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
                         </div>
                     </div>
+                    <button id="mobileBilibiliBrowse" class="bilibili-browse" type="button" hidden>
+                        <i class="fas fa-headphones" aria-hidden="true"></i>音乐区热榜
+                    </button>
                     <div id="mobileSearchResults" class="flex-1 overflow-y-auto no-scrollbar pb-20 space-y-2">
                         <!-- Search Results -->
                     </div>
@@ -2593,13 +2619,9 @@
                     <select id="musicSourceSelect" aria-describedby="musicSourceHint"
                         class="w-full bg-white/[0.08] border border-white/[0.14] rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary-color/60 focus:bg-white/[0.12] transition-colors">
                         <option value="chksz">ChKSz · 网易云</option>
-                        <option value="ors-qq">ORS · QQ音乐</option>
-                        <option value="ors-kg">ORS · 酷狗</option>
-                        <option value="ors-kw">ORS · 酷我</option>
-                        <option value="ors-mg">ORS · 咪咕</option>
+                        <option value="bilibili">Bilibili · 哔哩哔哩</option>
                     </select>
                     <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">网易云搜索、解析与歌词</p>
-                    <p class="mt-1 text-[10px] opacity-30">排行榜和歌单仍使用 ChKSz（ORS 未提供歌单接口）。</p>
                 </div>
 
                 <!-- 在线歌单 ID 输入 -->
@@ -2789,6 +2811,7 @@
                     </button>
                 </header>
                 <p id="downloadSongName" class="download-song-name"></p>
+                <p id="downloadBilibiliFormat" class="download-status" hidden>AAC 音轨 · M4A 文件</p>
                 <div id="downloadQualityPicker" class="liquid-quality-picker">
                     <input id="downloadQuality" type="hidden" value="lossless">
                     <button id="downloadQualityTrigger" class="liquid-quality-trigger" type="button"
@@ -2827,6 +2850,7 @@
                     </div>
                     <button id="playbackQualityCancel" value="cancel" type="submit" aria-label="关闭播放音质窗口">
                         <i class="fas fa-times" aria-hidden="true"></i>
+                        <span>关闭</span>
                     </button>
                 </header>
                 <p class="liquid-choice-description">选择后立即应用到当前歌曲，并作为后续播放的默认音质。</p>
@@ -2848,35 +2872,43 @@
             createVideosController,
             formatReleaseDate
         } from './js/music-explore.js?v=28';
-        import { normalizeMediaUrl } from './js/security.js?v=22';
+        import { normalizeMediaUrl } from './js/security.js?v=35';
         import {
             RequestCancelledError,
             requestErrorMessage,
             requestJson
-        } from './js/http.js?v=22';
+        } from './js/http.js?v=35';
         import {
-            normalizeLyricsPayload,
-            normalizeOrsLyricsPayload,
-            normalizeOrsSearchPayload,
-            normalizeOrsSongPayload,
-            normalizePlaylistCollectionPayload,
-            normalizePlaylistPayload,
-            normalizeSearchPayload,
-            normalizeSongPayload
-        } from './js/music-data.js?v=22';
+            normalizeBilibiliPayload,
+            bilibiliVideoUrl,
+            normalizePlaylistPayload
+        } from './js/music-data.js?v=39';
         import {
             DOWNLOAD_QUALITY_OPTIONS,
-            downloadFallbackLevels,
             downloadFilename,
             resolveDownloadSong,
             saveAudioBlob
-        } from './js/music-download.js?v=22';
+        } from './js/music-download.js?v=39';
         import { createDownloadSession } from './js/download-session.js?v=22';
+        import { createPlaybackController } from './js/playback-controller.js?v=1';
+        import { createQueueStore } from './js/queue-store.js?v=1';
+        import { createCacheStore } from './js/cache-store.js?v=1';
+        import {
+            DEFAULT_QUALITY,
+            DEFAULT_MUSIC_SOURCE,
+            MUSIC_API_BASE_URL,
+            MUSIC_SOURCE_OPTIONS,
+            QUALITY_DETAILS,
+            MusicService,
+            musicSourceOption,
+            qualityDetails,
+            supportedMusicSource,
+            supportedQuality
+        } from './js/music-service.js?v=1';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
         const LAST_COVER_KEY = 'cp_lastCover';
-        const NEW_SONGS_PLAYLIST_ID = '3779629';
         const EDITORIAL_PLAYLISTS = Object.freeze([
             { id: '19723756', description: '捕捉今天正在上升的旋律', tone: 'violet' },
             { id: '2884035', description: '听见华语原创的新鲜表达', tone: 'rose' },
@@ -2893,63 +2925,6 @@
             { playlistId: '5059644681', title: '日系漫游', description: '适合散步与旅行的轻盈感', icon: 'fa-paper-plane', tone: 'indigo' },
             { playlistId: '19723756', title: '发现新声', description: '跟上此刻正在升温的音乐', icon: 'fa-compass', tone: 'amber' },
         ]);
-        const DEFAULT_QUALITY = 'lossless';
-        const DEFAULT_MUSIC_SOURCE = 'chksz';
-        const MUSIC_SOURCE_OPTIONS = Object.freeze({
-            chksz: Object.freeze({
-                label: 'ChKSz · 网易云',
-                detail: '网易云搜索、解析与歌词',
-                provider: 'chksz',
-            }),
-            'ors-qq': Object.freeze({
-                label: 'ORS · QQ音乐',
-                detail: 'QQ 音乐搜索与高品质解析',
-                provider: 'ors',
-                platform: 'qq',
-            }),
-            'ors-kg': Object.freeze({
-                label: 'ORS · 酷狗',
-                detail: '酷狗音乐搜索与高品质解析',
-                provider: 'ors',
-                platform: 'kg',
-            }),
-            'ors-kw': Object.freeze({
-                label: 'ORS · 酷我',
-                detail: '酷我音乐搜索与高品质解析',
-                provider: 'ors',
-                platform: 'kw',
-            }),
-            'ors-mg': Object.freeze({
-                label: 'ORS · 咪咕',
-                detail: '咪咕音乐搜索与高品质解析',
-                provider: 'ors',
-                platform: 'mg',
-            }),
-        });
-        const QUALITY_DETAILS = Object.freeze({
-            standard: { name: '标准', summary: '标准 · 128K', meta: '128K · MP3', className: 'quality-standard' },
-            exhigh: { name: '极高', summary: '极高 · 320K', meta: '320K · MP3', className: 'quality-high' },
-            lossless: { name: '无损', summary: '无损 · FLAC', meta: 'FLAC · CD 级', className: 'quality-lossless' },
-            hires: { name: 'Hi-Res', summary: 'Hi-Res · 高解析度', meta: '高解析度 · FLAC', className: 'quality-hires' },
-            jymaster: { name: '超清母带', summary: '超清母带', meta: 'MASTER · 最高品质', className: 'quality-lossless' },
-        });
-
-        function supportedQuality(level, fallback = DEFAULT_QUALITY) {
-            return QUALITY_DETAILS[level] ? level : fallback;
-        }
-
-        function supportedMusicSource(source, fallback = DEFAULT_MUSIC_SOURCE) {
-            return MUSIC_SOURCE_OPTIONS[source] ? source : fallback;
-        }
-
-        function musicSourceOption(source) {
-            return MUSIC_SOURCE_OPTIONS[supportedMusicSource(source)];
-        }
-
-        function qualityDetails(level) {
-            return QUALITY_DETAILS[supportedQuality(level)];
-        }
-
         function persistentCoverUrl(value) {
             const safeCover = normalizeMediaUrl(value, { baseUrl: window.location.href });
             if (!safeCover) return '';
@@ -3038,6 +3013,10 @@
                 return;
             }
 
+            [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover].filter(Boolean).forEach(image => {
+                image.referrerPolicy = 'no-referrer';
+                image.crossOrigin = new URL(savedCover).hostname.endsWith('.hdslb.com') ? null : 'anonymous';
+            });
             if (dom.albumArt) dom.albumArt.src = savedCover;
             if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
             if (dom.desktopMiniCover) dom.desktopMiniCover.src = savedCover;
@@ -3064,164 +3043,9 @@
 
         document.addEventListener('plusready', initNativeIntegration, { once: true });
 
-        // ================= 架构核心：可切换音乐源 =================
-
-        class ChKSzAPI {
-            static get baseUrl() {
-                return '/api/v1/music';
-            }
-        }
-
-        class MusicService {
-            constructor() {
-                this.loadSettings();
-                this.baseUrl = ChKSzAPI.baseUrl;
-            }
-
-            loadSettings() {
-                let quality = DEFAULT_QUALITY;
-                let source = DEFAULT_MUSIC_SOURCE;
-                try {
-                    quality = supportedQuality(localStorage.getItem('cp_quality'));
-                    source = supportedMusicSource(localStorage.getItem('cp_source'));
-                } catch (error) {
-                    console.warn('无法读取播放器偏好:', error);
-                }
-                this.config = {
-                    quality,
-                    source,
-                };
-            }
-
-            saveSettings(key, value) {
-                if (key === 'quality') value = supportedQuality(value);
-                if (key === 'source') value = supportedMusicSource(value);
-                this.config[key] = value;
-                try {
-                    localStorage.setItem(`cp_${key}`, value);
-                } catch (error) {
-                    console.warn('无法保存播放器设置:', error);
-                }
-            }
-
-            sourceForSong(song = null) {
-                if (song?.provider === 'ors' && song.platform) {
-                    return musicSourceOption(`ors-${song.platform}`);
-                }
-                if (song && !song.provider) return musicSourceOption('chksz');
-                if (
-                    song?.provider === 'chksz'
-                    || ['ChKSz', 'id_search', 'netease'].includes(String(song?.source || ''))
-                ) {
-                    return musicSourceOption('chksz');
-                }
-                return musicSourceOption(this.config.source);
-            }
-
-            sourceQuery(source = this.config.source) {
-                const option = musicSourceOption(source);
-                return option.provider === 'ors'
-                    ? `source=ors&platform=${encodeURIComponent(option.platform)}`
-                    : 'source=chksz';
-            }
-
-            async search(query, { signal } = {}) {
-                const url = `${this.baseUrl}/search?${this.sourceQuery()}&keyword=${encodeURIComponent(query)}&limit=30`;
-                const json = await requestJson(url, { signal });
-                const option = musicSourceOption(this.config.source);
-                return option.provider === 'ors'
-                    ? normalizeOrsSearchPayload(json, option.platform)
-                    : normalizeSearchPayload(json);
-            }
-
-            async getNewSongs({ signal } = {}) {
-                const url = `${this.baseUrl}/playlist?id=${NEW_SONGS_PLAYLIST_ID}&source=chksz`;
-                const json = await requestJson(url, { signal });
-                return normalizePlaylistPayload(json).slice(0, 12).map(song => ({
-                    ...song,
-                    sourceId: song.id,
-                    provider: 'chksz',
-                    source: 'ChKSz',
-                }));
-            }
-
-            async getPlaylistCollection(id, { signal } = {}) {
-                const url = `${this.baseUrl}/playlist?id=${encodeURIComponent(id)}&source=chksz`;
-                const json = await requestJson(url, { signal });
-                const collection = normalizePlaylistCollectionPayload(json);
-                if (!collection) return null;
-                return {
-                    ...collection,
-                    tracks: collection.tracks.map(song => ({
-                        ...song,
-                        sourceId: song.id,
-                        provider: 'chksz',
-                        source: 'ChKSz',
-                    })),
-                };
-            }
-
-            async getSongAtLevel(id, level, { signal, song = null } = {}) {
-                const option = this.sourceForSong(song);
-                const params = new URLSearchParams({
-                    source: option.provider,
-                    id: String(song?.sourceId || id),
-                    level: String(level),
-                });
-                if (option.provider === 'ors') {
-                    params.set('platform', option.platform);
-                    for (const [key, value] of Object.entries({
-                        name: song?.name,
-                        singer: song?.artist,
-                        interval: song?.interval,
-                        albumName: song?.album,
-                        albumId: song?.albumId,
-                        mainHash: song?.mainHash,
-                    })) {
-                        if (value) params.set(key, value);
-                    }
-                }
-                const url = `${this.baseUrl}/song?${params}`;
-                const json = await requestJson(url, { signal });
-                return option.provider === 'ors'
-                    ? normalizeOrsSongPayload(json, level, option.platform, String(song?.sourceId || id))
-                    : normalizeSongPayload(json, level);
-            }
-
-            async getSong(id, { signal, level = this.config.quality, song: queueSong = null } = {}) {
-                for (const candidate of downloadFallbackLevels(supportedQuality(level))) {
-                    const song = await this.getSongAtLevel(id, candidate, { signal, song: queueSong });
-                    if (song) return song;
-                }
-                throw new Error('音乐源未返回可播放地址');
-            }
-
-            async getLyric(id, { song = null } = {}) {
-                const option = this.sourceForSong(song);
-                if (song?.lrc && option.provider === 'ors') {
-                    return normalizeOrsLyricsPayload({ lrc: song.lrc });
-                }
-                const params = new URLSearchParams({ source: option.provider });
-                if (option.provider === 'ors') {
-                    params.set('platform', option.platform);
-                    params.set('url', song?.url || id);
-                } else {
-                    params.set('id', id);
-                }
-                const url = `${this.baseUrl}/lyric?${params}`;
-                try {
-                    const json = await requestJson(url);
-                    return option.provider === 'ors'
-                        ? normalizeOrsLyricsPayload(json)
-                        : normalizeLyricsPayload(json);
-                } catch (e) { console.warn(`${option.label} 歌词获取失败:`, e); }
-                return null;
-            }
-        }
-
         class LyricService {
-            static async fetchLyrics(songId, song = null) {
-                return new MusicService().getLyric(songId, { song });
+            static async fetchLyrics(songId, song = null, { signal } = {}) {
+                return musicService.getLyric(songId, { song, signal });
             }
         }
 
@@ -3236,214 +3060,44 @@
         let preloadAudio = new Audio();
         preloadAudio.crossOrigin = 'anonymous';
         preloadAudio.volume = 0;
-        let preloadedSongId = null;
+
 
         let audioContext, analyser, gainNode, isPlaying = false;
-        let playbackRequestVersion = 0;
-        let playbackTransitionPending = false;
-        let playlist = [], currentIndex = -1, playMode = 'random';
+        const queueStore = createQueueStore();
+        const queue = queueStore.state;
+        Object.defineProperty(window, 'playlist', {
+            configurable: true,
+            get: () => queue.playlist,
+            set: value => {
+                if (value === queue.playlist) return;
+                queue.playlist = Array.isArray(value) ? value : [];
+                queue.resetOrder();
+            },
+        });
+        const playback = createPlaybackController({ audio, preloadAudio, musicService, queueStore });
         let parsedLyrics = [], activeLyricIndex = -1;
-        let queueUndoSnapshot = null;
 
-        // 伪随机播放：打乱后的播放顺序索引
-        let shuffledOrder = [];  // 打乱后的索引顺序
-        let shuffledIndex = 0;   // 当前在 shuffledOrder 中的位置
 
-        // ================= IndexedDB 缓存系统 =================
-        const DB_NAME = 'CPlayer5DB';
-        const DB_VERSION = 2;
-        let db = null;
 
-        async function initDatabase() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-
-                request.onupgradeneeded = (e) => {
-                    const database = e.target.result;
-
-                    // 歌单缓存表
-                    if (!database.objectStoreNames.contains('playlists')) {
-                        const playlistStore = database.createObjectStore('playlists', { keyPath: 'id' });
-                        playlistStore.createIndex('timestamp', 'timestamp');
-                    }
-
-                    // 歌词缓存表
-                    if (!database.objectStoreNames.contains('lyrics')) {
-                        database.createObjectStore('lyrics', { keyPath: 'songId' });
-                    }
-
-                    // 图片缓存表
-                    if (!database.objectStoreNames.contains('images')) {
-                        database.createObjectStore('images', { keyPath: 'url' });
-                    }
-                };
-            });
-        }
-
-        // ================= 歌单小图缓存逻辑（仅用于列表缩略图） =================
-        window.getCachedImage = async function (url) {
-            const secureUrl = normalizeMediaUrl(url, {
-                allowDataImage: true,
-                baseUrl: window.location.href
-            });
-            if (!secureUrl) return '';
-            if (!db) return secureUrl;
-
-            // 安全检查：确保 images 表存在
-            if (!db.objectStoreNames.contains('images')) {
-                return secureUrl;
-            }
-
-            return new Promise((resolve) => {
-                try {
-                    const tx = db.transaction('images', 'readonly');
-                    const store = tx.objectStore('images');
-                    const cacheKey = `v2:${secureUrl}`;
-                    const req = store.get(cacheKey);
-                    req.onsuccess = () => {
-                        if (req.result && req.result.data) {
-                            resolve(req.result.data); // 命中缓存
-                        } else {
-                            // 按 URL 请求的缩略图尺寸缓存，避免高清列表图被强制压成 80px。
-                            const img = new Image();
-                            img.crossOrigin = 'Anonymous';
-                            img.onload = () => {
-                                try {
-                                    const requestedSize = new URL(secureUrl).searchParams.get('param')?.match(/^(\d+)y(\d+)$/i);
-                                    const thumbWidth = Math.max(80, Math.min(192, Number(requestedSize?.[1]) || 80));
-                                    const thumbHeight = Math.max(80, Math.min(192, Number(requestedSize?.[2]) || thumbWidth));
-                                    const canvas = document.createElement('canvas');
-                                    canvas.width = thumbWidth;
-                                    canvas.height = thumbHeight;
-                                    const ctx = canvas.getContext('2d');
-                                    ctx.drawImage(img, 0, 0, thumbWidth, thumbHeight);
-                                    const base64 = canvas.toDataURL('image/jpeg', 0.84);
-
-                                    // 写入缓存
-                                    const writeTx = db.transaction('images', 'readwrite');
-                                    writeTx.objectStore('images').put({ url: cacheKey, data: base64, timestamp: Date.now() });
-                                    resolve(base64);
-                                } catch (e) {
-                                    resolve(secureUrl); // 降级
-                                }
-                            };
-                            img.onerror = () => resolve(secureUrl);
-                            img.src = secureUrl;
-                        }
-                    };
-                    req.onerror = () => resolve(secureUrl);
-                } catch (e) {
-                    console.warn('Image cache transaction failed:', e);
-                    resolve(secureUrl);
-                }
-            });
-        };
-
-        // 保存歌单到 IndexedDB
-        async function savePlaylistToCache(playlistId, songs) {
-            if (!db) return;
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('playlists', 'readwrite');
-                const store = tx.objectStore('playlists');
-                store.put({
-                    id: playlistId,
-                    songs: songs,
-                    timestamp: Date.now()
-                });
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        // 从 IndexedDB 获取歌单
-        async function getPlaylistFromCache(playlistId) {
-            if (!db) return null;
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction('playlists', 'readonly');
-                const store = tx.objectStore('playlists');
-                const request = store.get(playlistId);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-        }
+        // Keep the existing page API; cache failures degrade inside the store.
+        const cacheStore = createCacheStore();
+        const initDatabase = cacheStore.init;
+        const savePlaylistToCache = cacheStore.savePlaylist;
+        const getPlaylistFromCache = cacheStore.getPlaylist;
+        window.getCachedImage = cacheStore.getImage;
 
         // ================= 伪随机播放：打乱播放列表 =================
-        function shufflePlaylist() {
-            // Fisher-Yates 洗牌算法
-            shuffledOrder = playlist.map((_, i) => i);
-            for (let i = shuffledOrder.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffledOrder[i], shuffledOrder[j]] = [shuffledOrder[j], shuffledOrder[i]];
-            }
-            shuffledIndex = 0;
-            console.log('🔀 播放列表已打乱');
-        }
+        function shufflePlaylist() { return queueStore.shuffle(); }
 
         // 获取下一首歌曲的索引
-        function getNextSongIndex() {
-            if (playMode === 'single') {
-                return currentIndex;
-            } else if (playMode === 'random') {
-                // 伪随机：按照打乱后的顺序播放
-                if (shuffledOrder.length !== playlist.length) {
-                    shufflePlaylist();
-                }
-                // 在打乱的顺序中找到当前歌曲的位置，然后返回下一首
-                const currentPosInShuffle = shuffledOrder.indexOf(currentIndex);
-                const nextPos = (currentPosInShuffle + 1) % shuffledOrder.length;
-                return shuffledOrder[nextPos];
-            } else {
-                // 顺序播放
-                return (currentIndex + 1) % playlist.length;
-            }
-        }
+        function getNextSongIndex() { return queueStore.next(); }
 
         // 获取上一首歌曲的索引
-        function getPreviousSongIndex() {
-            if (playMode === 'single') {
-                return currentIndex;
-            } else if (playMode === 'random') {
-                if (shuffledOrder.length !== playlist.length) {
-                    shufflePlaylist();
-                }
-                const currentPosInShuffle = shuffledOrder.indexOf(currentIndex);
-                const prevPos = (currentPosInShuffle - 1 + shuffledOrder.length) % shuffledOrder.length;
-                return shuffledOrder[prevPos];
-            } else {
-                return currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
-            }
-        }
+        function getPreviousSongIndex() { return queueStore.previous(); }
 
         // ================= 无缝播放：预加载下一首 =================
-        function preloadNextSong() {
-            if (!playlist.length) return;
-
-            const nextIndex = getNextSongIndex();
-            const nextSong = playlist[nextIndex];
-            const nextSongId = typeof nextSong === 'object' ? nextSong.id : nextSong;
-
-            // 避免重复预加载
-            if (preloadedSongId === nextSongId) return;
-
-            // 异步获取下一首歌曲的 URL
-            musicService.getSong(nextSongId, {
-                song: typeof nextSong === 'object' ? nextSong : null,
-            }).then(data => {
-                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
-                if (mediaUrl) {
-                    preloadAudio.src = mediaUrl;
-                    preloadAudio.load();
-                    preloadedSongId = nextSongId;
-                    console.log('🎵 预加载下一首:', nextSong.name || nextSongId);
-                }
-            }).catch(() => { });
-        }
+        function preloadNextSong() { return playback.preloadNext(); }
 
         // ================= 音质分级识别 =================
         function getQualityBadge(url, bitrate, level) {
@@ -3465,7 +3119,10 @@
 
         function syncPlaybackQualityDisplay(level) {
             const resolvedLevel = supportedQuality(level);
-            const detail = qualityDetails(resolvedLevel);
+            const isBilibili = playback.state.currentSong?.provider === 'bilibili';
+            const detail = isBilibili
+                ? { name: 'AAC', className: 'quality-standard' }
+                : qualityDetails(resolvedLevel);
             dom.qualityBadge.textContent = detail.name;
             dom.qualityBadge.className = `quality-badge ${detail.className}`;
             if (dom.mobileQualityBadge) {
@@ -3479,6 +3136,11 @@
             if (dom.mobilePlaybackQualityBtn) {
                 dom.mobilePlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
             }
+            [dom.desktopPlaybackQualityBtn, dom.mobilePlaybackQualityBtn].filter(Boolean).forEach(button => {
+                button.disabled = isBilibili;
+                button.title = isBilibili ? 'Bilibili 公开 AAC 音轨' : '选择播放音质';
+                if (isBilibili) button.setAttribute('aria-label', 'Bilibili 公开 AAC 音轨');
+            });
         }
 
         let compressorNode = null;
@@ -3510,13 +3172,13 @@
         let mobileExploreView = 'charts';
         let videoPreviewOpener = null;
         let visualizer = null;
-        let currentPlaybackSong = null;
+
         let animeProgressThumbs = [];
         const downloadSession = createDownloadSession();
         let downloadState = { song: null, opener: null, session: null };
         let downloadQualitySelector = null;
         let playbackQualitySelector = null;
-        let playbackQualityState = { opener: null, controller: null, version: 0 };
+        let playbackQualityOpener = null;
         let collectionDialogState = {
             collection: null,
             type: 'playlist',
@@ -3644,7 +3306,7 @@
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
             loadDefaultPlaylist();
             loadNewSongDiscovery();
-            loadMusicCollections();
+            scheduleMusicCollections();
             visualizer = initVisualizer();
             syncContinuousRendering();
             // checkSystemTheme(); // Removed
@@ -4049,120 +3711,66 @@
         }
 
         function openPlaybackQualityDialog(opener) {
-            playbackQualityState.opener = opener;
+            playbackQualityOpener = opener;
             playbackQualitySelector.setValue(musicService.config.quality);
-            dom.playbackQualityStatus.textContent = currentPlaybackSong?.id
+            dom.playbackQualityStatus.textContent = playback.state.currentSong?.id
                 ? '选择后将保留当前进度并切换音源。'
                 : '当前未播放歌曲，选择会保存为默认音质。';
             if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
             requestAnimationFrame(() => playbackQualitySelector.focusSelected());
         }
 
-        function replaceAudioSource(mediaUrl, resumeAt, shouldResume, version) {
-            return new Promise((resolve, reject) => {
-                let settled = false;
-                const timeoutId = setTimeout(() => finish(new Error('Audio metadata timed out')), 10_000);
-                const cleanup = () => {
-                    clearTimeout(timeoutId);
-                    audio.removeEventListener('loadedmetadata', handleLoaded);
-                    audio.removeEventListener('error', handleError);
-                };
-                const finish = error => {
-                    if (settled) return;
-                    settled = true;
-                    cleanup();
-                    if (error) reject(error);
-                    else resolve();
-                };
-                const handleLoaded = async () => {
-                    if (version !== playbackQualityState.version) return finish();
-                    if (Number.isFinite(audio.duration) && resumeAt > 0) {
-                        audio.currentTime = Math.min(resumeAt, Math.max(0, audio.duration - 0.25));
-                    }
-                    if (shouldResume) {
-                        try {
-                            await audio.play();
-                        } catch (error) {
-                            console.warn('切换音质后恢复播放失败:', error);
-                        }
-                    }
-                    finish();
-                };
-                const handleError = () => finish(new Error('Audio source failed'));
-                audio.addEventListener('loadedmetadata', handleLoaded);
-                audio.addEventListener('error', handleError);
-                audio.src = mediaUrl;
-                audio.load();
-            });
-        }
-
         async function applyPlaybackQuality(level) {
+            if (playback.state.currentSong?.provider === 'bilibili') return;
             const requestedLevel = supportedQuality(level);
             savePlaybackQuality(requestedLevel);
             playbackQualitySelector.setValue(requestedLevel);
 
-            if (!currentPlaybackSong?.id) {
+            if (playback.state.quality.songLoading) {
+                dom.playbackQualityStatus.textContent = '默认音质已保存，请等待当前歌曲加载完成。';
+                return;
+            }
+
+            if (!playback.state.currentSong?.id) {
                 syncPlaybackQualityDisplay(requestedLevel);
                 dom.playbackQualityStatus.textContent = `已将 ${qualityDetails(requestedLevel).name} 设为默认播放音质。`;
                 return;
             }
 
-            playbackQualityState.controller?.abort();
-            const controller = new AbortController();
-            const version = playbackQualityState.version + 1;
-            playbackQualityState.controller = controller;
-            playbackQualityState.version = version;
-            const songId = currentPlaybackSong.id;
-            const previousSrc = audio.src;
-            const resumeAt = audio.currentTime || 0;
-            const shouldResume = !audio.paused;
-            dom.playbackQualityDialog.setAttribute('aria-busy', 'true');
-            dom.playbackQualityStatus.textContent = `正在匹配${qualityDetails(requestedLevel).name}音源…`;
-
-            try {
-                const data = await musicService.getSong(songId, {
-                    signal: controller.signal,
-                    level: requestedLevel,
-                    song: currentPlaybackSong,
-                });
-                if (version !== playbackQualityState.version || String(currentPlaybackSong.id) !== String(songId)) return;
-                const mediaUrl = normalizeMediaUrl(data?.url, { baseUrl: window.location.href });
-                if (!mediaUrl) throw new Error('Invalid media URL');
-                await replaceAudioSource(mediaUrl, resumeAt, shouldResume, version);
-                if (version !== playbackQualityState.version) return;
-
-                const resolvedLevel = supportedQuality(data.level, requestedLevel);
-                currentPlaybackSong = { ...currentPlaybackSong, ...data, cover: currentPlaybackSong.cover };
-                syncPlaybackQualityDisplay(resolvedLevel);
-                dom.playbackQualityStatus.textContent = resolvedLevel === requestedLevel
-                    ? `已切换为${qualityDetails(resolvedLevel).name}，播放进度已保留。`
-                    : `${qualityDetails(requestedLevel).name}不可用，已自动切换为${qualityDetails(resolvedLevel).name}。`;
-            } catch (error) {
-                if (error instanceof RequestCancelledError || version !== playbackQualityState.version) return;
-                console.error('切换播放音质失败:', error);
-                if (previousSrc && audio.src !== previousSrc) {
-                    try {
-                        await replaceAudioSource(previousSrc, resumeAt, shouldResume, version);
-                    } catch (restoreError) {
-                        console.warn('恢复原播放音源失败:', restoreError);
-                    }
-                }
-                dom.playbackQualityStatus.textContent = '切换失败，已保留原音质，请稍后重试。';
-            } finally {
-                if (version === playbackQualityState.version) {
-                    dom.playbackQualityDialog.removeAttribute('aria-busy');
-                    playbackQualityState.controller = null;
-                }
-            }
+            return playback.changeQuality(requestedLevel, {
+                replaceAudioSource: typeof replaceAudioSource === 'function' ? replaceAudioSource : undefined,
+                onStart() {
+                    dom.playbackQualityDialog.setAttribute('aria-busy', 'true');
+                    dom.playbackQualityStatus.textContent = `正在匹配${qualityDetails(requestedLevel).name}音源…`;
+                },
+                onSuccess(data) {
+                    const resolvedLevel = supportedQuality(data.level, requestedLevel);
+                    syncPlaybackQualityDisplay(resolvedLevel);
+                    dom.playbackQualityStatus.textContent = resolvedLevel === requestedLevel
+                        ? `已切换为${qualityDetails(resolvedLevel).name}，播放进度已保留。`
+                        : `${qualityDetails(requestedLevel).name}不可用，已自动切换为${qualityDetails(resolvedLevel).name}。`;
+                },
+                onError(error) {
+                    console.error('切换播放音质失败:', error);
+                    dom.playbackQualityStatus.textContent = '切换失败，已尝试恢复原音源，请稍后重试。';
+                },
+                onSettled() { dom.playbackQualityDialog.removeAttribute('aria-busy'); },
+            });
         }
 
         function openDownloadDialog(song, opener) {
             if (!song?.id) return showToast('当前歌曲无法下载', true);
             const session = downloadSession.open();
-            downloadState = { song, opener, session };
+            downloadState.controller?.abort();
+            downloadState = { song, opener, session, controller: null };
+            const isBilibili = Boolean(bilibiliVideoUrl(song));
+            dom.downloadQualityPicker.hidden = isBilibili;
+            dom.downloadBilibiliFormat.hidden = !isBilibili;
+            dom.downloadDialogTitle.textContent = isBilibili ? '下载 Bilibili 音频' : '下载歌曲';
             dom.downloadSongName.textContent = (song.name || '未知歌曲') + ' · ' + (song.artist || '未知艺术家');
+            dom.downloadBackdropArt.referrerPolicy = 'no-referrer';
             dom.downloadBackdropArt.src = persistentCoverUrl(song.cover) || './img/icon.png';
-            dom.downloadStatus.textContent = '若当前音质不可用，将自动逐级降档。';
+            dom.downloadStatus.textContent = isBilibili ? '仅下载当前视频已开放的音轨。' : '若当前音质不可用，将自动逐级降档。';
             dom.downloadConfirm.disabled = false;
             dom.downloadCancel.disabled = false;
             downloadQualitySelector.setOpen(false);
@@ -4174,11 +3782,23 @@
             const session = downloadState.session;
             if (!song?.id || !downloadSession.start(session)) return;
             const level = dom.downloadQuality.value;
-            saveDownloadQuality(level);
+            const isBilibili = Boolean(bilibiliVideoUrl(song));
+            if (!isBilibili) saveDownloadQuality(level);
+            const controller = new AbortController();
+            downloadState.controller = controller;
             dom.downloadConfirm.disabled = true;
-            dom.downloadCancel.disabled = true;
+            dom.downloadCancel.disabled = !isBilibili;
             dom.downloadStatus.textContent = '正在解析下载地址...';
             try {
+                if (isBilibili) {
+                    const url = new URL(`/api/v1/bilibili/download?id=${encodeURIComponent(song.id)}`, window.location.href).href;
+                    dom.downloadStatus.textContent = '正在读取音轨...';
+                    await saveAudioBlob({ url, filename: downloadFilename({ ...song, provider: 'bilibili', url }, 'standard'), signal: controller.signal });
+                    if (!downloadSession.isCurrent(session)) return;
+                    dom.downloadDialog.close();
+                    showToast('已下载 Bilibili 音轨 · M4A');
+                    return;
+                }
                 const resolved = await resolveDownloadSong({
                     id: song.id,
                     level,
@@ -4195,9 +3815,13 @@
                 dom.downloadDialog.close();
                 showToast('已开始下载：' + qualityDetails(resolved.resolvedLevel).name);
             } catch (error) {
+                if (controller.signal.aborted) return;
                 if (!downloadSession.isCurrent(session)) return;
                 console.error('歌曲下载失败:', error);
-                dom.downloadStatus.textContent = '下载失败：浏览器或网络阻止了音频文件读取';
+                dom.downloadStatus.textContent = isBilibili
+                    ? error.status === 403 ? '该视频未开放匿名下载，请在 Bilibili 查看。'
+                        : error.status === 429 ? 'Bilibili 请求频繁，请稍后重试。' : '音频下载失败，请稍后重试。'
+                    : '下载失败：浏览器或网络阻止了音频文件读取';
             } finally {
                 if (downloadSession.finish(session)) {
                     dom.downloadConfirm.disabled = false;
@@ -4395,7 +4019,7 @@
             dom.videoPreviewDismiss?.addEventListener('click', closeVideoPreview);
             dom.videoPreviewDialog?.addEventListener('close', resetVideoPreview);
             dom.desktopDownloadBtn.addEventListener('click', () => {
-                openDownloadDialog(currentPlaybackSong, dom.desktopDownloadBtn);
+                openDownloadDialog(playback.state.currentSong, dom.desktopDownloadBtn);
             });
             dom.desktopPlaybackQualityBtn.addEventListener('click', () => {
                 openPlaybackQualityDialog(dom.desktopPlaybackQualityBtn);
@@ -4419,10 +4043,12 @@
                 if (opener?.isConnected) opener.focus();
             });
             dom.downloadConfirm.addEventListener('click', downloadSelectedSong);
+            dom.mobileDownloadBtn.addEventListener('click', () => openDownloadDialog(playback.state.currentSong, dom.mobileDownloadBtn));
             dom.downloadDialog.addEventListener('cancel', event => {
-                if (downloadSession.isPending(downloadState.session)) event.preventDefault();
+                if (downloadSession.isPending(downloadState.session) && !bilibiliVideoUrl(downloadState.song)) event.preventDefault();
             });
             dom.downloadDialog.addEventListener('close', () => {
+                downloadState.controller?.abort();
                 downloadQualitySelector.setOpen(false);
                 const { opener, session } = downloadState;
                 if (!downloadSession.isCurrent(session)) return;
@@ -4430,8 +4056,8 @@
                 if (opener?.isConnected) opener.focus();
             });
             dom.playbackQualityDialog.addEventListener('close', () => {
-                const opener = playbackQualityState.opener;
-                playbackQualityState.opener = null;
+                const opener = playbackQualityOpener;
+                playbackQualityOpener = null;
                 if (opener?.isConnected) opener.focus();
             });
 
@@ -4594,7 +4220,7 @@
                 panel.classList.remove('translate-x-full');
                 // 自动定位到正在播放的歌曲
                 setTimeout(() => {
-                    if (desktopActiveTab === 'playlist' && currentIndex !== -1) {
+                    if (desktopActiveTab === 'playlist' && queue.currentIndex !== -1) {
                         highlightCurrentSong();
                     }
                 }, 300);
@@ -4809,6 +4435,9 @@
                     select: document.getElementById('musicSourceSelect'),
                     hint: document.getElementById('musicSourceHint'),
                 },
+                {
+                    select: document.getElementById('searchMusicSourceSelect'),
+                },
             ].filter(control => control.select);
             if (!controls.length) return;
 
@@ -4819,14 +4448,69 @@
                     select.value = source;
                     if (hint) hint.textContent = option.detail;
                 });
+                const isBilibili = source === 'bilibili';
+                dom.desktopDiscoveryView.classList.toggle('bilibili-discovery', isBilibili);
+                dom.bilibiliCategories.hidden = !isBilibili;
+                dom.mobileBilibiliBrowse.hidden = !isBilibili;
+                dom.desktopLibraryTitle.textContent = isBilibili ? 'Bilibili 音乐' : '发现音乐';
+                dom.desktopSearchSource.textContent = option.label;
+                dom.desktopDiscoveryRefresh.setAttribute('aria-label', isBilibili ? '刷新 Bilibili 音乐' : '刷新新歌速递');
+                dom.desktopDiscoveryView.querySelector('.library-kicker').textContent = isBilibili ? 'BILIBILI' : 'DISCOVER';
+                dom.desktopDiscoveryView.querySelector('.library-description').textContent = isBilibili
+                    ? '原创、翻唱与音乐现场' : '今日新歌与精选专辑';
+                for (const grid of [dom.editorialPlaylistGrid, dom.newAlbumGrid, dom.scenePlaylistGrid]) {
+                    grid.closest('.music-shelf').hidden = isBilibili;
+                }
+                [dom.searchInput, dom.mobileSearchInput].filter(Boolean).forEach(input => {
+                    input.placeholder = isBilibili ? '视频标题、UP 主、BV 号或链接' : '歌曲名、歌手或歌曲 ID';
+                });
             };
 
             sync();
+            const categoryTabs = Array.from(dom.bilibiliCategories.querySelectorAll('[role="tab"]'));
+            const selectCategory = tab => {
+                bilibiliCategory = tab.dataset.bilibiliCategory;
+                categoryTabs.forEach(item => {
+                    const selected = item === tab;
+                    item.setAttribute('aria-selected', String(selected));
+                    item.tabIndex = selected ? 0 : -1;
+                });
+                loadNewSongDiscovery();
+            };
+            categoryTabs.forEach((tab, index) => {
+                tab.addEventListener('click', () => selectCategory(tab));
+                tab.addEventListener('keydown', event => {
+                    let next;
+                    if (event.key === 'ArrowRight') next = (index + 1) % categoryTabs.length;
+                    else if (event.key === 'ArrowLeft') next = (index + categoryTabs.length - 1) % categoryTabs.length;
+                    else if (event.key === 'Home') next = 0;
+                    else if (event.key === 'End') next = categoryTabs.length - 1;
+                    else return;
+                    event.preventDefault();
+                    categoryTabs[next].focus();
+                    selectCategory(categoryTabs[next]);
+                });
+            });
+            dom.mobileBilibiliBrowse.addEventListener('click', () => mobileUI?.handleSearch('', { discover: true }));
             controls.forEach(({ select }) => {
                 select.addEventListener('change', event => {
+                    const previousSource = supportedMusicSource(musicService.config.source);
                     const nextSource = supportedMusicSource(event.target.value);
+                    if (nextSource === previousSource) return;
+                    desktopSearchController?.abort();
+                    mobileUI?.searchController?.abort();
                     musicService.saveSettings('source', nextSource);
+                    const pageUrl = new URL(window.location.href);
+                    pageUrl.searchParams.set('source', nextSource);
+                    history.replaceState(history.state, '', pageUrl);
                     sync();
+                    if (dom.searchResults) {
+                        setSearchStatus(dom.searchResults, '音源已切换，请重新搜索');
+                    }
+                    if (mobileUI?.dom.searchResults) {
+                        setSearchStatus(mobileUI.dom.searchResults, '音源已切换，请重新搜索');
+                    }
+                    loadNewSongDiscovery();
                     showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
                 });
             });
@@ -4912,7 +4596,7 @@
             const sourceCount = document.getElementById('sourceCount');
             if (!sourceLabel) return;
 
-            const count = playlist ? playlist.length : 0;
+            const count = queue.playlist ? queue.playlist.length : 0;
             sourceCount.querySelector('div:first-child').textContent = count;
 
             const configs = {
@@ -4956,11 +4640,11 @@
         }
 
         function setPlaybackTransitionPending(pending) {
-            playbackTransitionPending = Boolean(pending);
+            playback.state.transitionPending = Boolean(pending);
             [dom.playPauseBtn, mobileUI?.dom?.playBtn].filter(Boolean).forEach(button => {
-                button.toggleAttribute('aria-busy', playbackTransitionPending);
+                button.toggleAttribute('aria-busy', playback.state.transitionPending);
             });
-            if (playbackTransitionPending) {
+            if (playback.state.transitionPending) {
                 setDesktopPlayIcon('circle-notch');
                 const mobileIcon = mobileUI?.dom?.playBtn?.querySelector('i');
                 if (mobileIcon) mobileIcon.className = 'fas fa-circle-notch fa-spin';
@@ -4988,9 +4672,8 @@
         function playbackDetailText(data, level) {
             const resolvedLevel = supportedQuality(level);
             const bitrate = Number(data?.br ?? data?.bitrate);
-            const providerLabel = data?.provider === 'ors'
-                ? `ORS · ${String(data.platform || '').toUpperCase()}`
-                : 'ChKSz';
+            if (data?.provider === 'bilibili') return `Bilibili · ${Math.round(bitrate / 1000)} kbps · AAC`;
+            const providerLabel = 'ChKSz';
             const isFlac = String(data?.url || '').toLowerCase().includes('flac')
                 || ['lossless', 'hires', 'jymaster'].includes(resolvedLevel);
             const format = isFlac ? 'FLAC' : 'MP3';
@@ -5004,12 +4687,27 @@
 
         function syncDesktopPlayerAvailability() {
             if (!dom.desktopPlayerBar) return;
-            const hasSong = Boolean(currentPlaybackSong?.id);
+            const hasSong = Boolean(playback.state.currentSong?.id);
             dom.desktopPlayerBar.classList.toggle('is-empty', !hasSong);
             if (dom.desktopMiniPlayer) dom.desktopMiniPlayer.disabled = !hasSong;
             if (dom.prevBtn) dom.prevBtn.disabled = !hasSong;
             if (dom.nextBtn) dom.nextBtn.disabled = !hasSong;
-            if (dom.desktopDownloadBtn) dom.desktopDownloadBtn.disabled = !hasSong;
+            const originalUrl = bilibiliVideoUrl(playback.state.currentSong);
+            if (dom.desktopDownloadBtn) {
+                dom.desktopDownloadBtn.disabled = !hasSong || (Boolean(originalUrl) && playback.state.currentSong.downloadAllowed === false);
+                dom.desktopDownloadBtn.hidden = false;
+                dom.desktopDownloadBtn.title = dom.desktopDownloadBtn.disabled && hasSong ? '该视频未开放下载' : '下载当前音频';
+            }
+            if (dom.mobileDownloadBtn) {
+                dom.mobileDownloadBtn.hidden = !originalUrl;
+                dom.mobileDownloadBtn.disabled = playback.state.currentSong?.downloadAllowed === false;
+                dom.mobileDownloadBtn.title = dom.mobileDownloadBtn.disabled ? '该视频未开放下载' : '下载当前音频';
+            }
+            [dom.desktopOriginalVideo, dom.mobileOriginalVideo].filter(Boolean).forEach(link => {
+                link.hidden = !originalUrl;
+                if (originalUrl) link.href = originalUrl;
+                else link.removeAttribute('href');
+            });
 
             [dom.desktopProgressBarContainer, dom.mobileProgressBarContainer].forEach(container => {
                 if (!container) return;
@@ -5041,47 +4739,35 @@
         }
 
         async function togglePlayPause() {
-            if (!currentPlaybackSong?.id) {
+            if (!playback.state.currentSong?.id) {
                 switchDesktopTab('playlist');
                 togglePlaylistPanel(true);
                 return;
             }
-            if (playbackTransitionPending) return;
+            if (playback.state.transitionPending) return;
             if (!audio.src || audio.readyState === 0) {
                 // 如果还未加载过歌曲，直接播放播放列表中的当前或第一首歌
-                if (playlist.length) {
-                    if (currentIndex === -1) {
-                        if (playMode === 'random' && typeof shuffledOrder !== 'undefined' && shuffledOrder.length) {
-                            currentIndex = shuffledOrder[0];
+                if (queue.playlist.length) {
+                    if (queue.currentIndex === -1) {
+                        if (queue.playMode === 'random' && typeof queue.shuffledOrder !== 'undefined' && queue.shuffledOrder.length) {
+                            queue.currentIndex = queue.shuffledOrder[0];
                         } else {
-                            currentIndex = 0;
+                            queue.currentIndex = 0;
                         }
                     }
-                    playSongAtIndex(currentIndex);
+                    playSongAtIndex(queue.currentIndex);
                 }
                 return;
             }
 
-            const requestVersion = playbackRequestVersion + 1;
-            playbackRequestVersion = requestVersion;
-            const shouldPlay = audio.paused || audio.ended;
-            setPlaybackTransitionPending(true);
-
-            try {
-                if (shouldPlay) {
-                    await audio.play();
-                } else {
-                    audio.pause();
-                }
-            } catch (error) {
-                console.error('Playback toggle failed:', error);
-                showToast('播放失败，请检查网络后重试', true);
-            } finally {
-                if (requestVersion === playbackRequestVersion) {
-                    setPlaybackTransitionPending(false);
-                    syncPlaybackControls();
-                }
-            }
+            return playback.toggle({
+                onPending: setPlaybackTransitionPending,
+                onError(error) {
+                    console.error('Playback toggle failed:', error);
+                    showToast('播放失败，请检查网络后重试', true);
+                },
+                onSettled: syncPlaybackControls,
+            });
         }
 
         function setSearchStatus(container, message, { error = false } = {}) {
@@ -5096,12 +4782,13 @@
         async function searchSongs(query) {
             query = query.trim();
             if (!query) return;
+            const requestSource = supportedMusicSource(musicService.config.source);
 
             desktopSearchController?.abort();
             const requestController = new AbortController();
             desktopSearchController = requestController;
 
-            if (/^\d+$/.test(query)) {
+            if (requestSource === 'chksz' && /^\d+$/.test(query)) {
                 dom.searchResults.innerHTML = Array.from({ length: 1 }).map(() => `
                     <div class="playlist-item p-2 rounded-xl flex items-center gap-3 animate-pulse opacity-50 mb-1">
                         <div class="w-10 h-10 rounded-lg bg-white/10 flex-shrink-0 relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_1.5s_infinite]"></div></div>
@@ -5117,6 +4804,7 @@
                     const songData = await musicService.getSong(query, {
                         signal: requestController.signal
                     });
+                    if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
                     if (songData && songData.url) {
                         const newSong = {
                             id: songData.id,
@@ -5127,10 +4815,6 @@
                             album: songData.album || '',
                             source: 'id_search',
                             provider: songData.provider,
-                            platform: songData.platform,
-                            interval: songData.interval,
-                            albumId: songData.albumId,
-                            mainHash: songData.mainHash,
                         };
 
                         // 插入到当前播放位置之后
@@ -5144,7 +4828,7 @@
                         throw new Error('无效的歌曲ID');
                     }
                 } catch (e) {
-                    if (e instanceof RequestCancelledError) return;
+                    if (e instanceof RequestCancelledError || requestController.signal.aborted) return;
                     console.error(e);
                     setSearchStatus(dom.searchResults, `无法加载歌曲：${requestErrorMessage(e)}`, { error: true });
                 } finally {
@@ -5169,8 +4853,10 @@
 
             try {
                 const songs = await musicService.search(query, {
-                    signal: requestController.signal
+                    signal: requestController.signal,
+                    source: requestSource,
                 });
+                if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
 
                 // [需求4] 限制显示30条结果
                 const limitedSongs = songs ? songs.slice(0, 30) : [];
@@ -5188,6 +4874,7 @@
                         if (song.cover) {
                             const img = document.createElement('img');
                             img.className = 'w-full h-full object-cover';
+                            img.referrerPolicy = 'no-referrer';
                             img.loading = 'lazy';
                             img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                             cachedCoverSource(song.cover, 80).then(cachedSrc => {
@@ -5200,8 +4887,10 @@
                             coverDiv.innerHTML = '<i class="fas fa-music text-xs opacity-30 flex items-center justify-center w-full h-full"></i>';
                         }
 
-                        const infoDiv = document.createElement('div');
-                        infoDiv.className = 'flex-1 min-w-0';
+                        const infoDiv = document.createElement('button');
+                        infoDiv.type = 'button';
+                        infoDiv.className = 'flex-1 min-w-0 text-left bg-transparent border-0 p-0';
+                        infoDiv.setAttribute('aria-label', `加入并播放 ${song.name || '歌曲'}`);
                         const titleDiv = document.createElement('div');
                         titleDiv.className = 'truncate text-sm font-medium flex items-center';
                         titleDiv.textContent = song.name || '未知歌曲';
@@ -5230,13 +4919,10 @@
                                 album: song.album || '',
                                 cover: song.cover,
                                 provider: song.provider,
-                                platform: song.platform,
-                                interval: song.interval,
-                                albumId: song.albumId,
-                                mainHash: song.mainHash,
                             }, downloadButton);
                         });
                         div.appendChild(downloadButton);
+                        if (bilibiliVideoUrl(song)) div.appendChild(createOriginalVideoLink(song));
 
                         div.onclick = () => {
                             const newSong = {
@@ -5248,10 +4934,6 @@
                                 album: song.album || '',
                                 source: song.source || 'Search',
                                 provider: song.provider,
-                                platform: song.platform,
-                                interval: song.interval,
-                                albumId: song.albumId,
-                                mainHash: song.mainHash,
                             };
                             const targetIndex = window.insertSongToPlaylist(newSong);
                             renderAllPlaylistItems();
@@ -5265,7 +4947,7 @@
                     setSearchStatus(dom.searchResults, '未找到相关歌曲');
                 }
             } catch (error) {
-                if (error instanceof RequestCancelledError) return;
+                if (error instanceof RequestCancelledError || requestController.signal.aborted) return;
                 console.error(error);
                 setSearchStatus(dom.searchResults, requestErrorMessage(error), { error: true });
             } finally {
@@ -5276,29 +4958,65 @@
         }
 
         let desktopDiscoveryController = null;
+        let bilibiliCategory = 'all';
 
         async function loadNewSongDiscovery() {
             if (!dom.desktopDiscoveryList) return;
+
+            const requestSource = supportedMusicSource(musicService.config.source);
+            const sourceOption = musicSourceOption(requestSource);
+            const snapshotKey = `cp_bilibili_discovery_v1_${bilibiliCategory}`;
+            let snapshot = null;
+            if (requestSource === 'bilibili') {
+                try {
+                    const saved = JSON.parse(globalThis.localStorage?.getItem(snapshotKey) || 'null');
+                    if (saved?.savedAt > Date.now() - 86400000) {
+                        const songs = normalizeBilibiliPayload({ code: 200, data: saved.songs });
+                        if (songs.length) snapshot = { songs: songs.slice(0, 12), savedAt: saved.savedAt };
+                    }
+                } catch { }
+            }
+            const sourceLabel = dom.desktopDiscoverySection?.querySelector('.discovery-source');
+            const sourceDetail = dom.desktopDiscoverySection?.querySelector('.discovery-heading-copy > p');
+            if (sourceLabel) sourceLabel.textContent = requestSource === 'chksz'
+                ? '网易云新歌榜' : 'Bilibili · 公开内容';
+            if (sourceDetail) sourceDetail.textContent = requestSource === 'chksz'
+                ? '真实榜单数据 · 每次展示最新 12 首' : '音乐区视频 · UP 主作品';
+            if (dom.desktopDiscoveryTitle) dom.desktopDiscoveryTitle.textContent = requestSource === 'chksz' ? '新歌速递'
+                : (dom.bilibiliCategories.querySelector('[aria-selected="true"]')?.textContent || '音乐区热榜');
 
             desktopDiscoveryController?.abort();
             const requestController = new AbortController();
             desktopDiscoveryController = requestController;
             dom.desktopDiscoveryList.setAttribute('aria-busy', 'true');
             if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = true;
-            setDiscoveryStatus('正在获取真实新歌榜...');
-            setCollectionLoading(dom.newAlbumGrid, 6, '正在整理新碟上架');
+            setDiscoveryStatus(`正在获取${sourceOption.label}内容...`);
+            if (requestSource === 'chksz') setCollectionLoading(dom.newAlbumGrid, 6, '正在整理新碟上架');
 
             try {
                 const songs = await musicService.getNewSongs({
-                    signal: requestController.signal
+                    signal: requestController.signal,
+                    source: requestSource,
+                    category: bilibiliCategory,
                 });
+                if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
                 if (!songs.length) throw new Error('New song chart was empty');
                 renderDiscoverySongs(songs);
-                renderNewAlbums(songs);
+                if (requestSource === 'chksz') renderNewAlbums(songs);
+                else {
+                    try {
+                        globalThis.localStorage?.setItem(snapshotKey, JSON.stringify({ songs, savedAt: Date.now() }));
+                    } catch { }
+                }
             } catch (error) {
-                if (error instanceof RequestCancelledError) return;
+                if (error instanceof RequestCancelledError || requestController.signal.aborted) return;
+                if (snapshot) {
+                    renderDiscoverySongs(snapshot.songs);
+                    if (sourceDetail) sourceDetail.textContent = `上次更新：${new Date(snapshot.savedAt).toLocaleString('zh-CN')}`;
+                    return;
+                }
                 console.error('新歌榜加载失败:', error);
-                setDiscoveryStatus(`新歌榜加载失败：${requestErrorMessage(error)}`, { error: true });
+                setDiscoveryStatus(`${sourceOption.label}加载失败：${requestErrorMessage(error)}`, { error: true });
                 setCollectionStatus(dom.newAlbumGrid, '新碟加载失败，请刷新后重试', {
                     error: true,
                     retry: loadNewSongDiscovery,
@@ -5333,6 +5051,19 @@
             dom.desktopDiscoveryList.replaceChildren(fragment);
         }
 
+        function createOriginalVideoLink(song) {
+            const link = document.createElement('a');
+            link.className = 'discovery-download bilibili-original';
+            link.href = bilibiliVideoUrl(song);
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.title = '打开 Bilibili 原视频';
+            link.setAttribute('aria-label', `打开 ${song.name || '视频'} 的 Bilibili 原页`);
+            link.innerHTML = '<i data-lucide="ArrowUpRight" aria-hidden="true"></i>';
+            link.addEventListener('click', event => event.stopPropagation());
+            return link;
+        }
+
         function createDiscoverySongRow(song, index) {
             const row = document.createElement('article');
             row.className = 'discovery-song-row';
@@ -5356,13 +5087,20 @@
             if (coverUrl) {
                 const image = document.createElement('img');
                 image.alt = '';
+                image.referrerPolicy = 'no-referrer';
                 image.width = 48;
                 image.height = 48;
                 image.loading = 'lazy';
                 image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                window.getCachedImage(`${coverUrl}?param=96y96`).then(cachedSrc => {
-                    if (image.isConnected && cachedSrc) image.src = cachedSrc;
-                });
+                if (song.provider === 'bilibili') {
+                    const thumbnail = new URL(coverUrl);
+                    thumbnail.pathname += '@480w_270h_1c.webp';
+                    image.src = thumbnail.href;
+                } else {
+                    window.getCachedImage(`${coverUrl}?param=96y96`).then(cachedSrc => {
+                        if (image.isConnected && cachedSrc) image.src = cachedSrc;
+                    });
+                }
                 cover.appendChild(image);
             } else {
                 const coverIcon = document.createElement('i');
@@ -5388,7 +5126,7 @@
             action.type = 'button';
             action.className = 'discovery-song-action';
             const actionIcon = document.createElement('i');
-            actionIcon.className = 'fas fa-plus';
+            actionIcon.dataset.lucide = 'Plus';
             actionIcon.setAttribute('aria-hidden', 'true');
             const actionLabel = document.createElement('span');
             actionLabel.textContent = '加入播放';
@@ -5401,7 +5139,7 @@
             downloadButton.type = 'button';
             downloadButton.className = 'discovery-download';
             downloadButton.setAttribute('aria-label', `下载 ${song.name || '歌曲'}`);
-            downloadButton.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+            downloadButton.innerHTML = '<i data-lucide="ArrowDownToLine" aria-hidden="true"></i>';
             downloadButton.addEventListener('click', () => {
                 openDownloadDialog({
                     id: song.id,
@@ -5411,13 +5149,13 @@
                     album: song.album || '',
                     cover: song.cover,
                     provider: song.provider,
-                    platform: song.platform,
-                    interval: song.interval,
-                    albumId: song.albumId,
-                    mainHash: song.mainHash,
                 }, downloadButton);
             });
-            actions.append(action, downloadButton);
+            const secondaryActions = document.createElement('div');
+            secondaryActions.className = 'discovery-song-secondary-actions';
+            secondaryActions.appendChild(downloadButton);
+            if (bilibiliVideoUrl(song)) secondaryActions.appendChild(createOriginalVideoLink(song));
+            actions.append(action, secondaryActions);
 
             playButton.append(number, main, album);
             row.append(playButton, actions);
@@ -5426,7 +5164,7 @@
         }
 
         function addDiscoverySong(song) {
-            const existingIndex = playlist.findIndex(item => String(item.id) === String(song.id));
+            const existingIndex = queue.playlist.findIndex(item => String(item.id) === String(song.id));
             if (existingIndex >= 0) {
                 window.playSongAtIndex(existingIndex);
                 showToast(`已在播放列表: ${song.name}`);
@@ -5442,24 +5180,20 @@
                 album: song.album || '',
                 source: song.source || 'new-song-chart',
                 provider: song.provider,
-                platform: song.platform,
-                interval: song.interval,
-                albumId: song.albumId,
-                mainHash: song.mainHash,
             };
             const targetIndex = window.insertSongToPlaylist(newSong);
-            playlistTotalCount = playlist.length;
+            playlistTotalCount = queue.playlist.length;
             allSongsLoaded = true;
             renderAllPlaylistItems();
             if (mobileUI) mobileUI.loadPlaylist();
-            if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${queue.playlist.length}首)`;
             window.playSongAtIndex(targetIndex);
             showToast(`已添加并播放: ${newSong.name}`);
         }
 
         function addChartSong(song, { playNow = true, source = '' } = {}) {
             const playbackId = song.playbackId || song.id;
-            const existingIndex = playlist.findIndex(item => String(item.id) === String(playbackId));
+            const existingIndex = queue.playlist.findIndex(item => String(item.id) === String(playbackId));
             if (existingIndex >= 0) {
                 if (playNow) window.playSongAtIndex(existingIndex);
                 showToast(playNow ? `已在播放列表: ${song.name}` : `${song.name} 已在播放队列`);
@@ -5476,17 +5210,13 @@
                 album: song.album || '',
                 source: source || `chart-${chartsController?.current() || 'hot'}`,
                 provider: song.provider || 'chksz',
-                platform: song.platform,
-                interval: song.interval,
-                albumId: song.albumId,
-                mainHash: song.mainHash,
             };
             const targetIndex = window.insertSongToPlaylist(newSong);
-            playlistTotalCount = playlist.length;
+            playlistTotalCount = queue.playlist.length;
             allSongsLoaded = true;
             renderAllPlaylistItems();
             if (mobileUI) mobileUI.loadPlaylist();
-            if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+            if (dom.playlistCount) dom.playlistCount.textContent = `(${queue.playlist.length}首)`;
 
             if (playNow) {
                 window.playSongAtIndex(targetIndex);
@@ -5732,6 +5462,22 @@
             dom.scenePlaylistGrid.setAttribute('aria-busy', 'false');
         }
 
+        function scheduleMusicCollections() {
+            const shelves = [dom.editorialPlaylistGrid, dom.scenePlaylistGrid]
+                .map(grid => grid?.closest('.music-shelf')).filter(Boolean);
+            if (!shelves.length) return;
+            if (typeof IntersectionObserver === 'undefined') {
+                window.setTimeout(loadMusicCollections, 800);
+                return;
+            }
+            const observer = new IntersectionObserver(entries => {
+                if (!entries.some(entry => entry.isIntersecting)) return;
+                observer.disconnect();
+                loadMusicCollections();
+            }, { rootMargin: '240px' });
+            shelves.forEach(shelf => observer.observe(shelf));
+        }
+
         async function loadMusicCollections() {
             if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid) return;
             musicCollectionsController?.abort();
@@ -5824,7 +5570,9 @@
             if (collection.resolvedTracks?.length) return collection.resolvedTracks;
             const fallbackTracks = collection.tracks || [];
             try {
-                const results = await musicService.search(`${collection.name} ${collection.artist || ''}`.trim());
+                const option = musicService.sourceForSong(fallbackTracks[0]);
+                const source = option.provider;
+                const results = await musicService.search(`${collection.name} ${collection.artist || ''}`.trim(), { source });
                 const expectedAlbum = collection.name.toLocaleLowerCase();
                 const exactMatches = results.filter(song =>
                     String(song.album || '').trim().toLocaleLowerCase() === expectedAlbum
@@ -5857,10 +5605,6 @@
                     album: song.album || '',
                     source,
                     provider: song.provider,
-                    platform: song.platform,
-                    interval: song.interval,
-                    albumId: song.albumId,
-                    mainHash: song.mainHash,
                 });
             });
             return uniqueTracks;
@@ -6074,25 +5818,25 @@
             }
 
             const firstSongId = String(uniqueTracks[0].id);
-            const existingIds = new Set(playlist.map(song => String(song.id)));
+            const existingIds = new Set(queue.playlist.map(song => String(song.id)));
             const additions = uniqueTracks.filter(song => !existingIds.has(String(song.id)));
 
             if (additions.length) {
-                if (!playlist.length) {
+                if (!queue.playlist.length) {
                     const [firstSong, ...remaining] = additions;
                     window.insertSongToPlaylist(firstSong);
                     [...remaining].reverse().forEach(song => window.insertSongToPlaylist(song));
                 } else {
                     [...additions].reverse().forEach(song => window.insertSongToPlaylist(song));
                 }
-                playlistTotalCount = playlist.length;
+                playlistTotalCount = queue.playlist.length;
                 allSongsLoaded = true;
                 renderAllPlaylistItems();
                 if (mobileUI) mobileUI.loadPlaylist();
-                if (dom.playlistCount) dom.playlistCount.textContent = `(${playlist.length}首)`;
+                if (dom.playlistCount) dom.playlistCount.textContent = `(${queue.playlist.length}首)`;
             }
 
-            const targetIndex = playlist.findIndex(song => String(song.id) === firstSongId);
+            const targetIndex = queue.playlist.findIndex(song => String(song.id) === firstSongId);
             if (playNow && targetIndex >= 0) window.playSongAtIndex(targetIndex);
             const action = playNow ? '开始播放' : '已加入队列';
             const suffix = additions.length ? ` · ${additions.length}首` : ' · 已在队列中';
@@ -6107,7 +5851,7 @@
             if (data.cover) {
                 const sizes = ['96x96', '128x128', '192x192', '256x256', '384x384', '512x512'];
                 const src = normalizeMediaUrl(data.cover, {
-                    allowDataImage: data.provider === 'ors',
+                    allowDataImage: true,
                     baseUrl: window.location.href,
                 });
                 if (src) {
@@ -6129,68 +5873,38 @@
             });
         }
 
-        async function loadAndPlaySong(id) {
-            const songOverride = arguments[1] || null;
+        async function loadAndPlaySong(id, songOverride = null) {
+            return playback.load(id, songOverride, {
+                onLoading() {
+                    setPlaybackTransitionPending(false);
+            dom.playbackQualityDialog?.removeAttribute('aria-busy');
             if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.remove('opacity-0');
             if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.remove('opacity-0');
             dom.progressBar.style.width = '0%';
             dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
-            dom.currentTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
-            dom.totalTime.textContent = currentPlaybackSong ? '0:00' : '--:--';
+            dom.currentTime.textContent = playback.state.currentSong ? '0:00' : '--:--';
+            dom.totalTime.textContent = playback.state.currentSong ? '0:00' : '--:--';
             updateDoraemonProgress(0, 0, 0);
             resetBufferedProgress();
             if (mobileUI) mobileUI.updateProgress(0, 0, 0);
-            dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">加载中...</div>';
+            setLyricsStatus('加载中...');
             dom.sourceTag.textContent = `${musicSourceOption(musicService.config.source).label} · 加载中`;
             dom.songIdTag.textContent = 'ID: Load...';
             syncPlaybackQualityDisplay(musicService.config.quality);
 
-            try {
-                // ★ 优先级调整：音频最高优先级
-                // 1. 先获取音频数据并尝试播放
-                const queuedSong = playlist.find(song => (
-                    typeof song === 'object' && String(song.id) === String(id)
-                )) || songOverride || null;
-                const data = await musicService.getSong(id, { song: queuedSong });
-
-                if (!data || !data.url) {
-                    throw new Error('No URL returned');
-                }
-
-                const coverCandidate = queuedSong?.cover || data.cover;
-                const allowDataImage = data.provider === 'ors';
-                const picUrl = normalizeMediaUrl(coverCandidate, {
-                    baseUrl: window.location.href,
-                    allowDataImage,
-                }) || normalizeMediaUrl(data.cover, {
-                    baseUrl: window.location.href,
-                    allowDataImage,
-                })
-                    || '';
-                const playbackData = { ...data, cover: picUrl, ...queuedSong };
-                playbackData.cover = picUrl;
-                playbackData.album = queuedSong?.album || data.album || '';
-                currentPlaybackSong = playbackData;
-                syncDesktopPlayerAvailability();
-
-                const mediaUrl = normalizeMediaUrl(data.url, { baseUrl: window.location.href });
-                if (!mediaUrl) throw new Error('Invalid media URL');
-                audio.src = mediaUrl;
-                dom.songTitle.textContent = data.name || '未知歌曲';
-                dom.artistName.textContent = data.artist || '未知艺术家';
-
-                try {
-                    await audio.play();
-                } catch (e) {
-                    console.error("Auto-play blocked:", e);
+                },
+                onResolved(data) {
+                    syncDesktopPlayerAvailability();
+                    dom.songTitle.textContent = data.name || '未知歌曲';
+                    dom.artistName.textContent = data.artist || '未知艺术家';
+                },
+                onAutoplayBlocked() {
                     syncPlaybackControls(false);
-                    if (e?.name === 'NotAllowedError') {
-                        showToast('歌曲已加载，请点击播放键继续');
-                    } else {
-                        throw e;
-                    }
-                }
-
+                    showToast('歌曲已加载，请点击播放键继续');
+                },
+                onStarted(data, playbackData, session) {
+                    const picUrl = playbackData.cover;
+                    const { isCurrent } = session;
                 // Show Source
                 if (data.source) {
                     dom.sourceTag.textContent = data.source.toUpperCase() + ' API';
@@ -6210,68 +5924,90 @@
                 // 即使封面还在加载，也先显示歌名和歌手
                 updateMediaSessionMetadata(playbackData);
 
-                // 2. 音频开始播放后，再加载歌词和封面
-                // 歌词
-                LyricService.fetchLyrics(id, playbackData).then(qjLyrics => {
-                    const lrc = qjLyrics?.lrc || data.lrc || '';
-                    const tlrc = qjLyrics?.tlrc || data.tlrc || '';
-                    parseLyrics(lrc, tlrc);
-                });
 
                 // 封面 - 直接使用 URL，不再转 base64 以加速显示
                 if (picUrl) {
                     saveLastCover(picUrl);
+                    [dom.albumArt, dom.desktopMiniCover, dom.mobileCoverImg].filter(Boolean).forEach(image => {
+                        image.referrerPolicy = 'no-referrer';
+                        image.crossOrigin = playbackData.provider === 'bilibili' ? null : 'anonymous';
+                    });
                     // 直接设置封面 URL
                     dom.albumArt.src = picUrl;
                     if (dom.desktopMiniCover) dom.desktopMiniCover.src = picUrl;
 
                     // 提取背景色（extractColorsFromImage 本身支持 URL）
-                    if (fluidBg && typeof fluidBg.extractColorsFromImage === 'function') {
-                        fluidBg.extractColorsFromImage(picUrl);
+                    if (playbackData.provider !== 'bilibili' && fluidBg && typeof fluidBg.extractColorsFromImage === 'function') {
+                        fluidBg.extractColorsFromImage(picUrl, { signal: session.signal });
                     }
 
                     // 封面加载完成后更新 MediaSession（确保锁屏封面正确）
                     const coverImg = new Image();
-                    coverImg.crossOrigin = 'anonymous';
-                    coverImg.onload = () => updateMediaSessionMetadata(playbackData);
+                    coverImg.crossOrigin = playbackData.provider === 'bilibili' ? null : 'anonymous';
+                    coverImg.referrerPolicy = 'no-referrer';
+                    coverImg.onload = () => {
+                        if (isCurrent()) updateMediaSessionMetadata(playbackData);
+                    };
                     coverImg.src = picUrl;
-
-                    if (mobileUI) {
-                        mobileUI.updateInfo(data.name, data.artist, picUrl);
-                    }
                 } else {
-                    if (mobileUI) mobileUI.updateInfo(data.name, data.artist, '');
+                    dom.albumArt.src = './img/icon.png';
+                    if (dom.desktopMiniCover) dom.desktopMiniCover.src = './img/icon.png';
                 }
 
-                if (playlist.some(p => String(p.id || p) === String(id))) {
-                    currentIndex = playlist.findIndex(p => String(p.id || p) === String(id));
+                if (queue.playlist.some(p => String(p.id || p) === String(id))) {
+                    queue.currentIndex = queue.playlist.findIndex(p => String(p.id || p) === String(id));
                     highlightCurrentSong();
                 }
 
                 // ★ Mobile UI Updates
                 if (mobileUI) {
-                    mobileUI.updateInfo(data.name, data.artist, picUrl);
+                    mobileUI.updateInfo(data.name, data.artist, picUrl, { signal: session.signal });
                     mobileUI.resetView();
                     mobileUI.closeSheet();
                 }
 
-                // ★ 无缝播放：预加载下一首
-                setTimeout(() => preloadNextSong(), 2000);
 
-            } catch (e) {
+                },
+                onPreload: preloadNextSong,
+                onLyrics(qjLyrics, data, playbackData) {
+                    const lrc = qjLyrics?.lrc || data.lrc || '';
+                    const tlrc = qjLyrics?.tlrc || data.tlrc || '';
+                    if (playbackData.provider === 'bilibili') {
+                        if (!lrc) {
+                            const messages = {
+                                login_required: '此视频字幕需要登录 Bilibili',
+                                restricted: '此视频字幕暂不开放',
+                                error: `字幕加载失败：${qjLyrics?.message || '请稍后重试'}`,
+                            };
+                            setLyricsStatus(messages[qjLyrics?.status] || '该视频没有可公开读取的字幕');
+                            return;
+                        }
+                        parseLyrics(lrc, tlrc);
+                        [dom.desktopSubtitleSource, dom.mobileSubtitleSource].filter(Boolean).forEach(label => {
+                            label.textContent = ['Bilibili 视频字幕', qjLyrics.language, qjLyrics.autoGenerated ? '自动生成' : ''].filter(Boolean).join(' · ');
+                            label.hidden = false;
+                        });
+                        return;
+                    }
+                    parseLyrics(lrc, tlrc);
+                },
+                onLyricsError() { setLyricsStatus('歌词加载失败，请稍后重试'); },
+                onError(e) {
                 console.error(e);
                 setPlaybackTransitionPending(false);
                 syncPlaybackControls(false);
                 showToast('无法播放该歌曲 (版权限制或接口无响应)', true);
-                dom.lyricsContainer.innerHTML = '<div class="lyric-line opacity-50 my-auto">播放失败</div>';
+                setLyricsStatus('播放失败');
                 // ★ Fix: 错误时也要关闭移动端播放列表弹窗，防止卡住
                 if (mobileUI) {
                     mobileUI.closeSheet();
                 }
-            } finally {
-                if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.add('opacity-0');
-                if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.add('opacity-0');
-            }
+                },
+                onSettled() {
+                    if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.add('opacity-0');
+                    if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.add('opacity-0');
+                },
+            });
         }
 
         function updatePlayerState() {
@@ -6345,7 +6081,26 @@
                     if (content) res.push({ time, text: content });
                 }
             }
-            return res;
+            return res.sort((a, b) => a.time - b.time);
+        }
+
+        function setLyricsStatus(message) {
+            parsedLyrics = [];
+            activeLyricIndex = -1;
+            [dom.desktopSubtitleSource, dom.mobileSubtitleSource].filter(Boolean).forEach(label => {
+                label.hidden = true;
+                label.textContent = '';
+            });
+            for (const id of ['lyricsScroller', 'mobileLyricsScroller']) {
+                const scroller = document.getElementById(id);
+                if (!scroller) continue;
+                const status = document.createElement('div');
+                status.className = 'lrc-line active lyrics-status';
+                status.setAttribute('role', 'status');
+                status.textContent = message;
+                scroller.replaceChildren(status);
+                scroller.scrollTop = 0;
+            }
         }
 
         function parseLyrics(lrc, tlrc) {
@@ -6446,13 +6201,20 @@
         function updateLyrics(time) {
             if (!parsedLyrics.length) return;
 
-            // 1. Find active index
-            let idx = parsedLyrics.findIndex(l => l.time > time + 0.3);
-            idx = idx === -1 ? parsedLyrics.length - 1 : idx - 1;
-            if (idx < 0) idx = 0;
+            // 1. Find active index with binary search; timeupdate fires frequently.
+            const targetTime = time + 0.3;
+            let low = 0;
+            let high = parsedLyrics.length;
+            while (low < high) {
+                const middle = (low + high) >> 1;
+                if (parsedLyrics[middle].time <= targetTime) low = middle + 1;
+                else high = middle;
+            }
+            const idx = Math.max(0, low - 1);
 
             // 2. Update if changed
             if (idx !== activeLyricIndex) {
+                const previousIndex = activeLyricIndex;
                 activeLyricIndex = idx;
 
                 const updateScroller = (scrollerId) => {
@@ -6460,8 +6222,16 @@
                     if (!scroller) return;
 
                     const lines = scroller.getElementsByClassName('lrc-line');
-                    Array.from(lines).forEach(line => {
-                        line.classList.remove('active', 'near');
+                    new Set([
+                        previousIndex - 1,
+                        previousIndex,
+                        previousIndex + 1,
+                        idx - 1,
+                        idx,
+                        idx + 1,
+                    ]).forEach(lineIndex => {
+                        const line = lines[lineIndex];
+                        if (line) line.classList.remove('active', 'near');
                     });
 
                     if (lines[idx]) {
@@ -6477,7 +6247,7 @@
 
                         scroller.scrollTo({
                             top: targetScroll,
-                            behavior: 'smooth'
+                            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                         });
                     }
                 };
@@ -6503,7 +6273,7 @@
         // 歌单服务 - ChKSz API（无分页，一次获取全部）
         class PlaylistService {
             static async fetchPlaylist(listId) {
-                const url = `${ChKSzAPI.baseUrl}/playlist?id=${encodeURIComponent(listId)}`;
+                const url = `${MUSIC_API_BASE_URL}/playlist?id=${encodeURIComponent(listId)}`;
                 const json = await requestJson(url);
                 return normalizePlaylistPayload(json);
             }
@@ -6521,12 +6291,12 @@
                     const data = JSON.parse(e.target.result);
                     if (Array.isArray(data)) {
                         // 支持旧格式（纯ID数组）
-                        playlist = data.map(item => {
+                        queue.playlist = data.map(item => {
                             if (typeof item === 'object') return item;
                             return { id: String(item), name: `歌曲 ID: ${item}`, artist: '' };
                         });
-                        currentIndex = -1;
-                        playlistTotalCount = playlist.length;
+                        queue.currentIndex = -1;
+                        playlistTotalCount = queue.playlist.length;
                         allSongsLoaded = true;
                         playlistSource = 'import-json';
                         playlistSourceName = file.name;
@@ -6546,8 +6316,8 @@
             currentPlaylistId = listId;
             localStorage.setItem('cp_playlistId', listId);
 
-            playlist = [];
-            currentIndex = -1;
+            queue.playlist = [];
+            queue.currentIndex = -1;
             allSongsLoaded = false;
             renderedCount = 0;
 
@@ -6560,14 +6330,14 @@
                 const cached = await getPlaylistFromCache(listId);
                 if (cached && cached.songs && cached.songs.length > 0) {
                     console.log('💾 从缓存加载歌单:', cached.songs.length, '首');
-                    playlist = cached.songs;
-                    window.playlist = playlist;
-                    playlistTotalCount = playlist.length;
+                    queue.playlist = cached.songs;
+                    window.playlist = queue.playlist;
+                    playlistTotalCount = queue.playlist.length;
                     allSongsLoaded = true;
                     playlistSource = 'cache';
                     playlistSourceName = listId;
                     initPlaylistView();
-                    document.getElementById('playlistCount').textContent = `(${playlist.length}首)`;
+                    document.getElementById('playlistCount').textContent = `(${queue.playlist.length}首)`;
 
                     // 后台静默更新缓存
                     setTimeout(() => refreshPlaylistInBackground(listId), 5000);
@@ -6594,7 +6364,7 @@
                         playlistSource = 'online';
                         playlistSourceName = listId;
                     }
-                    if (freshSongs.length !== playlist.length) {
+                    if (freshSongs.length !== queue.playlist.length) {
                         document.getElementById('playlistCount').textContent = `(${freshSongs.length}首)`;
                     }
                 }
@@ -6613,19 +6383,19 @@
                     throw new Error('歌单为空或不存在');
                 }
 
-                playlist = songs;
-                window.playlist = playlist;
-                playlistTotalCount = playlist.length;
+                queue.playlist = songs;
+                window.playlist = queue.playlist;
+                playlistTotalCount = queue.playlist.length;
                 allSongsLoaded = true;
                 playlistSource = 'online';
                 playlistSourceName = listId;
 
-                document.getElementById('playlistCount').textContent = `(${playlist.length}首)`;
+                document.getElementById('playlistCount').textContent = `(${queue.playlist.length}首)`;
                 initPlaylistView();
 
                 // ★ 保存到 IndexedDB 缓存
-                await savePlaylistToCache(listId, playlist);
-                console.log('💾 播放列表已缓存:', playlist.length, '首');
+                await savePlaylistToCache(listId, queue.playlist);
+                console.log('💾 播放列表已缓存:', queue.playlist.length, '首');
 
             } catch (e) {
                 console.error('播放列表加载失败:', e);
@@ -6645,15 +6415,15 @@
             if (window.LOCAL_PLAYLIST && window.LOCAL_PLAYLIST.data && window.LOCAL_PLAYLIST.data.tracks) {
                 console.log('📂 加载本地 playlist.js');
                 const tracks = window.LOCAL_PLAYLIST.data.tracks;
-                playlist = tracks.map(item => ({
+                queue.playlist = tracks.map(item => ({
                     id: item.id,
                     name: item.name,
                     artist: item.artists || 'Unknown',
                     cover: item.picUrl || '',
                     album: item.album || ''
                 }));
-                window.playlist = playlist;
-                playlistTotalCount = playlist.length;
+                window.playlist = queue.playlist;
+                playlistTotalCount = queue.playlist.length;
                 allSongsLoaded = true;
                 playlistSource = 'local';
                 playlistSourceName = window.LOCAL_PLAYLIST.title || 'playlist.js';
@@ -6678,8 +6448,8 @@
 
             // 3. 没有任何歌单来源 → 直接进入播放器，通过搜索添加歌曲
             console.log('🎵 未配置歌单，直接进入播放器');
-            playlist = [];
-            window.playlist = playlist;
+            queue.playlist = [];
+            window.playlist = queue.playlist;
             playlistTotalCount = 0;
             allSongsLoaded = true;
             playlistSource = '';
@@ -6734,15 +6504,15 @@
                 if (isJs) {
                     const tracks = parsePlaylistJsContent(text);
                     if (tracks && tracks.length > 0) {
-                        playlist = tracks;
-                        window.playlist = playlist;
-                        currentIndex = -1;
-                        playlistTotalCount = playlist.length;
+                        queue.playlist = tracks;
+                        window.playlist = queue.playlist;
+                        queue.currentIndex = -1;
+                        playlistTotalCount = queue.playlist.length;
                         allSongsLoaded = true;
                         playlistSource = 'import-js';
                         playlistSourceName = file.name;
                         initPlaylistView();
-                        showToast(`已导入 ${playlist.length} 首歌曲`);
+                        showToast(`已导入 ${queue.playlist.length} 首歌曲`);
                         closeSettings();
                         return;
                     }
@@ -6959,9 +6729,9 @@
 
                 // Success!
                 document.getElementById('welcomeLoadingText').textContent = '加载成功！';
-                document.getElementById('welcomeLoadingSubtext').textContent = `已加载 ${playlist.length} 首歌曲`;
+                document.getElementById('welcomeLoadingSubtext').textContent = `已加载 ${queue.playlist.length} 首歌曲`;
 
-                showToast(`歌单加载成功！共 ${playlist.length} 首歌曲`);
+                showToast(`歌单加载成功！共 ${queue.playlist.length} 首歌曲`);
 
                 setTimeout(() => {
                     closeWelcomeModal();
@@ -6991,11 +6761,11 @@
         }
 
         function initPlaylistView() {
-            const countText = allSongsLoaded ? `(${playlist.length}首)` : `(${playlist.length}+首)`;
+            const countText = allSongsLoaded ? `(${queue.playlist.length}首)` : `(${queue.playlist.length}+首)`;
             document.getElementById('playlistCount').textContent = countText;
 
             // 打乱播放顺序（如果是随机模式）
-            if (playMode === 'random') {
+            if (queue.playMode === 'random') {
                 shufflePlaylist();
             }
 
@@ -7015,14 +6785,14 @@
         let vsNodeMap = new Map();   // displayIndex -> DOM node
 
         function syncQueueActions() {
-            const count = playlist.length;
+            const count = queue.playlist.length;
             if (dom.playlistCount) dom.playlistCount.textContent = `(${count}首)`;
             if (dom.mobileQueueCount) dom.mobileQueueCount.textContent = `${count} 首歌曲`;
             [dom.clearPlaylistBtn, dom.mobileClearPlaylistBtn].filter(Boolean).forEach(button => {
                 button.disabled = count === 0;
             });
 
-            const transportDisabled = count === 0 || !currentPlaybackSong?.id;
+            const transportDisabled = count === 0 || !playback.state.currentSong?.id;
             if (dom.prevBtn) dom.prevBtn.disabled = transportDisabled;
             if (dom.nextBtn) dom.nextBtn.disabled = transportDisabled;
             if (mobileUI?.dom?.prevBtn) mobileUI.dom.prevBtn.disabled = transportDisabled;
@@ -7030,73 +6800,49 @@
         }
 
         function queueSnapshot() {
-            return {
-                songs: playlist.slice(),
-                currentSongId: currentPlaybackSong?.id ?? null,
-                currentIndex,
-            };
+            return queueStore.snapshot(playback.state.currentSong?.id ?? null);
         }
 
         function syncQueueAfterMutation() {
-            window.playlist = playlist;
-            playlistTotalCount = playlist.length;
-            shuffledOrder = playlist.map((_, index) => index);
-            if (playMode === 'random' && playlist.length) shufflePlaylist();
+            window.playlist = queue.playlist;
+            playlistTotalCount = queue.playlist.length;
             setupVirtualScroll();
             mobileUI?.loadPlaylist();
             syncQueueActions();
         }
 
         function restoreQueueSnapshot(snapshot) {
-            if (!snapshot?.songs?.length) return;
-            playlist = snapshot.songs.slice();
-            const activeSongIndex = snapshot.currentSongId === null
-                ? -1
-                : playlist.findIndex(song => String(song?.id ?? song) === String(snapshot.currentSongId));
-            currentIndex = activeSongIndex >= 0 ? activeSongIndex : snapshot.currentIndex;
-            queueUndoSnapshot = null;
+            if (!queueStore.restore(snapshot, playback.state.currentSong?.id ?? null)) return;
             syncQueueAfterMutation();
             highlightCurrentSong();
-            showToast(`已恢复 ${playlist.length} 首歌曲`);
+            showToast(`已恢复 ${queue.playlist.length} 首歌曲`);
         }
 
         function showQueueUndo(message, snapshot) {
-            queueUndoSnapshot = snapshot;
+            queue.undoSnapshot = snapshot;
             showToast(message, false, {
                 actionLabel: '撤销',
                 duration: 12000,
-                onAction: () => restoreQueueSnapshot(queueUndoSnapshot),
+                onAction: () => restoreQueueSnapshot(queue.undoSnapshot),
             });
         }
 
         function removeSongFromPlaylist(index) {
-            if (!Number.isInteger(index) || index < 0 || index >= playlist.length) return;
-            const snapshot = queueSnapshot();
-            const [removedSong] = playlist.splice(index, 1);
-            const activeSongId = currentPlaybackSong?.id;
-            currentIndex = activeSongId == null
-                ? -1
-                : playlist.findIndex(song => String(song?.id ?? song) === String(activeSongId));
+            const result = queueStore.remove(index, playback.state.currentSong?.id ?? null);
+            if (!result) return;
+            const { removed: removedSong, snapshot } = result;
             syncQueueAfterMutation();
             showQueueUndo(`已从队列移除《${removedSong?.name || `歌曲 ${removedSong?.id ?? removedSong}`}》`, snapshot);
         }
 
         function clearPlaylist() {
-            if (!playlist.length) return;
-            const snapshot = queueSnapshot();
-            const removedCount = playlist.length;
-            playlist = [];
-            currentIndex = -1;
+            const snapshot = queueStore.clear(playback.state.currentSong?.id ?? null);
+            if (!snapshot) return;
             syncQueueAfterMutation();
-            showQueueUndo(`已清空 ${removedCount} 首歌曲`, snapshot);
+            showQueueUndo(`已清空 ${snapshot.songs.length} 首歌曲`, snapshot);
         }
 
-        function getDisplayOrder() {
-            if (playMode === 'random' && shuffledOrder.length === playlist.length) {
-                return shuffledOrder;
-            }
-            return playlist.map((_, i) => i);
-        }
+        function getDisplayOrder() { return queueStore.displayOrder(); }
 
         function setupVirtualScroll() {
             vsDisplayOrder = getDisplayOrder();
@@ -7104,7 +6850,7 @@
             vsNodeMap.clear();
             syncQueueActions();
 
-            if (!playlist.length) {
+            if (!queue.playlist.length) {
                 const emptyState = document.createElement('div');
                 emptyState.className = 'text-center py-8 opacity-50';
                 emptyState.textContent = EMPTY_PLAYLIST_MESSAGE;
@@ -7132,7 +6878,7 @@
 
         function vsCreateItem(i) {
             const actualIndex = vsDisplayOrder[i];
-            const song = playlist[actualIndex];
+            const song = queue.playlist[actualIndex];
             const songId = typeof song === 'object' ? song.id : song;
             const songName = typeof song === 'object' ? song.name : `歌曲 ID: ${song}`;
             const songArtist = typeof song === 'object' ? song.artist : '';
@@ -7147,7 +6893,7 @@
             div.setAttribute('tabindex', '0');
             div.setAttribute('aria-label', `播放《${songName}》`);
 
-            if (actualIndex === currentIndex) {
+            if (actualIndex === queue.currentIndex) {
                 div.classList.add('bg-primary-color/20', 'text-primary-color', 'font-bold', 'border-l-4', 'border-primary-color', 'pl-2', 'playing-item', 'shadow-md');
             }
 
@@ -7200,7 +6946,7 @@
             div.appendChild(removeButton);
 
             div.onclick = () => {
-                currentIndex = actualIndex;
+                queue.currentIndex = actualIndex;
                 loadAndPlaySong(songId, typeof song === 'object' ? song : null);
             };
             div.addEventListener('keydown', event => {
@@ -7271,11 +7017,11 @@
 
         // Expose functions globally for Mobile UI
         window.playSongAtIndex = (index) => {
-            if (index < 0 || index >= playlist.length) return;
-            currentIndex = index; // Sync with global variable
+            if (index < 0 || index >= queue.playlist.length) return;
+            queue.currentIndex = index; // Sync with global variable
             // currentSongIndex = index; // Removed if not defined
 
-            const song = playlist[index];
+            const song = queue.playlist[index];
             const songId = typeof song === 'object' ? song.id : song;
 
             loadAndPlaySong(songId, typeof song === 'object' ? song : null);
@@ -7292,13 +7038,13 @@
             if (old) old.classList.remove('bg-primary-color/20', 'text-primary-color', 'font-bold', 'border-l-4', 'border-primary-color', 'pl-2', 'playing-item', 'shadow-md');
 
             // 添加新的高亮（如果当前歌曲在可见区域内）
-            let el = dom.playlistContent.querySelector(`div[data-idx="${currentIndex}"]`);
+            let el = dom.playlistContent.querySelector(`div[data-idx="${queue.currentIndex}"]`);
             if (el) {
                 el.classList.add('bg-primary-color/20', 'text-primary-color', 'font-bold', 'border-l-4', 'border-primary-color', 'pl-2', 'playing-item', 'shadow-md');
             }
 
             // 滚动到当前歌曲在显示顺序中的位置
-            const displayPos = vsDisplayOrder.indexOf(currentIndex);
+            const displayPos = vsDisplayOrder.indexOf(queue.currentIndex);
             if (displayPos !== -1) {
                 const targetTop = displayPos * VS_ITEM_H - dom.playlistContainer.clientHeight / 2 + VS_ITEM_H / 2;
                 dom.playlistContainer.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
@@ -7306,63 +7052,60 @@
         }
 
         function playNextSong() {
-            if (!playlist.length) return;
+            if (!queue.playlist.length) return;
             // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
-            if (currentIndex === -1) {
-                if (playMode === 'random' && shuffledOrder.length === playlist.length) {
-                    currentIndex = shuffledOrder[0];
+            if (queue.currentIndex === -1) {
+                if (queue.playMode === 'random' && queue.shuffledOrder.length === queue.playlist.length) {
+                    queue.currentIndex = queue.shuffledOrder[0];
                 } else {
-                    currentIndex = 0;
+                    queue.currentIndex = 0;
                 }
             } else {
-                currentIndex = getNextSongIndex();
+                queue.currentIndex = getNextSongIndex();
             }
-            const song = playlist[currentIndex];
+            const song = queue.playlist[queue.currentIndex];
             const songId = typeof song === 'object' ? song.id : song;
             loadAndPlaySong(songId, typeof song === 'object' ? song : null);
         }
 
         function playPreviousSong() {
-            if (!playlist.length) return;
+            if (!queue.playlist.length) return;
             // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
-            if (currentIndex === -1) {
-                if (playMode === 'random' && shuffledOrder.length === playlist.length) {
-                    currentIndex = shuffledOrder[0];
+            if (queue.currentIndex === -1) {
+                if (queue.playMode === 'random' && queue.shuffledOrder.length === queue.playlist.length) {
+                    queue.currentIndex = queue.shuffledOrder[0];
                 } else {
-                    currentIndex = 0;
+                    queue.currentIndex = 0;
                 }
             } else {
-                currentIndex = getPreviousSongIndex();
+                queue.currentIndex = getPreviousSongIndex();
             }
-            const song = playlist[currentIndex];
+            const song = queue.playlist[queue.currentIndex];
             const songId = typeof song === 'object' ? song.id : song;
             loadAndPlaySong(songId, typeof song === 'object' ? song : null);
         }
 
         function handleSongEnd() {
-            if (!playlist.length) {
-                setPlaybackTransitionPending(false);
-                syncPlaybackControls(false);
-                return;
-            }
-            if (playMode === 'single') {
-                audio.currentTime = 0;
-                audio.play().catch(error => {
+            return playback.ended({
+                onEmpty() {
+                    setPlaybackTransitionPending(false);
+                    syncPlaybackControls(false);
+                },
+                onError(error) {
                     console.error('Single-track replay failed:', error);
                     syncPlaybackControls(false);
-                });
-            } else {
-                playNextSong();
-            }
+                },
+                onNext: playNextSong,
+            });
         }
 
         function togglePlayMode() {
             const modes = ['sequence', 'random', 'single'];
             const icons = ['fa-list-ol', 'fa-random', 'fa-repeat'];
-            let idx = modes.indexOf(playMode);
+            let idx = modes.indexOf(queue.playMode);
             idx = (idx + 1) % modes.length;
-            playMode = modes[idx];
-            if (playMode === 'random') {
+            queue.playMode = modes[idx];
+            if (queue.playMode === 'random') {
                 shufflePlaylist();
             }
             dom.playModeBtn.innerHTML = `<i class="fas ${icons[idx]} text-xl"></i>`;
@@ -7410,37 +7153,9 @@
 
         // ================= 安全插入歌曲到播放列表 =================
         window.insertSongToPlaylist = function (newSong) {
-            if (currentIndex === -1) currentIndex = playlist.length > 0 ? playlist.length - 1 : 0;
-
-            // 处理空列表的情况
-            if (playlist.length === 0) {
-                playlist.push(newSong);
-                window.playlist = playlist;
-                if (playMode === 'random') shuffledOrder = [0];
-                return 0;
-            }
-
-            const insertIndex = currentIndex + 1;
-
-            // 1. 插入到真实底层播放列表
-            playlist.splice(insertIndex, 0, newSong);
-            window.playlist = playlist;
-
-            // 2. 核心修复：维护随机播放队列，防止 UI 回退
-            if (playMode === 'random') {
-                // 将所有受影响的序号 +1
-                for (let i = 0; i < shuffledOrder.length; i++) {
-                    if (shuffledOrder[i] >= insertIndex) {
-                        shuffledOrder[i]++;
-                    }
-                }
-                // 将新歌无缝插入到随机队列里“当前正在播放的歌曲”之后
-                let currentShufflePos = shuffledOrder.indexOf(currentIndex);
-                if (currentShufflePos === -1) currentShufflePos = shuffledOrder.length - 1;
-                shuffledOrder.splice(currentShufflePos + 1, 0, insertIndex);
-            }
-
-            return insertIndex;
+            const index = queueStore.insert(newSong);
+            window.playlist = queue.playlist;
+            return index;
         };
 
         function initVisualizer() {
@@ -7934,8 +7649,8 @@
                     const scrollParent = container.parentElement; // sheetContentPlaylist
 
                     let displayOrder = [];
-                    if (playMode === 'random' && shuffledOrder.length === window.playlist.length) {
-                        displayOrder = shuffledOrder;
+                    if (queue.playMode === 'random' && queue.shuffledOrder.length === window.playlist.length) {
+                        displayOrder = queue.shuffledOrder;
                     } else {
                         displayOrder = window.playlist.map((_, i) => i);
                     }
@@ -7967,7 +7682,7 @@
                     function mCreateItem(i) {
                         const actualIndex = displayOrder[i];
                         const song = window.playlist[actualIndex];
-                        const isPlaying = actualIndex === currentIndex;
+                        const isPlaying = actualIndex === queue.currentIndex;
                         const textClass = isPlaying ? 'text-primary-color' : '';
                         const coverSrc = song.cover || '';
 
@@ -8075,7 +7790,7 @@
                     };
 
                     // 自动滚动到当前播放
-                    const playingPos = displayOrder.indexOf(currentIndex);
+                    const playingPos = displayOrder.indexOf(queue.currentIndex);
                     if (playingPos !== -1) {
                         requestAnimationFrame(() => {
                             const targetTop = playingPos * MH - scrollParent.clientHeight / 2 + MH / 2;
@@ -8091,15 +7806,16 @@
                 }
             }
 
-            async handleSearch(query) {
-                if (!query.trim()) return;
+            async handleSearch(query, { discover = false } = {}) {
+                if (!query.trim() && !discover) return;
+                const requestSource = supportedMusicSource(musicService.config.source);
 
                 this.searchController?.abort();
                 const requestController = new AbortController();
                 this.searchController = requestController;
 
                 // [紧急Fix] 纯数字ID直接添加并播放
-                if (/^\d+$/.test(query.trim())) {
+                if (requestSource === 'chksz' && /^\d+$/.test(query.trim())) {
                     const container = this.dom.searchResults;
                     container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs">正在加载ID歌曲...</div>';
 
@@ -8107,6 +7823,7 @@
                         const songData = await musicService.getSong(query.trim(), {
                             signal: requestController.signal
                         });
+                        if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
                         if (songData && songData.url) {
                             const newSong = {
                                 id: songData.id,
@@ -8117,10 +7834,6 @@
                                 album: songData.album || '',
                                 source: 'id_search',
                                 provider: songData.provider,
-                                platform: songData.platform,
-                                interval: songData.interval,
-                                albumId: songData.albumId,
-                                mainHash: songData.mainHash,
                             };
 
                             // 插入到播放列表
@@ -8140,7 +7853,7 @@
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
                     } catch (e) {
-                        if (e instanceof RequestCancelledError) return;
+                        if (e instanceof RequestCancelledError || requestController.signal.aborted) return;
                         console.error(e);
                         setSearchStatus(container, requestErrorMessage(e), { error: true });
                     } finally {
@@ -8156,9 +7869,13 @@
 
                 try {
                     // Use global musicService instance
-                    const results = await musicService.search(query, {
-                        signal: requestController.signal
-                    });
+                    const results = await (discover ? musicService.getNewSongs({
+                        signal: requestController.signal, source: requestSource,
+                    }) : musicService.search(query, {
+                        signal: requestController.signal,
+                        source: requestSource,
+                    }));
+                    if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
                     container.innerHTML = '';
 
                     if (!results || results.length === 0) {
@@ -8176,11 +7893,13 @@
                                 <div data-song-title class="font-bold truncate text-sm text-white/90"></div>
                                 <div data-song-artist class="text-xs truncate opacity-50"></div>
                             </div>
-                            <button aria-label="添加并播放歌曲" class="p-2 w-8 h-8 flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
+                            <button aria-label="添加并播放歌曲" class="p-2 w-11 h-11 flex-none flex items-center justify-center rounded-full border border-white/20 text-xs active:bg-primary-color active:border-primary-color transition-colors">
                                 <i class="fas fa-plus"></i>
                             </button>
                         `;
                         const targetImg = div.querySelector('img');
+                        targetImg.alt = '';
+                        targetImg.referrerPolicy = 'no-referrer';
                         div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
                         div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
 
@@ -8202,10 +7921,6 @@
                                 album: song.album,
                                 source: song.source || 'Search',
                                 provider: song.provider,
-                                platform: song.platform,
-                                interval: song.interval,
-                                albumId: song.albumId,
-                                mainHash: song.mainHash,
                             };
                             const targetIndex = window.insertSongToPlaylist(newSong);
 
@@ -8220,11 +7935,23 @@
 
                             showToast(`已添加并播放: ${song.name}`);
                         };
+                        if (bilibiliVideoUrl(song)) {
+                            const download = document.createElement('button');
+                            download.type = 'button';
+                            download.className = 'bilibili-original';
+                            download.setAttribute('aria-label', `下载 ${song.name || '视频'} 音频`);
+                            download.innerHTML = '<i class="fas fa-download" aria-hidden="true"></i>';
+                            download.addEventListener('click', event => {
+                                event.stopPropagation();
+                                openDownloadDialog(song, download);
+                            });
+                            div.append(download, createOriginalVideoLink(song));
+                        }
                         container.appendChild(div);
                     });
 
                 } catch (e) {
-                    if (e instanceof RequestCancelledError) return;
+                    if (e instanceof RequestCancelledError || requestController.signal.aborted) return;
                     console.error('Search failed', e);
                     setSearchStatus(container, requestErrorMessage(e), { error: true });
                 } finally {
@@ -8272,7 +7999,8 @@
             }
 
             // Updates - 带过渡动画
-            updateInfo(title, artist, cover) {
+            updateInfo(title, artist, cover, { signal } = {}) {
+                clearTimeout(this.infoTransitionTimer);
                 const elements = [this.dom.title, this.dom.artist, this.dom.coverImg].filter(Boolean);
                 const safeCover = normalizeMediaUrl(cover, {
                     allowDataImage: true,
@@ -8283,11 +8011,15 @@
                 elements.forEach(el => el.style.transition = 'opacity 0.2s ease');
                 elements.forEach(el => el.style.opacity = '0');
 
-                setTimeout(() => {
+                this.infoTransitionTimer = setTimeout(() => {
+                    if (signal?.aborted) {
+                        elements.forEach(el => el.style.opacity = '1');
+                        return;
+                    }
                     // 更新内容
                     if (this.dom.title) this.dom.title.textContent = title || '未知歌曲';
                     if (this.dom.artist) this.dom.artist.textContent = artist || '未知艺术家';
-                    if (this.dom.coverImg && safeCover) this.dom.coverImg.src = safeCover;
+                    if (this.dom.coverImg) this.dom.coverImg.src = safeCover || './img/icon.png';
 
                     // Sync metadata badges from desktop DOM
                     const desktopSource = document.getElementById('sourceTag');
@@ -8432,11 +8164,12 @@
 
             resize() { if (!this.gl) return; this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; this.gl.viewport(0, 0, this.canvas.width, this.canvas.height); }
 
-            async extractColorsFromImage(imgUrl) {
+            async extractColorsFromImage(imgUrl, { signal } = {}) {
                 try {
                     // console.log('🎨 开始从封面提取颜色:', imgUrl);
                     const img = new Image();
                     img.crossOrigin = 'anonymous';
+                    img.referrerPolicy = 'no-referrer';
                     img.src = imgUrl;
 
                     await new Promise((resolve, reject) => {
@@ -8444,6 +8177,7 @@
                         img.onerror = reject;
                         setTimeout(reject, 5000); // 5秒超时
                     });
+                    if (signal?.aborted) return;
 
                     if (typeof ColorThief !== 'undefined') {
                         const colorThief = new ColorThief();
@@ -8898,7 +8632,9 @@
         // 初始化渲染器
         function initCanvasRenderers() {
             // 流体背景
-            fluidBg = new FluidBackground('fluidBg');
+            if (getComputedStyle(document.getElementById('fluidBg')).display !== 'none') {
+                fluidBg = new FluidBackground('fluidBg');
+            }
 
             // Canvas 歌词
             lyricsCanvas = new LyricsCanvasRenderer('lyricsCanvas');
@@ -8946,8 +8682,8 @@
         });
 
     </script>
-    <script type="module" src="js/page-scroll-spider.js?v=26"></script>
-    <script type="module" src="js/oneko-butterfly.js?v=22"></script>
+    <script type="module" src="./js/page-scroll-spider.js?v=46"></script>
+    <script type="module" src="./js/oneko-butterfly.js?v=44"></script>
 </body>
 
 </html>

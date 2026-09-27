@@ -11,14 +11,12 @@ REQUIRED_CORE_ASSETS = {
     "./index.html",
     "./offline.html",
     "./playlist-downloader.html",
-    "./css/all.min.css",
+    "./css/studio.css",
     "./css/app-shell.css",
     "./css/charts.css",
     "./css/music-explore.css",
     "./css/anime-progress-thumb.css",
     "./css/noto-sans-sc.css",
-    "./css/oneko-butterfly.css",
-    "./css/page-scroll-spider.css",
     "./js/app-shell.js",
     "./js/charts-page.js",
     "./js/music-explore.js",
@@ -30,14 +28,14 @@ REQUIRED_CORE_ASSETS = {
     "./js/music-data.js",
     "./js/music-download.js",
     "./js/download-session.js",
-    "./js/oneko-butterfly.js",
-    "./js/page-scroll-spider.js",
+    "./js/playback-session.js",
+    "./js/playback-controller.js",
+    "./js/queue-store.js",
+    "./js/cache-store.js",
     "./img/icon.svg",
     "./img/icon.png",
     "./img/favicon.svg",
-    "./img/doraemon-progress-thumb.png",
-    "./img/oneko-tora.gif",
-    "./img/key-spider-scroll.png",
+    "./img/doraemon-progress-runner.png",
     "./manifest.json",
 }
 
@@ -79,7 +77,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v28';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v52';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",
@@ -114,10 +112,10 @@ class PwaContractTests(unittest.TestCase):
         self.assertIn("self.addEventListener('fetch'", worker_source)
 
         for versioned_asset in (
-            "css/app-shell.css?v=23",
+            "css/app-shell.css?v=24",
             "css/charts.css?v=22",
             "css/music-explore.css?v=22",
-            "css/art-direction.css?v=28",
+            "css/art-direction.css?v=34",
             "js/app-shell.js?v=22",
             "js/charts-page.js?v=28",
             "js/music-explore.js?v=28",

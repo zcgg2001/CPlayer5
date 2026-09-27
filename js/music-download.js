@@ -1,4 +1,4 @@
-import { normalizeMediaUrl } from './security.js?v=22';
+import { normalizeMediaUrl } from './security.js?v=35';
 
 export const DOWNLOAD_QUALITY_OPTIONS = Object.freeze([
   { level: 'standard', label: '标准 128K' },
@@ -31,15 +31,21 @@ export async function resolveDownloadSong({ id, level, requestSong, baseUrl }) {
 
 export function downloadFilename(song, level) {
   const clean = value => String(value || '未知').replace(/[\\/:*?"<>|\u0000-\u001F]/g, ' ').replace(/\s+/g, ' ').trim() || '未知';
+  if (song.provider === 'bilibili') return clean(song.name).slice(0, 100) + ' - ' + clean(song.artist).slice(0, 60) + ' - AAC.m4a';
   const label = DOWNLOAD_QUALITY_OPTIONS.find(option => option.level === level)?.label.replace(/\s+\d+K$/, '') || '标准';
   const extension = new URL(song.url).pathname.match(/\.(mp3|flac|m4a|aac|ogg|wav)$/i)?.[1] || 'mp3';
   return clean(song.name) + ' - ' + clean(song.artist) + ' - ' + label + '.' + extension;
 }
 
-export async function saveAudioBlob({ url, filename, fetchImpl = fetch, documentRef = document, urlApi = URL }) {
-  const response = await fetchImpl(url);
-  if (!response.ok) throw new Error('Download request failed: ' + response.status);
+export async function saveAudioBlob({ url, filename, signal, fetchImpl = fetch, documentRef = document, urlApi = URL }) {
+  const response = await fetchImpl(url, { signal });
+  if (!response.ok) {
+    const error = new Error('Download request failed: ' + response.status);
+    error.status = response.status;
+    throw error;
+  }
   const blob = await response.blob();
+  if (signal?.aborted) throw signal.reason;
   if (!blob.size) throw new Error('Downloaded audio was empty');
   const objectUrl = urlApi.createObjectURL(blob);
   const anchor = documentRef.createElement('a');

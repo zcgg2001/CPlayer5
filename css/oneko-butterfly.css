@@ -7,6 +7,11 @@
     contain: layout style paint;
 }
 
+body:has(#mobilePlaylistSheet[aria-hidden="false"]) .oneko-pet-layer,
+body:has(#mobileChartsSheet[aria-hidden="false"]) .oneko-pet-layer {
+    visibility: hidden;
+}
+
 .oneko-cat {
     position: absolute;
     z-index: 2;

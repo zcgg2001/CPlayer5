@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
   normalizeLyricsPayload,
-  normalizeOrsLyricsPayload,
-  normalizeOrsSearchPayload,
-  normalizeOrsSongPayload,
+  normalizeBilibiliPayload,
+  bilibiliVideoUrl,
   normalizePlaylistCollectionPayload,
   normalizePlaylistPayload,
   normalizeSearchPayload,
@@ -37,34 +36,16 @@ test('normalizes supported search response shapes', () => {
   }
 });
 
-test('normalizes ORS search results with platform metadata', () => {
-  assert.deepEqual(
-    normalizeOrsSearchPayload([
-      {
-        id: '0039MnYb0qxYhV',
-        name: '晴天',
-        singer: '周杰伦',
-        albumName: '叶惠美',
-        interval: 269,
-        albumId: '123',
-        mainHash: 'abc',
-      },
-    ], 'qq'),
-    [{
-      id: '0039MnYb0qxYhV',
-      sourceId: '0039MnYb0qxYhV',
-      name: '晴天',
-      artist: '周杰伦',
-      album: '叶惠美',
-      cover: '',
-      source: 'ORS · QQ',
-      provider: 'ors',
-      platform: 'qq',
-      interval: '269',
-      albumId: '123',
-      mainHash: 'abc',
-    }],
-  );
+test('normalizes Bilibili tracks without trusting supplied external links', () => {
+  const [track] = normalizeBilibiliPayload({ code: 200, data: [{
+    id: 'bili:BV1C9b76cEks:2', name: 'Music', artist: 'UP',
+    externalUrl: 'https://untrusted.example/',
+  }] });
+  assert.equal(track.provider, 'bilibili');
+  assert.equal(track.sourceId, 'bili:BV1C9b76cEks:2');
+  assert.equal(track.externalUrl, 'https://www.bilibili.com/video/BV1C9b76cEks/?p=2');
+  assert.equal(bilibiliVideoUrl({ id: 'https://untrusted.example/' }), '');
+  assert.deepEqual(normalizeBilibiliPayload({ code: 200, data: [{ id: '123' }] }), []);
 });
 
 test('falls back to album artwork when the direct cover field is empty', () => {
@@ -123,30 +104,14 @@ test('normalizes song responses and requires a playable URL', () => {
   assert.equal(normalizeSongPayload({ code: 200, data: { id: 9 } }), null);
 });
 
-test('normalizes ORS parse responses and keeps inline lyrics', () => {
-  assert.deepEqual(
-    normalizeOrsSongPayload({
-      url: 'https://music.ors.de5.net/play/qq/song',
-      picture: 'data:image/png;base64,AAAA',
-      lrc: '[00:01.00]晴天',
-      ext: 'flac',
-    }, 'lossless', 'qq', '0039MnYb0qxYhV'),
-    {
-      id: '0039MnYb0qxYhV',
-      sourceId: '0039MnYb0qxYhV',
-      url: 'https://music.ors.de5.net/play/qq/song',
-      name: '未知歌曲',
-      artist: '未知艺术家',
-      album: '',
-      cover: 'data:image/png;base64,AAAA',
-      lrc: '[00:01.00]晴天',
-      source: 'ORS · QQ',
-      provider: 'ors',
-      platform: 'qq',
-      level: 'lossless',
-      ext: 'flac',
-    },
-  );
+test('keeps Bilibili audio bitrate and format distinct from NetEase quality labels', () => {
+  const [song] = normalizeBilibiliPayload({ code: 200, data: {
+    id: 'bili:BV1C9b76cEks:1', br: 192000, url: '/api/v1/bilibili/audio?id=test', level: 'lossless',
+  } });
+  assert.equal(song.br, 192000);
+  assert.equal(song.format, 'AAC');
+  assert.equal(song.level, 'standard');
+  assert.equal(song.url, '/api/v1/bilibili/audio?id=test');
 });
 
 test('normalizes lyric responses', () => {
@@ -158,13 +123,6 @@ test('normalizes lyric responses', () => {
     { lrc: 'original', tlrc: 'translated', yrc: '' },
   );
   assert.equal(normalizeLyricsPayload({ code: 500 }), null);
-});
-
-test('normalizes ORS plain-text lyrics', () => {
-  assert.deepEqual(
-    normalizeOrsLyricsPayload({ lrc: '[00:01.00]晴天' }),
-    { lrc: '[00:01.00]晴天', tlrc: '', yrc: '' },
-  );
 });
 
 test('normalizes supported playlist response shapes', () => {

@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v28';
+const SHELL_CACHE = 'cplayer5-shell-v52';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -8,15 +8,16 @@ const CORE_ASSETS = [
   './index.html',
   './offline.html',
   './playlist-downloader.html',
-  './css/all.min.css',
   './css/app-shell.css',
   './css/charts.css',
   './css/music-explore.css',
   './css/anime-progress-thumb.css',
   './css/art-direction.css',
-  './css/noto-sans-sc.css',
+  './css/bilibili.css',
+  './css/studio.css',
   './css/oneko-butterfly.css',
   './css/page-scroll-spider.css',
+  './css/noto-sans-sc.css',
   './js/app-shell.js',
   './js/lucide.min.js',
   './js/lucide-bridge.js',
@@ -28,16 +29,21 @@ const CORE_ASSETS = [
   './js/security.js',
   './js/http.js',
   './js/music-data.js',
+  './js/music-service.js',
   './js/music-download.js',
   './js/download-session.js',
+  './js/playback-session.js',
+  './js/playback-controller.js',
+  './js/queue-store.js',
+  './js/cache-store.js',
   './js/oneko-butterfly.js',
   './js/page-scroll-spider.js',
   './img/icon.svg',
   './img/icon.png',
   './img/favicon.svg',
-  './img/doraemon-progress-thumb.png',
+  './img/doraemon-progress-runner.png',
   './img/oneko-tora.gif',
-  './img/key-spider-scroll.png',
+  './img/scroll-spider-mascot.png',
   './manifest.json'
 ];
 

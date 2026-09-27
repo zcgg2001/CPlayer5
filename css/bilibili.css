@@ -1,0 +1,358 @@
+[hidden].bilibili-categories,
+[hidden].bilibili-browse,
+[hidden].bilibili-original,
+#desktopOriginalVideo[hidden],
+#desktopDownloadBtn[hidden],
+.music-shelf[hidden] {
+  display: none !important;
+}
+
+#downloadQualityPicker[hidden],
+#downloadBilibiliFormat[hidden],
+.subtitle-source[hidden] {
+  display: none !important;
+}
+
+.subtitle-source {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--art-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+#desktopSubtitleSource {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  z-index: 1;
+}
+
+.lyrics-card:has(#desktopSubtitleSource:not([hidden])) {
+  position: relative;
+}
+
+#mobileLyricsPage > .mask-gradient-vertical {
+  min-height: 0;
+  flex: 1;
+}
+
+#desktopLayout #lyricsScroller .lrc-line,
+#mobileLayout #mobileLyricsScroller .lrc-line {
+  color: var(--art-muted);
+}
+
+#desktopLayout #lyricsScroller .lrc-line.active,
+#desktopLayout #lyricsScroller .lrc-line.active .lrc-text,
+#mobileLayout #mobileLyricsScroller .lrc-line.active,
+#mobileLayout #mobileLyricsScroller .lrc-line.active .lrc-text {
+  color: var(--art-text);
+}
+
+#lyricsScroller:has(.lyrics-status),
+#mobileLyricsScroller:has(.lyrics-status) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 24px;
+}
+
+.lyrics-status {
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+#mobileLayout button#mobileDownloadBtn {
+  color: var(--art-text);
+  background: transparent !important;
+  border: 0;
+  box-shadow: none;
+}
+
+#mobileDownloadBtn:disabled {
+  opacity: 0.4;
+}
+
+#mobileSearchResults .bilibili-original {
+  width: 44px;
+  height: 44px;
+}
+
+.bilibili-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.bilibili-categories button,
+.bilibili-browse {
+  min-height: 44px;
+  padding: 8px 16px;
+  color: var(--art-muted);
+  background: transparent;
+  border: 1px solid var(--art-line);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+@media (max-width: 1023.98px) {
+  #mobileLayout #mobilePlaylistSheet :is(#sheetTabPlaylist, #sheetTabSearch, #closeSheetBtn, #mobileBilibiliBrowse) {
+    color: var(--art-text);
+    background: transparent !important;
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  #mobileLayout #mobilePlaylistSheet [role="tab"][aria-selected="true"] {
+    color: var(--art-acid);
+    border-bottom-color: var(--art-acid);
+  }
+
+  #mobileLayout #mobileSearchInput {
+    min-height: 44px;
+    color: var(--art-text) !important;
+    -webkit-text-fill-color: var(--art-text);
+    background: var(--art-surface) !important;
+    border: 1px solid var(--art-line);
+    border-radius: 6px;
+    font-size: 16px;
+  }
+
+  #mobileLayout #mobileSearchInput::placeholder {
+    color: var(--art-muted);
+    -webkit-text-fill-color: var(--art-muted);
+  }
+
+  #mobileLayout #mobileSearchResults [data-song-title] {
+    color: var(--art-text);
+  }
+
+  #mobileLayout #mobileSearchResults button {
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--art-text);
+    background: var(--art-surface) !important;
+  }
+
+  .mobile-source-switcher label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+
+  #mobileMusicSourceHint {
+    color: var(--art-muted);
+    font-size: 11px;
+  }
+
+  .mobile-source-select-wrap {
+    position: relative;
+  }
+
+  #mobileMusicSourceSelect {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 36px 8px 12px;
+    color: var(--art-text);
+    background: var(--art-surface);
+    border: 1px solid var(--art-line);
+    border-radius: 6px;
+    appearance: none;
+    font-size: 14px;
+  }
+
+  #mobileMusicSourceSelect option {
+    color: var(--art-text);
+    background: var(--art-ink);
+  }
+
+  .mobile-source-select-wrap > i {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+}
+
+.bilibili-categories button[aria-selected="true"] {
+  color: var(--art-ink);
+  background: var(--art-acid);
+  border-color: var(--art-acid);
+}
+
+.bilibili-categories button:focus-visible,
+.bilibili-original:focus-visible,
+.bilibili-browse:focus-visible {
+  outline: 2px solid var(--art-acid);
+  outline-offset: 3px;
+}
+
+.bilibili-original {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: var(--art-text);
+  text-decoration: none;
+}
+
+.bilibili-browse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-bottom: 12px;
+}
+
+.bilibili-search-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--art-muted);
+  font-size: 14px;
+}
+
+#searchMusicSourceSelect {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 12px;
+  color: var(--art-text);
+  background: var(--art-surface);
+  border: 1px solid var(--art-line);
+  border-radius: 6px;
+}
+
+#searchMusicSourceSelect option {
+  color: var(--art-text);
+  background: var(--art-ink);
+}
+
+#desktopLibraryView .bilibili-discovery .library-heading {
+  min-height: 140px;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+#desktopLibraryView .bilibili-discovery h1 {
+  font-size: 40px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+#desktopLibraryView .bilibili-discovery .library-description {
+  margin: 12px 0 0;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-panel {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-list-header {
+  display: none;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px 18px;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-play,
+#desktopLibraryView .bilibili-discovery .discovery-song-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-index,
+#desktopLibraryView .bilibili-discovery .discovery-song-album {
+  display: none;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-cover {
+  flex: none;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-copy strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: 42px;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-copy {
+  width: 100%;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: auto;
+  padding: 0;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-song-action {
+  min-height: 44px;
+  min-width: 96px;
+}
+
+#desktopLibraryView .bilibili-discovery .discovery-status {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 1024px) and (max-width: 1200px) {
+  #desktopLibraryView .bilibili-discovery .discovery-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #desktopLibraryView .bilibili-discovery h1 {
+    font-size: 32px;
+  }
+}

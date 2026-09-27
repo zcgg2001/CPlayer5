@@ -376,7 +376,7 @@ export function bilibiliVideoProviderUrl(term, limit = 8) {
   return url.href;
 }
 
-function cleanProviderTitle(value) {
+export function cleanProviderTitle(value) {
   return text(value)
     .replace(/<[^>]*>/g, '')
     .replaceAll('&amp;', '&')

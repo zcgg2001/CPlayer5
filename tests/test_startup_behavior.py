@@ -15,6 +15,9 @@ class StartupBehaviorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.source = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.music_service = (ROOT / "js/music-service.js").read_text(encoding="utf-8")
+        cls.playback_controller = (ROOT / "js/playback-controller.js").read_text(encoding="utf-8")
+        cls.cache_store = (ROOT / "js/cache-store.js").read_text(encoding="utf-8")
 
     def test_first_visit_enters_player_without_welcome_dialog(self):
         startup = function_block(
@@ -191,21 +194,17 @@ class StartupBehaviorTests(unittest.TestCase):
             "function restoreLastCover()",
             "let nativeIntegrationInitialized",
         )
-        load_song = function_block(
-            self.source,
-            "async function loadAndPlaySong(id)",
-            "function updatePlayerState()",
-        )
+        load_song = self.source + self.playback_controller
         self.assertIn("dom.desktopMiniCover.src = savedCover", restore)
         self.assertIn("dom.desktopMiniCover.src = picUrl", load_song)
         self.assertNotIn("MutationObserver", self.source)
 
     def test_discovery_loads_new_song_chart_and_reuses_the_queue(self):
-        self.assertIn("const NEW_SONGS_PLAYLIST_ID = '3779629';", self.source)
+        self.assertIn("export const NEW_SONGS_PLAYLIST_ID = '3779629';", self.music_service)
         service = function_block(
-            self.source,
-            "class MusicService",
-            "class LyricService",
+            self.music_service,
+            "export class MusicService",
+            "  async getLyric",
         )
         self.assertIn("async getNewSongs", service)
         self.assertIn("/playlist?id=${NEW_SONGS_PLAYLIST_ID}", service)
@@ -281,20 +280,16 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("image.src = coverUrl", artwork)
         self.assertNotIn("getCachedImage", artwork)
 
-        image_cache = function_block(
-            self.source,
-            "window.getCachedImage = async function (url)",
-            "// 保存歌单到 IndexedDB",
-        )
+        image_cache = self.cache_store
         self.assertIn("const cacheKey = `v2:${secureUrl}`", image_cache)
         self.assertIn("Math.min(192", image_cache)
 
     def test_song_resolution_falls_back_across_supported_quality_levels(self):
-        self.assertIn("downloadFallbackLevels", self.source)
+        self.assertIn("downloadFallbackLevels", self.music_service)
         service = function_block(
-            self.source,
-            "class MusicService",
-            "class LyricService",
+            self.music_service,
+            "export class MusicService",
+            "  async getLyric",
         )
         self.assertIn("level = this.config.quality", service)
         self.assertIn("for (const candidate of downloadFallbackLevels(supportedQuality(level)))", service)
@@ -319,10 +314,10 @@ class StartupBehaviorTests(unittest.TestCase):
             "musicService.saveSettings('quality'",
             "const resumeAt = audio.currentTime || 0;",
             "const shouldResume = !audio.paused;",
-            "await replaceAudioSource(mediaUrl, resumeAt, shouldResume, version);",
+            "const replace = url =>",
             "syncPlaybackQualityDisplay(resolvedLevel);",
         ):
-            self.assertIn(fragment, self.source)
+            self.assertIn(fragment, self.source + self.playback_controller)
 
     def test_download_quality_uses_custom_accessible_listbox(self):
         for fragment in (
@@ -336,7 +331,7 @@ class StartupBehaviorTests(unittest.TestCase):
             self.assertIn(fragment, self.source)
 
     def test_downloads_reuse_song_resolution_and_connect_all_desktop_entry_points(self):
-        service = function_block(self.source, "class MusicService", "class LyricService")
+        service = function_block(self.music_service, "export class MusicService", "  async getLyric")
         self.assertIn("async getSongAtLevel(id, level", service)
         self.assertIn("normalizeSongPayload(json, level)", service)
         self.assertIn("resolveDownloadSong({", self.source)
@@ -344,7 +339,7 @@ class StartupBehaviorTests(unittest.TestCase):
         self.assertIn("openDownloadDialog(song,", self.source)
         self.assertIn("dom.desktopDownloadBtn", self.source)
         self.assertIn("downloadButton.addEventListener('click'", self.source)
-        self.assertIn("currentPlaybackSong =", self.source)
+        self.assertIn("state.currentSong =", self.playback_controller)
 
     def test_desktop_progress_supports_keyboard_seek_and_aria_updates(self):
         listeners = function_block(
@@ -500,14 +495,15 @@ class StartupBehaviorTests(unittest.TestCase):
             "function syncPlaybackControls(",
             "function setDesktopPlayIcon(",
         )
+        toggle = self.playback_controller
         self.assertIn("const shouldPlay = audio.paused || audio.ended;", toggle)
-        self.assertIn("if (playbackTransitionPending) return;", toggle)
-        self.assertIn("await audio.play();", toggle)
-        self.assertIn("audio.pause();", toggle)
+        self.assertIn("if (state.transitionPending) return;", toggle)
+        self.assertIn("if (shouldPlay) await audio.play();", toggle)
+        self.assertIn("else audio.pause();", toggle)
         self.assertNotIn("isPlaying ? audio.pause() : audio.play()", toggle)
         self.assertIn("!audio.paused && !audio.ended", sync)
         self.assertIn("aria-pressed", sync)
-        self.assertIn("setPlaybackTransitionPending(false);", self.source)
+        self.assertIn("onPending: setPlaybackTransitionPending", self.source)
 
     def test_empty_queue_stops_end_of_track_replay(self):
         ended = function_block(
@@ -515,9 +511,9 @@ class StartupBehaviorTests(unittest.TestCase):
             "function handleSongEnd()",
             "function togglePlayMode()",
         )
-        self.assertIn("if (!playlist.length)", ended)
-        self.assertIn("syncPlaybackControls(false);", ended)
-        self.assertIn("audio.play().catch(", ended)
+        self.assertIn("if (!queueStore.state.playlist.length)", self.playback_controller)
+        self.assertIn("view.onEmpty?.();", self.playback_controller)
+        self.assertIn("audio.currentTime = 0;", self.playback_controller)
 
     def test_optional_canvas_lyrics_renderer_has_a_safe_empty_state(self):
         renderer = function_block(

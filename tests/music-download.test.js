@@ -43,3 +43,28 @@ test('saves a fetched non-empty Blob through an object URL', async () => {
   assert.deepEqual(clicked, [true]);
   assert.deepEqual(revoked, ['blob:test']);
 });
+
+test('names Bilibili audio as M4A and never labels it lossless MP3', () => {
+  assert.equal(downloadFilename({ provider: 'bilibili', name: 'A/B', artist: 'UP', url: '/api/v1/bilibili/download' }, 'lossless'), 'A B - UP - AAC.m4a');
+});
+
+test('forwards cancellation and never starts a browser save after cancellation', async () => {
+  const controller = new AbortController();
+  let forwarded;
+  await assert.rejects(saveAudioBlob({
+    url: '/api/v1/bilibili/download?id=test', filename: 'test.m4a', signal: controller.signal,
+    fetchImpl: async (_url, options) => {
+      forwarded = options.signal;
+      return { ok: true, blob: async () => { controller.abort(); return new Blob(['audio']); } };
+    },
+    documentRef: { createElement() { throw new Error('Must not save'); } },
+  }), { name: 'AbortError' });
+  assert.equal(forwarded, controller.signal);
+});
+
+test('preserves a download denial status for actionable UI feedback', async () => {
+  await assert.rejects(saveAudioBlob({
+    url: '/api/v1/bilibili/download?id=test', filename: 'test.m4a',
+    fetchImpl: async () => ({ ok: false, status: 403 }), documentRef: {},
+  }), error => error.status === 403);
+});

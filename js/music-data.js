@@ -62,75 +62,23 @@ export function normalizeSearchPayload(payload) {
   }));
 }
 
-function orsSearchItems(payload) {
-  if (Array.isArray(payload)) return payload;
-  for (const candidate of [
-    payload?.data?.songs,
-    payload?.data?.list,
-    payload?.result?.songs,
-    payload?.result?.list,
-    payload?.data,
-    payload?.result,
-  ]) {
-    if (Array.isArray(candidate)) return candidate;
-  }
-  return [];
+export function bilibiliVideoUrl(song) {
+  const match = /^bili:(BV[0-9A-Za-z]{10}):([1-9]\d{0,3})$/.exec(text(song?.id));
+  return match ? `https://www.bilibili.com/video/${match[1]}/?p=${match[2]}` : '';
 }
 
-function orsArtistText(item) {
-  const artists = item?.singer
-    ?? item?.artist
-    ?? item?.artists
-    ?? item?.author
-    ?? item?.singerName;
-  if (Array.isArray(artists)) {
-    const names = artists
-      .map(artist => typeof artist === 'string' ? artist : artist?.name ?? artist?.singer)
-      .map(name => text(name))
-      .filter(Boolean);
-    return names.length ? names.join(item?.artists ? ', ' : '/') : '未知艺术家';
-  }
-  if (artists && typeof artists === 'object') {
-    return text(artists.name ?? artists.singer ?? artists.author, '未知艺术家');
-  }
-  return text(artists, '未知艺术家');
-}
-
-function orsAlbumText(item) {
-  const album = item?.albumName ?? item?.album ?? item?.album_name;
-  return album && typeof album === 'object'
-    ? text(album.name ?? album.title)
-    : text(album);
-}
-
-function orsId(item) {
-  return text(item?.id ?? item?.songmid ?? item?.songMid ?? item?.mid);
-}
-
-function orsPlatform(value) {
-  const platform = text(value, 'qq').toLowerCase();
-  return ['qq', 'kg', 'kw', 'mg'].includes(platform) ? platform : 'qq';
-}
-
-export function normalizeOrsSearchPayload(payload, platform = 'qq') {
-  const resolvedPlatform = orsPlatform(platform);
-  return orsSearchItems(payload).filter(item => orsId(item)).map(item => {
-    const id = orsId(item);
-    return {
-      id,
-      sourceId: id,
-      name: text(item?.name ?? item?.songname ?? item?.title, '未知歌曲'),
-      artist: orsArtistText(item),
-      album: orsAlbumText(item),
-      cover: coverUrl(item),
-      source: `ORS · ${resolvedPlatform.toUpperCase()}`,
-      provider: 'ors',
-      platform: resolvedPlatform,
-      interval: text(item?.interval ?? item?.duration),
-      albumId: text(item?.albumId ?? item?.album_id),
-      mainHash: text(item?.mainHash ?? item?.main_hash),
-    };
-  });
+export function normalizeBilibiliPayload(payload) {
+  if (payload?.code !== 200) return [];
+  const items = Array.isArray(payload.data) ? payload.data : [payload.data];
+  return items.filter(item => bilibiliVideoUrl(item)).map(item => ({
+    id: item.id, sourceId: item.id,
+    name: text(item.name, '未命名视频'), artist: text(item.artist, '未知 UP 主'),
+    cover: text(item.cover), album: 'Bilibili',
+    provider: 'bilibili', source: 'Bilibili', externalUrl: bilibiliVideoUrl(item),
+    url: text(item.url), br: Number(item.br) || 0,
+    downloadAllowed: item.downloadAllowed === true,
+    level: 'standard', format: 'AAC',
+  }));
 }
 
 export function normalizeSongPayload(payload, requestedLevel = 'jymaster') {
@@ -151,40 +99,6 @@ export function normalizeSongPayload(payload, requestedLevel = 'jymaster') {
   };
 }
 
-export function normalizeOrsSongPayload(
-  payload,
-  requestedLevel = 'lossless',
-  platform = 'qq',
-  fallbackId = '',
-) {
-  const wrapped = payload?.data ?? payload?.result;
-  const item = Array.isArray(wrapped)
-    ? wrapped[0]
-    : wrapped && typeof wrapped === 'object'
-      ? wrapped
-      : payload;
-  if (!item || typeof item !== 'object') return null;
-  const url = text(item.url);
-  if (!url) return null;
-  const id = orsId(item) || text(item.songmid) || text(fallbackId);
-  const resolvedPlatform = orsPlatform(platform);
-  return {
-    id,
-    sourceId: id,
-    url,
-    name: text(item.name ?? item.songname ?? item.title, '未知歌曲'),
-    artist: orsArtistText(item),
-    album: orsAlbumText(item),
-    cover: coverUrl(item),
-    lrc: text(item.lrc ?? item.lyric),
-    source: `ORS · ${resolvedPlatform.toUpperCase()}`,
-    provider: 'ors',
-    platform: resolvedPlatform,
-    level: text(item.level, requestedLevel),
-    ext: text(item.ext),
-  };
-}
-
 export function normalizeLyricsPayload(payload) {
   if (payload?.code !== 200 || !payload.data) return null;
   const lrc = payload.data.lrc;
@@ -193,16 +107,6 @@ export function normalizeLyricsPayload(payload) {
     lrc: text(typeof lrc === 'object' ? lrc?.lyric : lrc),
     tlrc: text(typeof translated === 'object' ? translated?.lyric : translated),
     yrc: text(payload.data.yrc),
-  };
-}
-
-export function normalizeOrsLyricsPayload(payload) {
-  if (typeof payload === 'string') return { lrc: text(payload), tlrc: '', yrc: '' };
-  const item = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
-  return {
-    lrc: text(item?.lrc ?? item?.lyric ?? item?.lyrics),
-    tlrc: text(item?.tlrc ?? item?.tlyric),
-    yrc: text(item?.yrc),
   };
 }
 

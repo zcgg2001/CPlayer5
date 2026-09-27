@@ -23,6 +23,12 @@ jobs:
       - name: Validate local assets
         run: python3 scripts/check_static_site.py
 
+      - name: Build release artifacts
+        run: npm run build && npm run check:build
+
+      - name: Smoke test the Node service
+        run: npm run smoke:server
+
       - name: Probe static pages
         shell: bash
         run: |

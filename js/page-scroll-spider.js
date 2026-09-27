@@ -103,16 +103,17 @@ export class PageScrollSpider {
     this.handle = document.createElement('div');
     this.handle.className = 'page-scroll-spider__handle';
     this.handle.setAttribute('role', 'scrollbar');
-    this.handle.setAttribute('aria-label', '页面滚动进度');
+    this.handle.setAttribute('aria-label', '拖动蜘蛛控制页面上下滚动');
     this.handle.setAttribute('aria-orientation', 'vertical');
     this.handle.setAttribute('aria-valuemin', '0');
     this.handle.setAttribute('aria-valuemax', '100');
     this.handle.setAttribute('aria-valuenow', '0');
     this.handle.tabIndex = 0;
+    this.handle.title = '拖动蜘蛛控制页面上下；也可使用方向键、Page Up/Down、Home/End';
 
     const image = document.createElement('img');
     image.className = 'page-scroll-spider__sprite';
-    image.src = './img/key-spider-scroll.png';
+    image.src = './img/scroll-spider-mascot.png';
     image.alt = '';
     image.width = 96;
     image.height = 96;
@@ -200,6 +201,7 @@ export class PageScrollSpider {
   onPointerDown(event) {
     if (event.button !== 0) return;
     event.preventDefault();
+    this.handle.focus({ preventScroll: true });
     this.dragging = true;
     this.swayTarget = 0;
     this.handle.dataset.dragging = 'true';

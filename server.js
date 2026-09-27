@@ -2,8 +2,10 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
-import worker from './dist/server/index.js';
+import worker from './sites/worker.js';
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(process.env.CPLAYER_STATIC_DIR || `${PROJECT_ROOT}/dist/static`);
@@ -26,6 +28,8 @@ const MIME_TYPES = new Map([
   ['.png', 'image/png'],
   ['.svg', 'image/svg+xml'],
   ['.txt', 'text/plain; charset=utf-8'],
+  ['.otf', 'font/otf'],
+  ['.ttf', 'font/ttf'],
   ['.webm', 'video/webm'],
   ['.webp', 'image/webp'],
   ['.woff', 'font/woff'],
@@ -99,7 +103,7 @@ function requestHeaders(incoming) {
   return headers;
 }
 
-function toFetchRequest(incoming) {
+function toFetchRequest(incoming, signal) {
   const forwardedProto = incoming.headers['x-forwarded-proto'];
   const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'http';
   const host = incoming.headers.host || `${DEFAULT_HOST}:${DEFAULT_PORT}`;
@@ -107,6 +111,7 @@ function toFetchRequest(incoming) {
   return new Request(url, {
     method: incoming.method || 'GET',
     headers: requestHeaders(incoming),
+    signal,
   });
 }
 
@@ -119,20 +124,28 @@ function runtimeEnv() {
 
 export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker } = {}) {
   return createServer(async (incoming, outgoing) => {
+    const controller = new AbortController();
+    outgoing.once('close', () => controller.abort());
     try {
       if (incoming.method !== 'GET' && incoming.method !== 'HEAD') incoming.resume();
-      const request = toFetchRequest(incoming);
+      const request = toFetchRequest(incoming, controller.signal);
       const response = await workerImpl.fetch(request, env);
       const responseHeaders = {};
       for (const [name, value] of response.headers) responseHeaders[name] = value;
       outgoing.writeHead(response.status, response.statusText, responseHeaders);
-      if (incoming.method === 'HEAD') {
+      if (incoming.method === 'HEAD' || !response.body) {
+        await response.body?.cancel();
         outgoing.end();
         return;
       }
-      outgoing.end(Buffer.from(await response.arrayBuffer()));
+      await pipeline(Readable.fromWeb(response.body), outgoing);
     } catch (error) {
+      if (controller.signal.aborted) return;
       console.error('[cplayer] request failed', error);
+      if (outgoing.headersSent) {
+        outgoing.destroy();
+        return;
+      }
       outgoing.writeHead(500, {
         'cache-control': 'no-store',
         'content-type': 'application/json; charset=utf-8',

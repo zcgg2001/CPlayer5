@@ -19,7 +19,8 @@ export function normalizeMediaUrl(
     const url = new URL(candidate, baseUrl);
     if (!ALLOWED_PROTOCOLS.has(url.protocol)) return null;
     if (url.username || url.password) return null;
-    if (url.protocol === 'http:') url.protocol = 'https:';
+    const baseOrigin = baseUrl ? new URL(baseUrl).origin : null;
+    if (url.protocol === 'http:' && url.origin !== baseOrigin) url.protocol = 'https:';
     return url.href;
   } catch {
     return null;

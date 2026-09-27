@@ -8,7 +8,7 @@
     'use strict';
 
     class AnimeProgressThumb {
-        static DEFAULT_ASSET_PATH = './img/doraemon-progress-thumb.png';
+        static DEFAULT_ASSET_PATH = './img/doraemon-progress-runner.png';
 
         constructor({
             root,

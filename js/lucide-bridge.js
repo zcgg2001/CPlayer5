@@ -74,12 +74,13 @@ const FA_TO_LUCIDE = Object.freeze({
 });
 
 function findMappedIcon(element) {
+  if (element.dataset.lucide) return element.dataset.lucide;
   for (const className of element.classList) {
     if (FA_TO_LUCIDE[className]) {
       return FA_TO_LUCIDE[className];
     }
   }
-  return '';
+  return element.matches('i[class*="fa-"]') ? 'Circle' : '';
 }
 
 function renderLucideIcon(element) {
@@ -88,6 +89,12 @@ function renderLucideIcon(element) {
   const iconName = findMappedIcon(element);
   const iconNode = window.lucide?.icons?.[iconName];
   if (!iconName || !iconNode) return;
+  const control = element.closest('button, a');
+  if (control?.getAttribute('aria-label') && (!control.title || control.dataset.lucideTooltip === 'true') && !control.textContent.trim()) {
+    const title = stripInterfaceEmoji(control.getAttribute('aria-label'));
+    if (control.title !== title) control.title = title;
+    control.dataset.lucideTooltip = 'true';
+  }
   if (element.dataset.lucideRendered === iconName && element.firstElementChild?.tagName === 'svg') return;
 
   const svg = window.lucide.createElement(iconNode, {
@@ -104,32 +111,80 @@ function renderLucideIcon(element) {
 function refreshLucideIcons(root = document) {
   if (!window.lucide?.createElement) return;
 
-  if (root instanceof HTMLElement && root.matches('i[class*="fa-"]')) {
+  if (root instanceof HTMLElement && root.matches('i[class*="fa-"], i[data-lucide]')) {
     renderLucideIcon(root);
   }
 
-  root.querySelectorAll?.('i[class*="fa-"]').forEach(renderLucideIcon);
+  root.querySelectorAll?.('i[class*="fa-"], i[data-lucide]').forEach(renderLucideIcon);
+  refreshPlaceholderArt(root);
+}
+
+let placeholderArt = '';
+function refreshPlaceholderArt(root) {
+  const images = root instanceof HTMLImageElement ? [root] : Array.from(root.querySelectorAll?.('img') || []);
+  for (const image of images) {
+    const src = image.getAttribute('src') || '';
+    if (src === placeholderArt) continue;
+    const localIcon = /^(?:\.\/)?img\/icon\.(?:png|svg)$/.test(src);
+    const defaultRecord = ['albumArt', 'mobileCoverImg'].includes(image.id) && src.startsWith('data:image/svg+xml,');
+    if (!localIcon && !defaultRecord) continue;
+    if (!placeholderArt) {
+      const svg = window.lucide.createElement(window.lucide.icons.Disc3, {
+        xmlns: 'http://www.w3.org/2000/svg',
+        width: '120', height: '120', stroke: '#bdc6ca', 'stroke-width': '1.2',
+        style: 'background:#202426;padding:24px;box-sizing:border-box',
+      });
+      placeholderArt = `data:image/svg+xml,${encodeURIComponent(svg.outerHTML)}`;
+    }
+    image.src = placeholderArt;
+  }
+}
+
+function stripInterfaceEmoji(value) {
+  return value.replace(/(?:[0-9#*]\uFE0F?\u20E3|\p{Regional_Indicator}|\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*)/gu,
+    match => /^[\u00A9\u00AE\u2122]/u.test(match) ? match[0] : '');
+}
+
+function cleanInterfaceText(root) {
+  const cleanNode = node => {
+    if (node.parentElement?.closest('script, style, textarea, input, pre, code, [contenteditable]')) return;
+    const clean = stripInterfaceEmoji(node.nodeValue);
+    if (clean !== node.nodeValue) node.nodeValue = clean;
+  };
+  if (root.nodeType === Node.TEXT_NODE) return cleanNode(root);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) cleanNode(walker.currentNode);
+  const elements = root instanceof HTMLElement ? [root, ...root.querySelectorAll('[aria-label], [title], [placeholder]')] : [];
+  elements.forEach(element => {
+    for (const name of ['aria-label', 'title', 'placeholder']) {
+      const value = element.getAttribute(name);
+      if (value && stripInterfaceEmoji(value) !== value) element.setAttribute(name, stripInterfaceEmoji(value));
+    }
+  });
 }
 
 function startLucideBridge() {
   refreshLucideIcons();
+  cleanInterfaceText(document.body);
 
   let queued = false;
+  const pendingRoots = new Set();
   const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'attributes' || mutation.type === 'characterData') pendingRoots.add(mutation.target);
+      else mutation.addedNodes.forEach(node => pendingRoots.add(node));
+    }
     if (queued) return;
     queued = true;
 
     requestAnimationFrame(() => {
       queued = false;
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes') {
-          renderLucideIcon(mutation.target);
-          continue;
-        }
-
-        mutation.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) refreshLucideIcons(node);
-        });
+      const roots = Array.from(pendingRoots);
+      pendingRoots.clear();
+      for (const root of roots) {
+        if (!root.isConnected) continue;
+        if (root instanceof HTMLElement) refreshLucideIcons(root);
+        if (root.nodeType === Node.TEXT_NODE || root instanceof HTMLElement) cleanInterfaceText(root);
       }
     });
   });
@@ -137,8 +192,9 @@ function startLucideBridge() {
   observer.observe(document.body, {
     subtree: true,
     childList: true,
+    characterData: true,
     attributes: true,
-    attributeFilter: ['class'],
+    attributeFilter: ['class', 'data-lucide', 'aria-label', 'title', 'placeholder', 'src'],
   });
 
   window.CPlayerLucide = Object.freeze({ refresh: refreshLucideIcons });

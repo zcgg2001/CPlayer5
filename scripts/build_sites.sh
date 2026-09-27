@@ -8,6 +8,11 @@ server_dir="$dist_dir/server"
 
 mkdir -p "$static_dir" "$server_dir"
 
+# Build into a clean, deterministic output tree. The directory is ignored by
+# Git and is a generated artifact, so stale files cannot leak into a release.
+rm -rf "$static_dir" "$server_dir"
+mkdir -p "$static_dir" "$server_dir"
+
 cp "$project_dir/index.html" "$static_dir/index.html"
 cp "$project_dir/offline.html" "$static_dir/offline.html"
 cp "$project_dir/playlist-downloader.html" "$static_dir/playlist-downloader.html"
@@ -25,3 +30,4 @@ fi
 
 cp "$project_dir/sites/worker.js" "$server_dir/index.js"
 cp "$project_dir/sites/music-content.js" "$server_dir/music-content.js"
+cp "$project_dir/sites/bilibili.js" "$server_dir/bilibili.js"

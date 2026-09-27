@@ -183,12 +183,13 @@ class AccessibilityMarkupTests(unittest.TestCase):
         self.assertIn("bindProgressScrubber", source)
         self.assertIn("updateBufferedProgress", source)
         self.assertIn("class AnimeProgressThumb", component)
-        self.assertIn("./img/doraemon-progress-thumb.png", component)
+        self.assertIn("./img/doraemon-progress-runner.png", component)
         self.assertIn("拖动调整播放进度", component)
         self.assertIn("setPlaying(isPlaying)", component)
         self.assertIn("setDragging(isDragging)", component)
         self.assertIn("transform: translate3d(var(--anime-progress-x)", styles)
         self.assertIn("--anime-progress-thumb-size: 28px", styles)
+        self.assertIn("transform: none", styles)
         self.assertNotIn("media1.tenor.com", source)
 
     def test_pages_define_reduced_motion_styles(self):

@@ -82,7 +82,7 @@ i[data-lucide-rendered] > .lucide-glyph {
     --shell-progress-fill: var(--art-acid);
     --shell-shadow: 0 26px 70px rgba(0, 0, 0, 0.34);
     color-scheme: dark;
-    font-family: "Noto Sans SC", "Inter", "Helvetica Neue", sans-serif;
+    font-family: var(--cplayer-font);
   }
 
   #desktopShell {
@@ -693,6 +693,7 @@ i[data-lucide-rendered] > .lucide-glyph {
   }
 
   #mobileLayout > header {
+    display: flex !important;
     height: 64px;
     margin: 12px 14px 0;
     background: rgba(10, 10, 16, 0.56);
@@ -704,7 +705,7 @@ i[data-lucide-rendered] > .lucide-glyph {
 
   #mobileLayout > header h1 {
     font-size: 15px;
-    letter-spacing: 0.08em;
+    letter-spacing: 0;
   }
 
   #mobileChartsBtn,
@@ -713,11 +714,38 @@ i[data-lucide-rendered] > .lucide-glyph {
     color: var(--art-text);
   }
 
+  #mobileMainView {
+    min-height: 0;
+  }
+
   #mobileCoverContainer {
-    padding-bottom: 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    justify-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  #mobileVinylContainer {
+    width: auto;
+    height: 100%;
+    min-height: 0;
+    max-height: 320px;
+    max-width: 100%;
+    aspect-ratio: 1;
+    margin: 0 !important;
+  }
+
+  #mobileCoverContainer > .text-center {
+    min-width: 0;
+    margin: 0;
+    padding-inline: 0;
   }
 
   #mobileAlbumArtWrapper {
+    width: 100%;
+    height: 100%;
     border: 1px solid rgba(255, 255, 255, 0.16);
     box-shadow:
       0 34px 70px rgba(0, 0, 0, 0.46),
@@ -726,13 +754,16 @@ i[data-lucide-rendered] > .lucide-glyph {
 
   #mobileTitle {
     color: var(--art-text);
-    font-size: clamp(1.6rem, 7vw, 2.2rem) !important;
-    letter-spacing: -0.045em;
+    font-size: 24px !important;
+    line-height: 1.25;
+    letter-spacing: 0;
   }
 
   #mobileArtist {
     color: var(--art-muted);
     opacity: 1;
+    font-size: 15px !important;
+    line-height: 1.4;
   }
 
   #mobileSongIdTag,
@@ -740,6 +771,23 @@ i[data-lucide-rendered] > .lucide-glyph {
     color: rgba(245, 243, 255, 0.72);
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .mobile-playback-quality .quality-badge,
+  .mobile-playback-quality > i {
+    color: inherit;
+  }
+
+  #mobileLayout button#mobilePlaybackQualityBtn {
+    color: var(--art-text);
+    background: var(--art-surface) !important;
+    border-color: var(--art-line);
+    box-shadow: none;
+  }
+
+  #mobilePlaybackQualityBtn .playback-quality-dot {
+    background: var(--art-cyan);
+    box-shadow: none;
   }
 
   #mobileSongIdTag,
@@ -768,6 +816,7 @@ i[data-lucide-rendered] > .lucide-glyph {
   }
 
   #mobilePlayBtn {
+    flex-shrink: 0;
     color: var(--art-ink) !important;
     background: var(--art-acid) !important;
     box-shadow: 0 0 34px rgba(184, 255, 79, 0.25) !important;
@@ -776,6 +825,23 @@ i[data-lucide-rendered] > .lucide-glyph {
   #mobileProgressBar {
     background: var(--art-acid) !important;
     box-shadow: 0 0 14px rgba(184, 255, 79, 0.5);
+  }
+
+  .mobile-control-deck > .flex.justify-between {
+    padding-inline: 0;
+    gap: 8px;
+  }
+
+  #mobileModeBtn,
+  #mobilePrevBtn,
+  #mobileNextBtn,
+  #mobilePlaylistToggleBtn {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: grid;
+    place-items: center;
   }
 
   #mobileChartsSheet,
@@ -791,6 +857,65 @@ i[data-lucide-rendered] > .lucide-glyph {
     color: var(--art-ink);
     background: var(--art-acid);
     border-color: var(--art-acid);
+  }
+}
+
+@media (max-width: 360px) {
+  .mobile-control-deck {
+    padding-inline: 12px !important;
+  }
+
+  #mobilePlayBtn {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+@media (max-width: 1023.98px) and (max-height: 540px) {
+  #mobileLayout > header {
+    height: 48px;
+    margin-top: 6px;
+  }
+
+  #mobileCoverContainer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 16px;
+    padding-block: 4px;
+  }
+
+  .mobile-control-deck {
+    padding-top: 4px !important;
+    margin-bottom: 6px;
+  }
+
+  .mobile-control-deck > .flex {
+    margin-bottom: 4px;
+  }
+
+  #mobilePlayBtn {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-width: 1023.98px) {
+  html[data-theme="night"] #mobileLayout :is(#mobileChartsBtn, #mobileThemeBtn, #mobileSettingsBtn, #mobileModeBtn, #mobilePrevBtn, #mobileNextBtn, #mobilePlaylistToggleBtn) {
+    color: var(--art-text) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  html[data-theme="night"] #mobileLayout > header {
+    background: var(--art-surface) !important;
+    border-color: var(--art-line) !important;
+  }
+
+  html[data-theme="night"] #mobileMainView {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 }
 

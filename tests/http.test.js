@@ -37,6 +37,21 @@ test('reports non-success HTTP status', async () => {
   );
 });
 
+test('preserves a safe structured server error code', async () => {
+  await assert.rejects(
+    requestJson('https://api.example/data', {
+      fetchImpl: async () => ({
+        ok: false,
+        status: 503,
+        json: async () => ({ error: { code: 'api_key_missing', message: 'server detail' } }),
+      }),
+    }),
+    error => error instanceof HttpStatusError
+      && error.code === 'api_key_missing'
+      && requestErrorMessage(error) === '音乐服务尚未配置，请联系站点管理员',
+  );
+});
+
 test('reports invalid JSON responses', async () => {
   await assert.rejects(
     requestJson('https://api.example/data', {

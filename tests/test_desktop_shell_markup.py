@@ -56,7 +56,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         return match.group(1).strip()
 
     def test_shell_assets_and_1024_breakpoint_exist(self):
-        self.assertIn('href="./css/app-shell.css?v=23"', self.source)
+        self.assertIn('href="./css/app-shell.css?v=24"', self.source)
         self.assertIn("@media (min-width: 1024px)", self.css)
         self.assertIn("@media (max-width: 1023.98px)", self.css)
         self.assertIn("grid-template-columns: 240px minmax(0, 1fr)", self.css)
@@ -183,6 +183,10 @@ class DesktopShellMarkupTests(unittest.TestCase):
             self.source,
             r'(?s)<span class="app-brand-copy">\s*<strong>505音乐之家</strong>',
         )
+        self.assertRegex(
+            self.source,
+            r'(?s)<span class="app-brand-mark"[^>]*>\s*<i data-lucide="AudioWaveform"></i>',
+        )
         self.assertNotIn("Music workspace", self.source)
 
     def test_collection_dialog_exposes_a_selectable_music_library(self):
@@ -250,8 +254,11 @@ class DesktopShellMarkupTests(unittest.TestCase):
             self.source,
             r'<label for="discoveryMusicSourceSelect">',
         )
-        for source in ("chksz", "ors-qq", "ors-kg", "ors-kw", "ors-mg"):
+        for source in ("chksz", "bilibili"):
             self.assertIn(f'<option value="{source}">', self.source)
+        self.assertNotIn('value="ors-', self.source)
+        self.assertIn('id="searchMusicSourceSelect"', self.source)
+        self.assertIn('id="mobileBilibiliBrowse"', self.source)
         self.assertEqual(
             self.css_property("#desktopLibraryView #discoveryMusicSourceSelect", "min-height"),
             "44px",
@@ -308,8 +315,8 @@ class DesktopShellMarkupTests(unittest.TestCase):
         anime_css = (ROOT / "css/anime-progress-thumb.css").read_text(encoding="utf-8")
         self.assertIn("--anime-progress-thumb-size: 34px", anime_css)
         self.assertIn("translate3d(var(--anime-progress-x)", anime_css)
-        self.assertIn('src="./js/anime-progress-thumb.js?v=22"', self.source)
-        self.assertTrue((ROOT / "img/doraemon-progress-thumb.png").is_file())
+        self.assertIn('src="./js/anime-progress-thumb.js?v=23"', self.source)
+        self.assertTrue((ROOT / "img/doraemon-progress-runner.png").is_file())
 
     def test_desktop_download_controls_and_dialog_are_exposed(self):
         for element_id in (
@@ -338,7 +345,10 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertIn("const action = document.createElement('button');", source)
         self.assertIn("action.className = 'discovery-song-action';", source)
         self.assertIn("action.addEventListener('click', () => addDiscoverySong(song));", source)
-        self.assertIn("actions.append(action, downloadButton);", source)
+        self.assertIn("secondaryActions.className = 'discovery-song-secondary-actions';", source)
+        self.assertIn("secondaryActions.appendChild(downloadButton);", source)
+        self.assertIn("if (bilibiliVideoUrl(song)) secondaryActions.appendChild(createOriginalVideoLink(song));", source)
+        self.assertIn("actions.append(action, secondaryActions);", source)
         self.assertIn("row.append(playButton, actions);", source)
         self.assertNotIn("playButton.append(number, main, album, action);", source)
 
@@ -449,6 +459,24 @@ class DesktopShellMarkupTests(unittest.TestCase):
         art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
         self.assertIn('html[data-theme="light"]', art_css)
         self.assertIn("color-scheme: light;", art_css)
+
+    def test_player_prefers_system_fonts_with_a_local_fallback(self):
+        font_css = (ROOT / "css/noto-sans-sc.css").read_text(encoding="utf-8")
+        art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
+        self.assertIn("--cplayer-font: system-ui", font_css)
+        self.assertIn("@font-face", font_css)
+        self.assertIn("font-family: var(--cplayer-font);", self.source)
+        self.assertIn("font-family: var(--cplayer-font);", art_css)
+
+    def test_mobile_quality_text_and_icon_follow_the_theme(self):
+        art_css = (ROOT / "css/art-direction.css").read_text(encoding="utf-8")
+        selector = ".mobile-playback-quality .quality-badge,"
+        rule = art_css.split(selector, 1)[1].split("}", 1)[0]
+        self.assertIn(".mobile-playback-quality > i", rule)
+        self.assertIn("color: inherit;", rule)
+        button_rule = art_css.split("#mobileLayout button#mobilePlaybackQualityBtn {", 1)[1].split("}", 1)[0]
+        self.assertIn("color: var(--art-text);", button_rule)
+        self.assertIn("background: var(--art-surface) !important;", button_rule)
 
     def test_queue_exposes_clear_remove_and_undo_actions(self):
         for element_id in (

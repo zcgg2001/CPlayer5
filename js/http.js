@@ -13,10 +13,12 @@ export class RequestCancelledError extends Error {
 }
 
 export class HttpStatusError extends Error {
-  constructor(status) {
+  constructor(status, payload = null) {
     super(`HTTP request failed with status ${status}`);
     this.name = 'HttpStatusError';
     this.status = status;
+    this.payload = payload;
+    this.code = payload?.error?.code || '';
   }
 }
 
@@ -65,7 +67,15 @@ export async function requestJson(
       signal: controller.signal,
     });
 
-    if (!response.ok) throw new HttpStatusError(response.status);
+    if (!response.ok) {
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch {
+        // A non-JSON upstream error still maps to a stable local message.
+      }
+      throw new HttpStatusError(response.status, payload);
+    }
 
     try {
       return await response.json();
@@ -90,6 +100,21 @@ export function requestErrorMessage(error) {
   if (error instanceof ResponseFormatError) return '服务返回了无法识别的数据';
   if (error instanceof NetworkRequestError) return '网络连接失败，请检查网络';
   if (error instanceof HttpStatusError) {
+    const codeMessages = {
+      api_key_missing: '音乐服务尚未配置，请联系站点管理员',
+      audio_unavailable: '音频连接失败，请重新选择内容',
+      download_denied: '该内容未开放下载',
+      invalid_request: '请求参数无效，请检查输入',
+      invalid_source: '当前音乐源不可用，请重新选择',
+      provider_failed: '上游音乐服务暂时不可用，请稍后重试',
+      provider_rate_limited: '请求过于频繁，请稍后重试',
+      provider_timeout: '上游音乐服务响应超时，请稍后重试',
+      provider_unavailable: '上游音乐服务暂时不可用，请稍后重试',
+      subtitle_login_required: '此内容的字幕需要登录后才能读取',
+      subtitle_restricted: '此内容的字幕暂不开放',
+    };
+    if (codeMessages[error.code]) return codeMessages[error.code];
+    if (error.status === 429) return '请求过于频繁，请稍后重试';
     if (error.status === 404) return '请求的内容不存在';
     if (error.status === 401 || error.status === 403) return '当前请求无权访问';
     if (error.status >= 500) return '服务暂时不可用，请稍后重试';

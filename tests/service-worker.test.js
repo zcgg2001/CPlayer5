@@ -111,13 +111,15 @@ test('selects obsolete cache names for deletion', () => {
   );
 });
 
-test('precaches the oneko pet runtime and sprite assets', () => {
+test('precaches restored accessories without restoring icon fonts', () => {
   const context = loadServiceWorker();
   const coreAssets = vm.runInContext('CORE_ASSETS', context);
 
-  assert.ok(coreAssets.includes('./css/oneko-butterfly.css'));
+  assert.ok(!coreAssets.includes('./css/all.min.css'));
   assert.ok(coreAssets.includes('./js/oneko-butterfly.js'));
+  assert.ok(coreAssets.includes('./js/page-scroll-spider.js'));
   assert.ok(coreAssets.includes('./img/oneko-tora.gif'));
+  assert.ok(coreAssets.includes('./img/scroll-spider-mascot.png'));
 });
 
 test('precaches the desktop shell assets', () => {
@@ -127,6 +129,7 @@ test('precaches the desktop shell assets', () => {
   assert.ok(coreAssets.includes('./css/app-shell.css'));
   assert.ok(coreAssets.includes('./css/charts.css'));
   assert.ok(coreAssets.includes('./css/music-explore.css'));
+  assert.ok(coreAssets.includes('./css/bilibili.css'));
   assert.ok(coreAssets.includes('./js/app-shell.js'));
   assert.ok(coreAssets.includes('./js/charts-page.js'));
   assert.ok(coreAssets.includes('./js/music-explore.js'));
@@ -138,7 +141,7 @@ test('precaches the anime progress thumb component and artwork', () => {
 
   assert.ok(coreAssets.includes('./css/anime-progress-thumb.css'));
   assert.ok(coreAssets.includes('./js/anime-progress-thumb.js'));
-  assert.ok(coreAssets.includes('./img/doraemon-progress-thumb.png'));
+  assert.ok(coreAssets.includes('./img/doraemon-progress-runner.png'));
 });
 
 test('precaches both music download runtime modules without precaching audio files', () => {
@@ -147,14 +150,15 @@ test('precaches both music download runtime modules without precaching audio fil
 
   assert.ok(coreAssets.includes('./js/music-download.js'));
   assert.ok(coreAssets.includes('./js/download-session.js'));
+  assert.ok(coreAssets.includes('./js/playback-session.js'));
   assert.ok(!coreAssets.some(asset => asset.endsWith('.mp3') || asset.endsWith('.flac')));
 });
 
-test('retires older shell caches after the album library upgrade', () => {
+test('retires older shell caches after refreshing the accessories', () => {
   const { cacheNamesToDelete } = loadServiceWorker();
 
   assert.deepEqual(
-    Array.from(cacheNamesToDelete(['cplayer5-shell-v14', 'cplayer5-shell-v15', 'cplayer5-shell-v16'])),
-    ['cplayer5-shell-v14', 'cplayer5-shell-v15', 'cplayer5-shell-v16'],
+    Array.from(cacheNamesToDelete(['cplayer5-shell-v28', 'cplayer5-shell-v49', 'cplayer5-shell-v50', 'cplayer5-shell-v51'])),
+    ['cplayer5-shell-v28', 'cplayer5-shell-v49', 'cplayer5-shell-v50', 'cplayer5-shell-v51'],
   );
 });
