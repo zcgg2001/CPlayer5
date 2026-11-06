@@ -1398,7 +1398,7 @@
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=28">
     <link rel="stylesheet" href="./css/art-direction.css?v=34">
     <link rel="stylesheet" href="./css/bilibili.css?v=40">
-    <link rel="stylesheet" href="./css/studio.css?v=51">
+    <link rel="stylesheet" href="./css/studio.css?v=54">
     <link rel="stylesheet" href="./css/oneko-butterfly.css?v=44">
     <link rel="stylesheet" href="./css/page-scroll-spider.css?v=46">
     <script defer src="./js/lucide.min.js?v=23"></script>
@@ -1558,12 +1558,14 @@
                                 <div class="discovery-source-select-wrap">
                                     <select id="discoveryMusicSourceSelect"
                                         aria-describedby="discoveryMusicSourceHint">
-                                        <option value="chksz">ChKSz · 网易云</option>
+                                        <option value="chksz">ChKSz · 网易云（需密钥）</option>
+                                        <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
                                         <option value="bilibili">Bilibili · 哔哩哔哩</option>
                                     </select>
                                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                                 </div>
                                 <p id="discoveryMusicSourceHint">网易云搜索、解析与歌词</p>
+                                <a class="gd-source-credit" href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">来源：GD音乐台</a>
                             </div>
                         </header>
 
@@ -1901,7 +1903,8 @@
                             <div class="bilibili-search-source">
                                 <label for="searchMusicSourceSelect">音乐源</label>
                                 <select id="searchMusicSourceSelect" aria-describedby="desktopSearchSource">
-                                    <option value="chksz">ChKSz · 网易云</option>
+                                    <option value="chksz">ChKSz · 网易云（需密钥）</option>
+                                    <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
                                     <option value="bilibili">Bilibili · 哔哩哔哩</option>
                                 </select>
                             </div>
@@ -2314,7 +2317,8 @@
                         <div class="mobile-source-select-wrap">
                             <select id="mobileMusicSourceSelect"
                                 aria-describedby="mobileMusicSourceHint">
-                                <option value="chksz">ChKSz · 网易云</option>
+                                <option value="chksz">ChKSz · 网易云（需密钥）</option>
+                                <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
                                 <option value="bilibili">Bilibili · 哔哩哔哩</option>
                             </select>
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -2585,7 +2589,7 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 id="settingsTitle" class="text-xl font-bold flex items-center">
                     <i class="fas fa-sliders-h mr-2 theme-text-primary"></i>
-                    歌单设置
+                    播放器设置
                 </h2>
                 <button id="closeSettingsBtn" aria-label="关闭设置"
                     class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
@@ -2618,11 +2622,34 @@
                     <label for="musicSourceSelect" class="block text-xs font-bold mb-2">搜索与播放来源</label>
                     <select id="musicSourceSelect" aria-describedby="musicSourceHint"
                         class="w-full bg-white/[0.08] border border-white/[0.14] rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary-color/60 focus:bg-white/[0.12] transition-colors">
-                        <option value="chksz">ChKSz · 网易云</option>
+                        <option value="chksz">ChKSz · 网易云（需密钥）</option>
+                        <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
                         <option value="bilibili">Bilibili · 哔哩哔哩</option>
                     </select>
                     <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">网易云搜索、解析与歌词</p>
                 </div>
+
+                <p id="gdSourceCredit" class="music-key-hint" hidden>来源：<a href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">GD音乐台 (music.gdstudio.xyz)</a> · 仅供非商业学习使用 · 每 5 分钟最多 50 次请求。</p>
+                <form id="musicKeyForm" class="music-key-card" novalidate>
+                    <div class="music-key-heading">
+                        <label for="musicApiKey">ChKSz API 密钥</label>
+                        <span id="musicKeyStatus" role="status">正在读取配置…</span>
+                    </div>
+                    <p class="music-key-hint">榜单、歌手、新歌与歌单统一使用 ChKSz，需要配置密钥；歌曲播放使用上方选定的接口。</p>
+                    <p id="musicKeyHint" class="music-key-hint">密钥仅保存在本地服务内存中，重启服务后需重新填写。</p>
+                    <div class="music-key-input-row">
+                        <input id="musicApiKey" type="password" autocomplete="off" autocapitalize="none"
+                            spellcheck="false" maxlength="512" placeholder="chksz_…"
+                            aria-describedby="musicKeyHint musicKeyFeedback" disabled>
+                        <button id="musicKeyVisibility" type="button" aria-label="显示密钥" aria-pressed="false" disabled>显示</button>
+                    </div>
+                    <div class="music-key-actions">
+                        <button id="musicKeySave" type="submit" disabled>保存密钥</button>
+                        <button id="musicKeyClear" type="button" disabled>清除密钥</button>
+                        <a href="https://api.chksz.com/login" target="_blank" rel="noopener noreferrer">获取密钥</a>
+                    </div>
+                    <p id="musicKeyFeedback" role="status" aria-live="polite" aria-atomic="true"></p>
+                </form>
 
                 <!-- 在线歌单 ID 输入 -->
                 <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
@@ -2866,18 +2893,18 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';
-        import { createChartsController } from './js/charts-page.js?v=28';
+        import { createChartsController } from './js/charts-page.js?v=31';
         import {
             createArtistsController,
             createVideosController,
             formatReleaseDate
-        } from './js/music-explore.js?v=28';
+        } from './js/music-explore.js?v=31';
         import { normalizeMediaUrl } from './js/security.js?v=35';
         import {
             RequestCancelledError,
             requestErrorMessage,
             requestJson
-        } from './js/http.js?v=35';
+        } from './js/http.js?v=37';
         import {
             normalizeBilibiliPayload,
             bilibiliVideoUrl,
@@ -2890,9 +2917,10 @@
             saveAudioBlob
         } from './js/music-download.js?v=39';
         import { createDownloadSession } from './js/download-session.js?v=22';
-        import { createPlaybackController } from './js/playback-controller.js?v=1';
+        import { createPlaybackController } from './js/playback-controller.js?v=2';
         import { createQueueStore } from './js/queue-store.js?v=1';
         import { createCacheStore } from './js/cache-store.js?v=1';
+        import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import {
             DEFAULT_QUALITY,
             DEFAULT_MUSIC_SOURCE,
@@ -2904,7 +2932,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=1';
+        } from './js/music-service.js?v=4';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -3637,16 +3665,17 @@
             list.addEventListener('keydown', event => {
                 const option = event.target.closest?.('.liquid-quality-option');
                 if (!option) return;
-                const currentIndex = options.indexOf(option);
+                const visibleOptions = options.filter(item => !item.hidden);
+                const currentIndex = visibleOptions.indexOf(option);
                 const targets = {
-                    ArrowDown: Math.min(currentIndex + 1, options.length - 1),
+                    ArrowDown: Math.min(currentIndex + 1, visibleOptions.length - 1),
                     ArrowUp: Math.max(currentIndex - 1, 0),
                     Home: 0,
-                    End: options.length - 1,
+                    End: visibleOptions.length - 1,
                 };
                 if (event.key in targets) {
                     event.preventDefault();
-                    options[targets[event.key]].focus();
+                    visibleOptions[targets[event.key]].focus();
                 } else if (event.key === 'Escape' && trigger) {
                     event.preventDefault();
                     setOpen(false);
@@ -3712,10 +3741,13 @@
 
         function openPlaybackQualityDialog(opener) {
             playbackQualityOpener = opener;
-            playbackQualitySelector.setValue(musicService.config.quality);
+            const isGd = musicService.sourceForSong(playback.state.currentSong).provider === 'gd';
+            dom.playbackQualityList.querySelector('[data-quality="jymaster"]').hidden = isGd;
+            playbackQualitySelector.setValue(isGd && musicService.config.quality === 'jymaster' ? 'hires' : musicService.config.quality);
             dom.playbackQualityStatus.textContent = playback.state.currentSong?.id
                 ? '选择后将保留当前进度并切换音源。'
                 : '当前未播放歌曲，选择会保存为默认音质。';
+            if (isGd) dom.playbackQualityStatus.textContent += ' GD 最高为 Hi-Res，实际音质以返回结果为准。';
             if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
             requestAnimationFrame(() => playbackQualitySelector.focusSelected());
         }
@@ -3760,6 +3792,7 @@
 
         function openDownloadDialog(song, opener) {
             if (!song?.id) return showToast('当前歌曲无法下载', true);
+            if (musicService.sourceForSong(song).provider === 'gd') return showToast('GD 音乐台仅提供在线播放', true);
             const session = downloadSession.open();
             downloadState.controller?.abort();
             downloadState = { song, opener, session, controller: null };
@@ -3781,6 +3814,11 @@
             const song = downloadState.song;
             const session = downloadState.session;
             if (!song?.id || !downloadSession.start(session)) return;
+            if (musicService.sourceForSong(song).provider === 'gd') {
+                downloadSession.finish(session);
+                dom.downloadStatus.textContent = 'GD 音乐台仅提供在线播放';
+                return;
+            }
             const level = dom.downloadQuality.value;
             const isBilibili = Boolean(bilibiliVideoUrl(song));
             if (!isBilibili) saveDownloadQuality(level);
@@ -4417,8 +4455,18 @@
         }
 
         // ================= 设置 UI =================
+        let musicKeySettings;
         function initSettingsUI() {
-            // 设置项的UI已精简，此处留空防报错
+            musicKeySettings = createMusicKeySettings({
+                onEnabled() {
+                    if (musicService.config.source !== 'bilibili') {
+                        loadNewSongDiscovery();
+                        scheduleMusicCollections();
+                    }
+                    if (contentViewFromHash() === 'charts') chartsController?.refresh();
+                    if (contentViewFromHash() === 'artists') artistsController?.refresh();
+                },
+            });
         }
 
         function initMusicSourceControl() {
@@ -4449,6 +4497,9 @@
                     if (hint) hint.textContent = option.detail;
                 });
                 const isBilibili = source === 'bilibili';
+                const isGd = source === 'gd';
+                document.documentElement.classList.toggle('gd-source', isGd);
+                dom.gdSourceCredit.hidden = !isGd;
                 dom.desktopDiscoveryView.classList.toggle('bilibili-discovery', isBilibili);
                 dom.bilibiliCategories.hidden = !isBilibili;
                 dom.mobileBilibiliBrowse.hidden = !isBilibili;
@@ -4457,12 +4508,12 @@
                 dom.desktopDiscoveryRefresh.setAttribute('aria-label', isBilibili ? '刷新 Bilibili 音乐' : '刷新新歌速递');
                 dom.desktopDiscoveryView.querySelector('.library-kicker').textContent = isBilibili ? 'BILIBILI' : 'DISCOVER';
                 dom.desktopDiscoveryView.querySelector('.library-description').textContent = isBilibili
-                    ? '原创、翻唱与音乐现场' : '今日新歌与精选专辑';
+                    ? '原创、翻唱与音乐现场' : '今日新歌与精选专辑 · 数据来自 ChKSz';
                 for (const grid of [dom.editorialPlaylistGrid, dom.newAlbumGrid, dom.scenePlaylistGrid]) {
                     grid.closest('.music-shelf').hidden = isBilibili;
                 }
                 [dom.searchInput, dom.mobileSearchInput].filter(Boolean).forEach(input => {
-                    input.placeholder = isBilibili ? '视频标题、UP 主、BV 号或链接' : '歌曲名、歌手或歌曲 ID';
+                    input.placeholder = isBilibili ? '视频标题、UP 主、BV 号或链接' : isGd ? '歌曲名或歌手' : '歌曲名、歌手或歌曲 ID';
                 });
             };
 
@@ -4499,6 +4550,8 @@
                     if (nextSource === previousSource) return;
                     desktopSearchController?.abort();
                     mobileUI?.searchController?.abort();
+                    const discoverySourceChanged = (previousSource === 'bilibili') !== (nextSource === 'bilibili');
+                    if (discoverySourceChanged) musicCollectionsController?.abort();
                     musicService.saveSettings('source', nextSource);
                     const pageUrl = new URL(window.location.href);
                     pageUrl.searchParams.set('source', nextSource);
@@ -4510,7 +4563,10 @@
                     if (mobileUI?.dom.searchResults) {
                         setSearchStatus(mobileUI.dom.searchResults, '音源已切换，请重新搜索');
                     }
-                    loadNewSongDiscovery();
+                    if (discoverySourceChanged) {
+                        loadNewSongDiscovery();
+                        if (nextSource !== 'bilibili') scheduleMusicCollections();
+                    }
                     showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
                 });
             });
@@ -4572,6 +4628,7 @@
         });
 
         function openSettings() {
+            void musicKeySettings?.refresh();
             dom.settingsModal.classList.remove('hidden');
             // Allow reflow
             void dom.settingsModal.offsetWidth;
@@ -4615,6 +4672,7 @@
         }
 
         function closeSettings() {
+            musicKeySettings?.resetInput();
             deactivateDialog(dom.settingsModal);
             dom.settingsModal.classList.add('opacity-0');
             dom.settingsModal.querySelector('.modal-card').classList.add('scale-95');
@@ -4673,7 +4731,7 @@
             const resolvedLevel = supportedQuality(level);
             const bitrate = Number(data?.br ?? data?.bitrate);
             if (data?.provider === 'bilibili') return `Bilibili · ${Math.round(bitrate / 1000)} kbps · AAC`;
-            const providerLabel = 'ChKSz';
+            const providerLabel = data?.provider === 'gd' ? 'GD 音乐台' : 'ChKSz';
             const isFlac = String(data?.url || '').toLowerCase().includes('flac')
                 || ['lossless', 'hires', 'jymaster'].includes(resolvedLevel);
             const format = isFlac ? 'FLAC' : 'MP3';
@@ -4694,14 +4752,14 @@
             if (dom.nextBtn) dom.nextBtn.disabled = !hasSong;
             const originalUrl = bilibiliVideoUrl(playback.state.currentSong);
             if (dom.desktopDownloadBtn) {
-                dom.desktopDownloadBtn.disabled = !hasSong || (Boolean(originalUrl) && playback.state.currentSong.downloadAllowed === false);
+                dom.desktopDownloadBtn.disabled = !hasSong || playback.state.currentSong?.downloadAllowed === false;
                 dom.desktopDownloadBtn.hidden = false;
-                dom.desktopDownloadBtn.title = dom.desktopDownloadBtn.disabled && hasSong ? '该视频未开放下载' : '下载当前音频';
+                dom.desktopDownloadBtn.title = dom.desktopDownloadBtn.disabled && hasSong ? '当前来源仅提供在线播放' : '下载当前音频';
             }
             if (dom.mobileDownloadBtn) {
                 dom.mobileDownloadBtn.hidden = !originalUrl;
                 dom.mobileDownloadBtn.disabled = playback.state.currentSong?.downloadAllowed === false;
-                dom.mobileDownloadBtn.title = dom.mobileDownloadBtn.disabled ? '该视频未开放下载' : '下载当前音频';
+                dom.mobileDownloadBtn.title = dom.mobileDownloadBtn.disabled ? '当前来源仅提供在线播放' : '下载当前音频';
             }
             [dom.desktopOriginalVideo, dom.mobileOriginalVideo].filter(Boolean).forEach(link => {
                 link.hidden = !originalUrl;
@@ -4964,7 +5022,8 @@
             if (!dom.desktopDiscoveryList) return;
 
             const requestSource = supportedMusicSource(musicService.config.source);
-            const sourceOption = musicSourceOption(requestSource);
+            const discoverySource = requestSource === 'bilibili' ? 'bilibili' : 'chksz';
+            const sourceOption = musicSourceOption(discoverySource);
             const snapshotKey = `cp_bilibili_discovery_v1_${bilibiliCategory}`;
             let snapshot = null;
             if (requestSource === 'bilibili') {
@@ -4978,11 +5037,11 @@
             }
             const sourceLabel = dom.desktopDiscoverySection?.querySelector('.discovery-source');
             const sourceDetail = dom.desktopDiscoverySection?.querySelector('.discovery-heading-copy > p');
-            if (sourceLabel) sourceLabel.textContent = requestSource === 'chksz'
-                ? '网易云新歌榜' : 'Bilibili · 公开内容';
-            if (sourceDetail) sourceDetail.textContent = requestSource === 'chksz'
+            if (sourceLabel) sourceLabel.textContent = discoverySource === 'chksz'
+                ? 'ChKSz · 网易云新歌榜' : 'Bilibili · 公开内容';
+            if (sourceDetail) sourceDetail.textContent = discoverySource === 'chksz'
                 ? '真实榜单数据 · 每次展示最新 12 首' : '音乐区视频 · UP 主作品';
-            if (dom.desktopDiscoveryTitle) dom.desktopDiscoveryTitle.textContent = requestSource === 'chksz' ? '新歌速递'
+            if (dom.desktopDiscoveryTitle) dom.desktopDiscoveryTitle.textContent = discoverySource === 'chksz' ? '新歌速递'
                 : (dom.bilibiliCategories.querySelector('[aria-selected="true"]')?.textContent || '音乐区热榜');
 
             desktopDiscoveryController?.abort();
@@ -4991,19 +5050,19 @@
             dom.desktopDiscoveryList.setAttribute('aria-busy', 'true');
             if (dom.desktopDiscoveryRefresh) dom.desktopDiscoveryRefresh.disabled = true;
             setDiscoveryStatus(`正在获取${sourceOption.label}内容...`);
-            if (requestSource === 'chksz') setCollectionLoading(dom.newAlbumGrid, 6, '正在整理新碟上架');
+            if (discoverySource === 'chksz') setCollectionLoading(dom.newAlbumGrid, 6, '正在整理新碟上架');
 
             try {
                 const songs = await musicService.getNewSongs({
                     signal: requestController.signal,
-                    source: requestSource,
+                    source: discoverySource,
                     category: bilibiliCategory,
                 });
-                if (requestController.signal.aborted || musicService.config.source !== requestSource) return;
+                if (requestController.signal.aborted) return;
                 if (!songs.length) throw new Error('New song chart was empty');
                 renderDiscoverySongs(songs);
-                if (requestSource === 'chksz') renderNewAlbums(songs);
-                else {
+                if (discoverySource === 'chksz') renderNewAlbums(songs);
+                else if (discoverySource === 'bilibili') {
                     try {
                         globalThis.localStorage?.setItem(snapshotKey, JSON.stringify({ songs, savedAt: Date.now() }));
                     } catch { }
@@ -5479,7 +5538,7 @@
         }
 
         async function loadMusicCollections() {
-            if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid) return;
+            if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid || musicService.config.source === 'bilibili') return;
             musicCollectionsController?.abort();
             const requestController = new AbortController();
             musicCollectionsController = requestController;
@@ -5487,18 +5546,15 @@
             setCollectionLoading(dom.scenePlaylistGrid, SCENE_PLAYLISTS.length, '正在准备场景歌单', { scene: true });
 
             try {
-                const results = await Promise.allSettled(EDITORIAL_PLAYLISTS.map(async config => {
+                const collections = [];
+                for (const config of EDITORIAL_PLAYLISTS) {
                     const collection = await musicService.getPlaylistCollection(config.id, {
                         signal: requestController.signal,
                     });
                     if (!collection?.tracks?.length) throw new Error(`Playlist ${config.id} was empty`);
-                    return { config, collection };
-                }));
+                    collections.push({ config, collection });
+                }
                 if (requestController.signal.aborted) return;
-
-                const collections = results
-                    .filter(result => result.status === 'fulfilled')
-                    .map(result => result.value);
                 if (!collections.length) throw new Error('All editorial playlists failed');
 
                 const collectionMap = new Map(collections.map(item => [String(item.collection.id), item.collection]));
@@ -5507,11 +5563,11 @@
             } catch (error) {
                 if (error instanceof RequestCancelledError || requestController.signal.aborted) return;
                 console.error('音乐精选加载失败:', error);
-                setCollectionStatus(dom.editorialPlaylistGrid, '编辑精选加载失败，请稍后重试', {
+                setCollectionStatus(dom.editorialPlaylistGrid, requestErrorMessage(error), {
                     error: true,
                     retry: loadMusicCollections,
                 });
-                setCollectionStatus(dom.scenePlaylistGrid, '场景歌单加载失败，请稍后重试', {
+                setCollectionStatus(dom.scenePlaylistGrid, requestErrorMessage(error), {
                     error: true,
                     retry: loadMusicCollections,
                 });
@@ -5570,8 +5626,7 @@
             if (collection.resolvedTracks?.length) return collection.resolvedTracks;
             const fallbackTracks = collection.tracks || [];
             try {
-                const option = musicService.sourceForSong(fallbackTracks[0]);
-                const source = option.provider;
+                const source = 'chksz';
                 const results = await musicService.search(`${collection.name} ${collection.artist || ''}`.trim(), { source });
                 const expectedAlbum = collection.name.toLocaleLowerCase();
                 const exactMatches = results.filter(song =>
@@ -5996,7 +6051,8 @@
                 console.error(e);
                 setPlaybackTransitionPending(false);
                 syncPlaybackControls(false);
-                showToast('无法播放该歌曲 (版权限制或接口无响应)', true);
+                showToast(e?.code === 'gd_error' || e?.code === 'chksz_error'
+                    ? requestErrorMessage(e) : '无法播放该歌曲 (版权限制或接口无响应)', true);
                 setLyricsStatus('播放失败');
                 // ★ Fix: 错误时也要关闭移动端播放列表弹窗，防止卡住
                 if (mobileUI) {
@@ -6273,9 +6329,8 @@
         // 歌单服务 - ChKSz API（无分页，一次获取全部）
         class PlaylistService {
             static async fetchPlaylist(listId) {
-                const url = `${MUSIC_API_BASE_URL}/playlist?id=${encodeURIComponent(listId)}`;
-                const json = await requestJson(url);
-                return normalizePlaylistPayload(json);
+                const collection = await musicService.getPlaylistCollection(listId);
+                return collection?.tracks || [];
             }
         }
 

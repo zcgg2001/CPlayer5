@@ -13,12 +13,13 @@ export class RequestCancelledError extends Error {
 }
 
 export class HttpStatusError extends Error {
-  constructor(status, payload = null) {
+  constructor(status, payload = null, retryAfter = null) {
     super(`HTTP request failed with status ${status}`);
     this.name = 'HttpStatusError';
     this.status = status;
     this.payload = payload;
     this.code = payload?.error?.code || '';
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -74,7 +75,7 @@ export async function requestJson(
       } catch {
         // A non-JSON upstream error still maps to a stable local message.
       }
-      throw new HttpStatusError(response.status, payload);
+      throw new HttpStatusError(response.status, payload, response.headers?.get('retry-after') || null);
     }
 
     try {
@@ -100,6 +101,12 @@ export function requestErrorMessage(error) {
   if (error instanceof ResponseFormatError) return '服务返回了无法识别的数据';
   if (error instanceof NetworkRequestError) return '网络连接失败，请检查网络';
   if (error instanceof HttpStatusError) {
+    if (['chksz_error', 'gd_error', 'music_key_settings'].includes(error.code) && typeof error.payload?.error?.message === 'string') {
+      const seconds = Number(error.retryAfter);
+      const wait = error.status === 429 && seconds > 0 && Number.isFinite(seconds)
+        ? `（请至少等待 ${Math.ceil(seconds)} 秒）` : '';
+      return error.payload.error.message + wait;
+    }
     const codeMessages = {
       api_key_missing: '音乐服务尚未配置，请联系站点管理员',
       audio_unavailable: '音频连接失败，请重新选择内容',

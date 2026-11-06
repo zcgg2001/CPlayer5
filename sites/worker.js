@@ -4,10 +4,11 @@ import {
   handleVideosRequest,
 } from './music-content.js';
 import { handleBilibiliRequest } from './bilibili.js';
+import { handleGdRequest } from './gd.js';
 
-const CHKSZ_MUSIC_API_ORIGIN = 'https://api.chksz.com/api';
+import { ChkszError, chkszErrorResponse, requestChksz } from './chksz.js';
 const MUSIC_PROXY_ROUTES = new Map([
-  ['/api/v1/music/search', Object.freeze({ endpoint: '163_search', required: ['keyword'], optional: ['limit'] })],
+  ['/api/v1/music/search', Object.freeze({ endpoint: '163_search', required: ['keyword'], optional: ['limit', 'offset'] })],
   ['/api/v1/music/playlist', Object.freeze({ endpoint: '163_playlist', required: ['id'], optional: [] })],
   ['/api/v1/music/song', Object.freeze({ endpoint: '163_music', required: ['id'], optional: ['level'] })],
   ['/api/v1/music/lyric', Object.freeze({ endpoint: '163_lyric', required: ['id'], optional: [] })],
@@ -80,6 +81,10 @@ function validatedMusicParams(requestUrl, route) {
   if (limit && (!/^\d+$/.test(limit) || Number(limit) < 1 || Number(limit) > 100)) {
     return { error: 'limit 必须是 1 到 100 的整数' };
   }
+  const offset = params.get('offset');
+  if (offset && (!/^\d+$/.test(offset) || !Number.isSafeInteger(Number(offset)))) {
+    return { error: 'offset 必须是非负整数' };
+  }
   const level = params.get('level');
   if (level && !MUSIC_QUALITY_LEVELS.has(level)) return { error: '不支持的音质参数' };
   return { params };
@@ -101,57 +106,21 @@ async function handleMusicProxyRequest(request, env, requestUrl, route) {
     return musicProxyError(request, 503, 'provider_unavailable', '音乐服务暂时不可用');
   }
 
-  const providerUrl = new URL(`${CHKSZ_MUSIC_API_ORIGIN}/${route.endpoint}`);
-  for (const [name, value] of validation.params) providerUrl.searchParams.set(name, value);
-  providerUrl.searchParams.set('apikey', apiKey);
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10_000);
   try {
-    const response = await fetchImpl(providerUrl.href, {
-      headers: {
-        accept: 'application/json',
-        'user-agent': 'CPlayer5/5.3 music-proxy',
-      },
-      signal: controller.signal,
+    const { payload, headers } = await requestChksz(route.endpoint, validation.params, {
+      apiKey, fetchImpl, signal: request.signal,
     });
-    const body = await response.text();
-    if (!response.ok) {
-      const message = response.status === 401 || response.status === 403
-        ? '音乐接口鉴权失败，请联系站点管理员'
-        : '音乐接口暂时不可用，请稍后重试';
-      return musicProxyError(request, 502, 'provider_failed', message);
-    }
-    let payload;
-    try {
-      payload = JSON.parse(body);
-    } catch {
-      return musicProxyError(request, 502, 'invalid_provider_response', '音乐接口返回了无法识别的数据');
-    }
-    const providerCode = Number(payload?.code);
-    if (Number.isFinite(providerCode) && providerCode >= 400) {
-      const message = providerCode === 401 || providerCode === 403
-        ? '音乐接口鉴权失败，请联系站点管理员'
-        : '音乐接口暂时不可用，请稍后重试';
-      return musicProxyError(request, 502, 'provider_failed', message);
-    }
-    return new Response(request.method === 'HEAD' ? null : body, {
-      status: 200,
+    return new Response(request.method === 'HEAD' ? null : JSON.stringify(payload), {
       headers: {
+        ...headers,
         'content-type': 'application/json; charset=utf-8',
         'cache-control': 'no-store',
         'x-content-type-options': 'nosniff',
       },
     });
   } catch (error) {
-    return musicProxyError(
-      request,
-      502,
-      error?.name === 'AbortError' ? 'provider_timeout' : 'provider_unavailable',
-      error?.name === 'AbortError' ? '音乐接口响应超时，请稍后重试' : '音乐接口暂时不可用，请稍后重试',
-    );
-  } finally {
-    clearTimeout(timeoutId);
+    if (error instanceof ChkszError) return chkszErrorResponse(error, request.method);
+    return musicProxyError(request, 502, 'provider_unavailable', '音乐接口暂时不可用，请稍后重试');
   }
 }
 
@@ -165,6 +134,14 @@ const worker = {
     }
 
     const url = new URL(request.url);
+    if (url.searchParams.get('source') === 'gd' && url.pathname.startsWith('/api/v1/music/')) {
+      return handleGdRequest(request, env, url);
+    }
+    if (url.pathname === '/api/v1/settings/music-key') {
+      return new Response(request.method === 'HEAD' ? null : JSON.stringify({
+        configured: Boolean(String(env.CHKSZ_API_KEY || '').trim()), editable: false, source: 'environment',
+      }), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' } });
+    }
     if (url.pathname === '/api/v1/bilibili/audio' || url.pathname === '/api/v1/bilibili/download') {
       return handleBilibiliRequest(request, env);
     }

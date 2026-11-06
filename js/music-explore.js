@@ -227,7 +227,9 @@ async function requestJson(url, fetchImpl) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(payload?.error?.message || '内容加载失败');
+      const error = new Error(payload?.error?.message || '内容加载失败');
+      error.status = response.status;
+      throw error;
     }
     return payload;
   } finally {
@@ -407,14 +409,12 @@ export function normalizeDirectArtistsPayload(
 
 async function fetchProxyArtists(fetchImpl, scope) {
   const chartKeys = ARTIST_SCOPE_FEEDS[scope].chartKeys;
-  const results = await Promise.allSettled(chartKeys.map(async chartKey => {
+  const charts = [];
+  for (const chartKey of chartKeys) {
     const url = `/api/v1/music/playlist?id=${encodeURIComponent(CHKSZ_CHART_IDS[chartKey])}`;
     const payload = await requestJson(url, fetchImpl);
-    return normalizeDirectChartPayload(payload, chartKey);
-  }));
-  const charts = results
-    .filter(result => result.status === 'fulfilled')
-    .map(result => result.value);
+    charts.push(normalizeDirectChartPayload(payload, chartKey));
+  }
   if (!charts.length) throw new Error('ChKSz 国内歌手数据源暂时不可用');
   return normalizeDirectArtistsPayload(charts, { scope, limit: 24 });
 }
@@ -438,6 +438,7 @@ export async function fetchArtistsPayload(
       );
       return normalizeArtistsPayload(payload);
     } catch (error) {
+      if ([401, 402, 403, 429, 503].includes(error.status)) throw error;
       endpointError = error;
     }
   }

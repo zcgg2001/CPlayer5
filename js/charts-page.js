@@ -371,7 +371,9 @@ async function fetchJson(fetchImpl, url, { signal } = {}) {
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(payload?.error?.message || '排行榜加载失败');
+    const error = new Error(payload?.error?.message || '排行榜加载失败');
+    error.status = response.status;
+    throw error;
   }
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new Error('排行榜服务返回了无法识别的数据');
@@ -390,7 +392,7 @@ export async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
       { signal },
     );
   } catch (edgeError) {
-    if (signal?.aborted) throw edgeError;
+    if (signal?.aborted || [401, 402, 403, 429, 503].includes(edgeError.status)) throw edgeError;
     const chart = CHARTS[chartKey] || CHARTS[DEFAULT_CHART];
     try {
       const direct = await fetchJson(

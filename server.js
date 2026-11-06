@@ -6,6 +6,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import worker from './sites/worker.js';
+import { createMusicKeySettings, MUSIC_KEY_PATH } from './local-music-key.js';
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(process.env.CPLAYER_STATIC_DIR || `${PROJECT_ROOT}/dist/static`);
@@ -123,13 +124,23 @@ function runtimeEnv() {
 }
 
 export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker } = {}) {
+  // Each running server has its own key; never mutate process.env or write it to disk.
+  env = { ...env };
+  const musicKeySettings = createMusicKeySettings(env);
   return createServer(async (incoming, outgoing) => {
     const controller = new AbortController();
     outgoing.once('close', () => controller.abort());
     try {
-      if (incoming.method !== 'GET' && incoming.method !== 'HEAD') incoming.resume();
       const request = toFetchRequest(incoming, controller.signal);
-      const response = await workerImpl.fetch(request, env);
+      const url = new URL(request.url);
+      let response;
+      if (url.pathname === MUSIC_KEY_PATH) {
+        response = await musicKeySettings.handle(incoming, url);
+      } else {
+        if (incoming.method !== 'GET' && incoming.method !== 'HEAD') incoming.resume();
+        response = (url.pathname.startsWith('/api/') && musicKeySettings.guard(incoming, url))
+          || await workerImpl.fetch(request, env);
+      }
       const responseHeaders = {};
       for (const [name, value] of response.headers) responseHeaders[name] = value;
       outgoing.writeHead(response.status, response.statusText, responseHeaders);

@@ -60,3 +60,35 @@ test('music service persists normalized setting changes', () => {
   assert.equal(saved.getItem('cp_quality'), 'hires');
   assert.equal(saved.getItem('cp_source'), 'bilibili');
 });
+
+test('ChKSz collections play through the selected API and retain listing metadata', async () => {
+  const service = new MusicService({ storage: storage(), location: { search: '?source=gd' } });
+  const requests = [];
+  const track = { id: 65766, name: '富士山下', artist: '陈奕迅', album: '专辑', cover: 'https://example.com/cover.jpg' };
+  const fetchImpl = async url => {
+    const parsed = new URL(url, 'https://player.example');
+    requests.push({ path: parsed.pathname, source: parsed.searchParams.get('source') });
+    if (parsed.pathname.endsWith('/playlist')) {
+      return Response.json({ code: 200, data: { id: 3779629, name: '新歌榜', tracks: [track] } });
+    }
+    return Response.json({ code: 200, data: { id: track.id, url: 'https://example.com/song.mp3', level: 'exhigh' } });
+  };
+  const discovery = await service.getNewSongs({ fetchImpl });
+  const collection = await service.getPlaylistCollection('3779629', { fetchImpl });
+  assert.equal(discovery[0].provider, 'chksz');
+  assert.deepEqual(collection.tracks, discovery);
+  for (const source of ['gd', 'chksz']) {
+    service.saveSettings('source', source);
+    const played = await service.getSong(track.id, { song: collection.tracks[0], fetchImpl });
+    assert.equal(played.provider, source);
+    assert.equal(played.name, track.name);
+    assert.equal(played.artist, track.artist);
+    assert.equal(played.cover, track.cover);
+  }
+  assert.deepEqual(requests, [
+    { path: '/api/v1/music/playlist', source: 'chksz' },
+    { path: '/api/v1/music/playlist', source: 'chksz' },
+    { path: '/api/v1/music/song', source: 'gd' },
+    { path: '/api/v1/music/song', source: 'chksz' },
+  ]);
+});

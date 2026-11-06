@@ -193,9 +193,9 @@ test('returns a stable user-facing error when the provider fails', async () => {
   );
   const payload = await response.json();
 
-  assert.equal(response.status, 502);
-  assert.equal(payload.error.code, 'provider_failed');
-  assert.equal(payload.error.message, '排行榜暂时无法更新，请稍后重试');
+  assert.equal(response.status, 503);
+  assert.equal(payload.error.code, 'chksz_error');
+  assert.equal(payload.error.message, '音乐服务暂时不可用，请稍后再试');
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
@@ -212,7 +212,7 @@ test('uses only authenticated chksz.com and never retries the retired host', asy
     },
   );
 
-  assert.equal(response.status, 502);
+  assert.equal(response.status, 401);
   assert.equal(requestedUrls.length, 1);
   assert.match(requestedUrls[0], /^https:\/\/api\.chksz\.com\/api\//);
   assert.match(requestedUrls[0], /apikey=private-key/);

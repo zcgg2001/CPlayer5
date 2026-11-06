@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { createPlaybackSession } from '../js/playback-session.js';
 import { normalizeMediaUrl } from '../js/security.js';
 import * as musicData from '../js/music-data.js';
-import { RequestCancelledError } from '../js/http.js';
+import { RequestCancelledError } from '../js/http.js?v=37';
 import { MusicService } from '../js/music-service.js';
 import { createQueueStore } from '../js/queue-store.js';
 import { createPlaybackController } from '../js/playback-controller.js';
@@ -523,6 +523,74 @@ test('editorial collections wait for a visible shelf before loading', () => {
   onIntersection([{ isIntersecting: true }]);
   assert.equal(loads, 1);
   assert.equal(disconnected, true);
+});
+
+test('GD discovery uses ChKSz and survives a playback API change while loading', async () => {
+  const pending = deferred();
+  const rendered = [];
+  const albums = [];
+  const context = vm.createContext({
+    AbortController, RequestCancelledError,
+    dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element() },
+    desktopDiscoveryController: null, bilibiliCategory: 'all',
+    supportedMusicSource: source => source,
+    musicSourceOption: source => ({ label: source }),
+    musicService: {
+      config: { source: 'gd' },
+      getNewSongs({ source }) {
+        assert.equal(source, 'chksz');
+        return pending.promise;
+      },
+    },
+    setDiscoveryStatus() {}, setCollectionLoading() {},
+    renderDiscoverySongs: songs => rendered.push(...songs),
+    renderNewAlbums: songs => albums.push(...songs),
+    localStorage: { setItem: () => assert.fail('NetEase songs must not enter Bilibili snapshots') },
+  });
+  vm.runInContext(inlineFunction('loadNewSongDiscovery'), context);
+  const loading = context.loadNewSongDiscovery();
+  context.musicService.config.source = 'chksz';
+  const track = { ...song('65766'), provider: 'chksz' };
+  pending.resolve([track]);
+  await loading;
+  assert.deepEqual(rendered, [track]);
+  assert.deepEqual(albums, [track]);
+  assert.equal(context.dom.desktopDiscoveryRefresh.disabled, false);
+});
+
+test('saving a ChKSz key refreshes collections while keeping GD playback selected', () => {
+  let onEnabled;
+  const refreshed = [];
+  const context = vm.createContext({
+    musicKeySettings: null,
+    createMusicKeySettings(options) { onEnabled = options.onEnabled; },
+    musicService: { config: { source: 'gd' } },
+    loadNewSongDiscovery: () => refreshed.push('discovery'),
+    scheduleMusicCollections: () => refreshed.push('collections'),
+    contentViewFromHash: () => 'artists',
+    artistsController: { refresh: () => refreshed.push('artists') },
+  });
+  vm.runInContext(inlineFunction('initSettingsUI'), context);
+  context.initSettingsUI();
+  onEnabled();
+  assert.equal(context.musicService.config.source, 'gd');
+  assert.deepEqual(refreshed, ['discovery', 'collections', 'artists']);
+});
+
+test('album track expansion uses ChKSz with GD playback selected', async () => {
+  const track = { ...song('65766'), album: '专辑', provider: 'chksz' };
+  const context = vm.createContext({
+    musicService: {
+      config: { source: 'gd' },
+      async search(query, { source }) {
+        assert.equal(source, 'chksz');
+        return [track];
+      },
+    },
+  });
+  vm.runInContext(inlineFunction('resolveAlbumTracks'), context);
+  const tracks = await context.resolveAlbumTracks({ name: '专辑', tracks: [] });
+  assert.equal(tracks[0], track);
 });
 
 test('concurrent image cache reads are coalesced and timed-out entries can retry', async () => {

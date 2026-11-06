@@ -292,7 +292,7 @@ class StartupBehaviorTests(unittest.TestCase):
             "  async getLyric",
         )
         self.assertIn("level = this.config.quality", service)
-        self.assertIn("for (const candidate of downloadFallbackLevels(supportedQuality(level)))", service)
+        self.assertIn("downloadFallbackLevels(supportedQuality(level))", service)
         self.assertIn("normalizeSongPayload(json, level)", service)
         self.assertIn("if (song) return song;", service)
 

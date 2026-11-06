@@ -2,7 +2,7 @@ import {
   RequestCancelledError,
   requestErrorMessage,
   requestJson,
-} from './http.js';
+} from './http.js?v=37';
 import {
   bilibiliVideoUrl,
   normalizeBilibiliPayload,
@@ -24,6 +24,11 @@ export const MUSIC_SOURCE_OPTIONS = Object.freeze({
     label: 'ChKSz · 网易云',
     detail: '网易云搜索、解析与歌词',
     provider: 'chksz',
+  }),
+  gd: Object.freeze({
+    label: 'GD 音乐台 · 网易云',
+    detail: 'GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz',
+    provider: 'gd',
   }),
   bilibili: Object.freeze({
     label: 'Bilibili · 哔哩哔哩',
@@ -92,12 +97,14 @@ export class MusicService {
     if (song?.provider === 'bilibili' || bilibiliVideoUrl(song)) {
       return musicSourceOption('bilibili');
     }
-    if (song && !song.provider) return musicSourceOption('chksz');
+    const neteaseSource = ['gd', 'chksz'].includes(this.config.source)
+      ? this.config.source : (song?.provider === 'gd' ? 'gd' : 'chksz');
+    if (song && !song.provider) return musicSourceOption(neteaseSource);
     if (
-      song?.provider === 'chksz'
+      ['chksz', 'gd'].includes(song?.provider)
       || ['ChKSz', 'id_search', 'netease'].includes(String(song?.source || ''))
     ) {
-      return musicSourceOption('chksz');
+      return musicSourceOption(neteaseSource);
     }
     if (song?.provider) throw new Error('此歌曲的音乐源已移除，请重新搜索');
     return musicSourceOption(this.config.source);
@@ -109,21 +116,21 @@ export class MusicService {
 
   async search(query, { signal, source = this.config.source, fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
-    const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=30`;
-    const json = await requestJson(url, { signal, fetchImpl });
+    const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=${selectedSource === 'gd' ? 10 : 30}`;
+    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: selectedSource === 'gd' ? 30_000 : 10_000 });
     const option = musicSourceOption(selectedSource);
     return option.provider === 'bilibili'
       ? normalizeBilibiliPayload(json)
-      : normalizeSearchPayload(json);
+      : normalizeSearchPayload(json).map(song => ({ ...song, sourceId: song.id, provider: selectedSource, source: selectedSource === 'gd' ? 'GD 音乐台' : 'ChKSz' }));
   }
 
   async getNewSongs({ signal, source = this.config.source, category = 'all', fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
-    if (selectedSource !== 'chksz') {
+    if (selectedSource === 'bilibili') {
       const json = await requestJson(`${this.baseUrl}/discover?source=bilibili&category=${encodeURIComponent(category)}`, { signal, fetchImpl });
       return normalizeBilibiliPayload(json).slice(0, 12);
     }
-    const json = await requestJson(`${this.baseUrl}/playlist?id=${NEW_SONGS_PLAYLIST_ID}&source=chksz`, { signal, fetchImpl });
+    const json = await requestJson(`${this.baseUrl}/playlist?id=${NEW_SONGS_PLAYLIST_ID}&source=chksz`, { signal, fetchImpl, timeoutMs: 35_000 });
     return normalizePlaylistPayload(json).slice(0, 12).map(song => ({
       ...song,
       sourceId: song.id,
@@ -134,7 +141,7 @@ export class MusicService {
 
   async getPlaylistCollection(id, { signal, fetchImpl } = {}) {
     const url = `${this.baseUrl}/playlist?id=${encodeURIComponent(id)}&source=chksz`;
-    const json = await requestJson(url, { signal, fetchImpl });
+    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: 35_000 });
     const collection = normalizePlaylistCollectionPayload(json);
     if (!collection) return null;
     return {
@@ -148,33 +155,45 @@ export class MusicService {
     };
   }
 
-  async getSongAtLevel(id, level, { signal, song = null, fetchImpl } = {}) {
-    const option = this.sourceForSong(song);
+  async getSongAtLevel(id, level, { signal, song = null, fetchImpl, source } = {}) {
+    const option = source ? musicSourceOption(source) : this.sourceForSong(song);
     const params = new URLSearchParams({
       source: option.provider,
       id: String(song?.sourceId || id),
       level: String(level),
     });
-    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl });
-    return option.provider === 'bilibili'
-      ? normalizeBilibiliPayload(json)[0] || null
-      : normalizeSongPayload(json, level);
+    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: option.provider === 'gd' ? 50_000 : 10_000 });
+    if (option.provider === 'bilibili') return normalizeBilibiliPayload(json)[0] || null;
+    const normalized = normalizeSongPayload(json, level);
+    if (!normalized) return null;
+    return {
+      ...normalized, sourceId: normalized.id, provider: option.provider,
+      source: option.provider === 'gd' ? 'GD 音乐台' : 'ChKSz',
+      name: song?.name || normalized.name,
+      artist: song?.artist || normalized.artist,
+      album: song?.album || normalized.album,
+      cover: song?.cover || normalized.cover,
+      ...(option.provider === 'gd' ? { downloadAllowed: false } : {}),
+    };
   }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     const requestSong = queueSong || this.sourceForSong();
-    for (const candidate of downloadFallbackLevels(supportedQuality(level))) {
-      const song = await this.getSongAtLevel(id, candidate, { signal, song: requestSong, fetchImpl });
+    const source = this.sourceForSong(requestSong).provider;
+    const levels = source === 'gd'
+      ? [supportedQuality(level)] : downloadFallbackLevels(supportedQuality(level));
+    for (const candidate of levels) {
+      const song = await this.getSongAtLevel(id, candidate, { signal, song: requestSong, fetchImpl, source });
       if (song) return song;
     }
     throw new Error('音乐源未返回可播放地址');
   }
 
   async getLyric(id, { song = null, signal, fetchImpl } = {}) {
-    const option = this.sourceForSong(song);
+    const option = ['gd', 'chksz'].includes(song?.provider) ? musicSourceOption(song.provider) : this.sourceForSong(song);
     const params = new URLSearchParams({ source: option.provider, id });
     try {
-      const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl });
+      const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: option.provider === 'gd' ? 30_000 : 10_000 });
       if (option.provider === 'bilibili') return json.data;
       return normalizeLyricsPayload(json);
     } catch (error) {

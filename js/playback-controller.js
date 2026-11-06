@@ -31,6 +31,7 @@ export function createPlaybackController({
     }
 
     async function preloadNext() {
+        if (musicService.config?.source === 'gd') return;
         if (!preloadAudio || !queueStore.state.playlist.length) return;
         const next = queueStore.state.playlist[queueStore.next()];
         if (next == null || bilibiliVideoUrl(next) || preloadedSong === next) return;
@@ -76,6 +77,8 @@ export function createPlaybackController({
                 || normalizeMediaUrl(data.cover, coverOptions) || '';
             const playbackData = {
                 ...data, ...queuedSong, url, cover,
+                provider: data.provider || queuedSong?.provider,
+                source: data.source || queuedSong?.source,
                 br: data.br || data.bitrate || 0,
                 downloadAllowed: data.downloadAllowed,
                 album: queuedSong?.album || data.album || '',

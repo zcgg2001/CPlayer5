@@ -208,7 +208,7 @@ test('fails safely when the music API key is missing', async () => {
 });
 
 
-test('turns provider authentication payloads into a stable server error', async () => {
+test('preserves provider authentication errors and their explanation', async () => {
   const { env } = createEnv();
   env.CHKSZ_API_KEY = 'invalid-key';
   env.MUSIC_FETCH = async () => Response.json({ code: 401, message: 'Unauthorized' });
@@ -219,9 +219,9 @@ test('turns provider authentication payloads into a stable server error', async 
   );
   const body = await response.text();
 
-  assert.equal(response.status, 502);
-  assert.match(body, /音乐接口鉴权失败/);
-  assert.doesNotMatch(body, /invalid-key|Unauthorized/);
+  assert.equal(response.status, 401);
+  assert.match(body, /Unauthorized/);
+  assert.doesNotMatch(body, /invalid-key/);
 });
 
 

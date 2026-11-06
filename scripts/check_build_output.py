@@ -19,7 +19,7 @@ REQUIRED_STATIC = {
     "js/cache-store.js",
     "img/icon.svg",
 }
-REQUIRED_SERVER = {"index.js", "music-content.js", "bilibili.js"}
+REQUIRED_SERVER = {"index.js", "music-content.js", "bilibili.js", "chksz.js", "gd.js"}
 FORBIDDEN_NAMES = {".env", ".dev.vars", "node_modules"}
 
 

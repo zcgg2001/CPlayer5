@@ -31,3 +31,6 @@ fi
 cp "$project_dir/sites/worker.js" "$server_dir/index.js"
 cp "$project_dir/sites/music-content.js" "$server_dir/music-content.js"
 cp "$project_dir/sites/bilibili.js" "$server_dir/bilibili.js"
+
+cp "$project_dir/sites/chksz.js" "$server_dir/chksz.js"
+cp "$project_dir/sites/gd.js" "$server_dir/gd.js"

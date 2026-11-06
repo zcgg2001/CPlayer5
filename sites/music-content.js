@@ -1,3 +1,5 @@
+import { ChkszError, chkszErrorResponse, requestChksz } from './chksz.js';
+
 const CHKSZ_PRIMARY_API_ORIGIN = 'https://api.chksz.com/api';
 const BILIBILI_SEARCH_ORIGIN = 'https://api.bilibili.com/x/web-interface/search/type';
 
@@ -478,25 +480,20 @@ async function requestProviderJson(
 }
 
 async function requestChartPayload(chartKey, { fetchImpl, apiKey = '' } = {}) {
-  let lastError = null;
-  for (const providerUrl of chartProviderUrls(chartKey, apiKey)) {
-    try {
-      return await requestProviderJson(providerUrl, { fetchImpl });
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError || new Error('No chart provider is available');
+  const { payload } = await requestChksz('163_playlist', {
+    id: CHART_DEFINITIONS[resolveChartKey(chartKey)].id,
+  }, { fetchImpl, apiKey });
+  return payload;
 }
 
 async function fetchNormalizedCharts(chartKeys, fetchImpl, apiKey = '') {
-  const results = await Promise.allSettled(chartKeys.map(async chartKey => {
+  const charts = [];
+  // Stop on auth/quota/rate-limit errors instead of spending more requests on other charts.
+  for (const chartKey of chartKeys) {
     const payload = await requestChartPayload(chartKey, { fetchImpl, apiKey });
-    return normalizeChkszChartPayload(payload, { chartKey, limit: 100 });
-  }));
-  return results
-    .filter(result => result.status === 'fulfilled')
-    .map(result => result.value);
+    charts.push(normalizeChkszChartPayload(payload, { chartKey, limit: 100 }));
+  }
+  return charts;
 }
 
 export async function handleChartsRequest(request, env = {}) {
@@ -532,6 +529,7 @@ export async function handleChartsRequest(request, env = {}) {
     const normalized = normalizeChkszChartPayload(payload, { chartKey, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });
   } catch (error) {
+    if (error instanceof ChkszError) return chkszErrorResponse(error, request.method);
     return jsonResponse({
       error: {
         code: error?.name === 'AbortError' ? 'provider_timeout' : 'provider_failed',
@@ -577,6 +575,7 @@ export async function handleArtistsRequest(request, env = {}) {
     const normalized = normalizeArtistsFromCharts(charts, { scope, limit });
     return jsonResponse(normalized, { cache: true, method: request.method });
   } catch (error) {
+    if (error instanceof ChkszError) return chkszErrorResponse(error, request.method);
     return jsonResponse({
       error: {
         code: error?.name === 'AbortError' ? 'provider_timeout' : 'provider_failed',
@@ -660,6 +659,7 @@ export async function handleVideosRequest(request, env = {}) {
       items: videos,
     }, { cache: true, method: request.method });
   } catch (error) {
+    if (error instanceof ChkszError) return chkszErrorResponse(error, request.method);
     return jsonResponse({
       error: {
         code: error?.name === 'AbortError' ? 'provider_timeout' : 'provider_failed',

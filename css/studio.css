@@ -15,6 +15,26 @@
   --studio-glass-shadow: rgba(0, 0, 0, 0.38);
 }
 
+.music-key-card { padding: 16px; border: 1px solid var(--studio-line); border-radius: 16px; color: var(--studio-ink); }
+.music-key-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.music-key-heading label { font-size: 14px; font-weight: 700; }
+#musicKeyStatus { color: var(--studio-muted); font-size: 12px; }
+.music-key-hint { margin: 10px 0 12px; color: var(--studio-muted); font-size: 12px; line-height: 1.6; }
+.music-key-input-row { display: flex; gap: 8px; }
+html:root #settingsCard #musicApiKey { min-width: 0; width: 100%; min-height: 44px; padding: 10px 12px; color: var(--studio-ink); background: var(--studio-bg) !important; border: 1px solid var(--studio-line) !important; border-radius: 8px; font-size: 16px; }
+html:root #settingsCard #musicApiKey::placeholder { color: var(--studio-muted); opacity: 1; }
+html:root #settingsCard #musicApiKey[aria-invalid="true"] { border-color: var(--studio-accent) !important; }
+.music-key-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.music-key-card button, .music-key-actions a { min-height: 44px; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.music-key-card button { flex-shrink: 0; border: 1px solid var(--studio-line); background: var(--studio-raised); color: var(--studio-ink); cursor: pointer; }
+.music-key-card button:hover:not(:disabled) { border-color: var(--studio-accent); }
+.music-key-card button:disabled { opacity: 0.5; cursor: not-allowed; }
+#musicKeySave { color: var(--studio-accent-ink); background: var(--studio-accent); border-color: var(--studio-accent); }
+.music-key-actions a { display: inline-flex; align-items: center; color: var(--studio-ink); text-decoration: underline; }
+#musicKeyFeedback { margin-top: 8px; color: var(--studio-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#musicKeyFeedback:empty { display: none; }
+#musicKeyFeedback[data-error="true"] { color: var(--studio-ink); font-weight: 600; }
+
 html[data-theme="light"] {
   --studio-bg: #f5f6f4;
   --studio-surface: #ffffff;
@@ -584,3 +604,7 @@ html:root body.offline-page h1 { font-size: 36px; }
   .fa-spin { animation-duration: 1.8s; }
   body *, body *::before, body *::after { scroll-behavior: auto !important; }
 }
+
+.gd-source-credit { display: none; }
+.gd-source .gd-source-credit { display: block; padding: 24px; line-height: 1.7; opacity: .75; }
+.liquid-quality-option[hidden] { display: none !important; }

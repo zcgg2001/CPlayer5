@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v52';
+const SHELL_CACHE = 'cplayer5-shell-v56';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -30,6 +30,7 @@ const CORE_ASSETS = [
   './js/http.js',
   './js/music-data.js',
   './js/music-service.js',
+  './js/music-key-settings.js',
   './js/music-download.js',
   './js/download-session.js',
   './js/playback-session.js',
