@@ -77,6 +77,7 @@ export function createPlaybackController({
                 || normalizeMediaUrl(data.cover, coverOptions) || '';
             const playbackData = {
                 ...data, ...queuedSong, url, cover,
+                sourceId: data.sourceId || queuedSong?.sourceId,
                 provider: data.provider || queuedSong?.provider,
                 source: data.source || queuedSong?.source,
                 br: data.br || data.bitrate || 0,

@@ -1,3 +1,11 @@
+import { extractMetadata } from './music-catalog.js?v=1';
+
+function metadataFields(item) {
+  const info = extractMetadata(item);
+  const meaningful = Object.entries(info.metadata).some(([key,value]) => key !== 'duration' && key !== 'bitrate' && (Array.isArray(value) ? value.length : value));
+  return meaningful || info.artistEntities?.some(artist => artist.id != null || artist.avatar) || info.albumEntity?.id != null || info.availability ? info : {};
+}
+
 function hasId(item) {
   return item?.id !== undefined && item?.id !== null && String(item.id).trim() !== '';
 }
@@ -54,6 +62,7 @@ function searchItems(payload) {
 export function normalizeSearchPayload(payload) {
   return searchItems(payload).filter(hasId).map(item => ({
     id: item.id,
+    ...metadataFields(item),
     name: text(item.name, '未知歌曲'),
     artist: artistText(item),
     album: albumText(item),
@@ -89,6 +98,7 @@ export function normalizeSongPayload(payload, requestedLevel = 'jymaster') {
 
   return {
     id: item.id,
+    ...metadataFields(item),
     url: text(item.url),
     name: text(item.name, '未知歌曲'),
     artist: artistText(item, '未知艺术家'),
@@ -122,6 +132,7 @@ function playlistItems(payload) {
 export function normalizePlaylistPayload(payload) {
   return playlistItems(payload).filter(hasId).map(item => ({
     id: item.id,
+    ...metadataFields(item),
     name: text(item.name, '未知歌曲'),
     artist: artistText(item),
     album: albumText(item),
@@ -142,6 +153,7 @@ export function normalizePlaylistCollectionPayload(payload) {
 
   return {
     id: item.id,
+    ...metadataFields(item),
     name: text(item.name, '未命名歌单'),
     cover: coverUrl(item),
     creator: typeof creator === 'string'

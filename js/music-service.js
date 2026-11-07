@@ -1,3 +1,4 @@
+import { sourceBlocked, availability } from './music-catalog.js?v=1';
 import { MUSIC_CHANNELS, isMusicChannel, channelTrackId, channelSourceId } from './music-channels.js';
 import {
   RequestCancelledError,
@@ -12,7 +13,7 @@ import {
   normalizePlaylistPayload,
   normalizeSearchPayload,
   normalizeSongPayload,
-} from './music-data.js';
+} from './music-data.js?v=41';
 import { downloadFallbackLevels } from './music-download.js';
 
 export const MUSIC_API_BASE_URL = '/api/v1/music';
@@ -195,6 +196,22 @@ export class MusicService {
   }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
+    if (queueSong?.sources?.length) {
+      const candidates = [...queueSong.sources].sort((a,b) => Number(availability(b).status === 'playable') - Number(availability(a).status === 'playable'));
+      let lastError;
+      for (const candidate of candidates) {
+        if (sourceBlocked(candidate,supportedQuality(level))) continue;
+        signal?.throwIfAborted();
+        try {
+          const levels = candidate.provider==='chksz' ? downloadFallbackLevels(supportedQuality(level)) : [supportedQuality(level)];
+          for(const candidateLevel of levels) {
+            const result = await this.getSongAtLevel(candidate.id, candidateLevel, {song:candidate,source:candidate.provider,signal,fetchImpl});
+            if (result) return {...result, catalogId:queueSong.catalogId, sources:queueSong.sources, id:queueSong.id};
+          }
+        } catch (error) { if (signal?.aborted || error instanceof RequestCancelledError) throw error; lastError = error; }
+      }
+      throw lastError || new Error('当前没有可用音源，请在歌曲资料中重新检查');
+    }
     const requestSong = queueSong || this.sourceForSong();
     const source = this.sourceForSong(requestSong).provider;
     const levels = source === 'gd' || isMusicChannel(source)
@@ -208,7 +225,7 @@ export class MusicService {
 
   async getLyric(id, { song = null, signal, fetchImpl } = {}) {
     const option = ['gd', 'chksz'].includes(song?.provider) ? musicSourceOption(song.provider) : this.sourceForSong(song);
-    const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : id });
+    const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : (song?.sourceId || id) });
     try {
       const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 30_000 : 10_000 });
       if (option.provider === 'bilibili') return json.data;

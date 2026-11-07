@@ -112,3 +112,15 @@ test('workerd: new channels run crypto, parse HTML, and stream HTTP audio with r
   assert.equal(response.status,206,await response.clone().text());
   assert.equal(await response.text(),'ID3!');
 });
+
+test('workerd: public metadata enrichment and overlapping requests retain no request I/O', async t => {
+  const mf=runtime(t,async request=>{
+    const url=new URL(request.url);assert.equal(url.hostname,'music.163.com');
+    await new Promise(resolve=>setTimeout(resolve,40));
+    if(url.pathname.includes('/song/detail'))return Response.json({code:200,songs:[{id:1,name:'曲目',duration:200000,artists:[{id:2,name:'艺人'}],album:{id:3,name:'专辑'}}]});
+    if(url.pathname==='/api/album/3')return Response.json({code:200,album:{id:3,name:'专辑',description:'专辑介绍',company:'厂牌'}});
+    return Response.json({code:200,artist:{id:2,name:'艺人',briefDesc:'艺人介绍'}});
+  });
+  const responses=await Promise.all([1,2].map(()=>mf.dispatchFetch('https://player.example/api/v1/music/metadata?source=netease&id=1')));
+  for(const response of responses){assert.equal(response.status,200);const body=await response.json();assert.equal(body.data.duration,200);assert.equal(body.data.albumEntity.description,'专辑介绍');assert.equal(body.data.artistEntities[0].description,'艺人介绍');}
+});

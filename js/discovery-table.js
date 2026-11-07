@@ -1,3 +1,4 @@
+import { groupAvailability, AVAILABILITY_LABELS } from './music-catalog.js?v=1';
 // Discovery UI uses real tracks; missing metadata stays visibly unknown.
 export function trackDuration(song) {
   if (song?.duration == null && song?.dt == null) return 0;
@@ -17,7 +18,7 @@ export function filterDiscoveryTracks(songs, query = '', sort = 'default') {
 const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const keyOf = song => `${song.provider || 'gd'}:${song.id}`;
 
-export function createDiscoveryTable({document, storage, list, onPlay, onQueue, onBatch, onDownload, onSearch, onRetry, onMore, onNotify = () => {}, getPlayback, canDownload}) {
+export function createDiscoveryTable({document, storage, list, onPlay, onQueue, onBatch, onDownload, onSearch, onRetry, onMore, onNotify = () => {}, onDetails = () => {}, getPlayback, canDownload}) {
   let tracks = [], query = '', sort = 'default', favoritesOnly = false, hasMore = true, busy = false;
   let favorites;
   try { favorites = new Map(JSON.parse(storage.getItem('cp_favorites_v1') || '[]').filter(pair => Array.isArray(pair) && pair[1]?.id)); } catch { favorites = new Map(); }
@@ -48,6 +49,7 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
       const node = button(label, glyph, () => { closeMenu(); action(); }, 'track-menu-item');
       const text = document.createElement('span'); text.textContent = label; node.append(text); node.setAttribute('role','menuitem'); menu.append(node); return node;
     };
+    item('歌曲资料与音源', 'Info', () => onDetails(song,trigger));
     if (canDownload(song)) item('下载歌曲', 'ArrowDownToLine', () => onDownload(song,trigger));
     item('复制歌曲链接', 'Link', async () => {
       const url = new URL(document.baseURI); url.search = new URLSearchParams({source:song.provider || 'gd', q:`${song.name} ${song.artist || ''}`.trim()}); url.hash = '';
@@ -96,7 +98,7 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
     const copy = document.createElement('div'); copy.className = 'track-copy';
     const title = document.createElement('span'); title.className = 'track-title'; title.textContent = song.name || '未知歌曲'; title.title = title.textContent;
     const artist = document.createElement('span'); artist.className = 'track-artist'; artist.textContent = song.artist || '未知歌手'; artist.title = artist.textContent;
-    copy.append(title,artist); main.append(cover,copy);
+    copy.append(title,artist); const state = document.createElement('span'); state.className='catalog-badge'; state.textContent=AVAILABILITY_LABELS[groupAvailability(song).status]; state.title='在更多操作中查看资料并检查音源'; artist.append(' · ',state); main.append(cover,copy);
     const album = cell('track-album'); album.textContent = song.album || '—'; album.title = song.album || '音源未提供专辑';
     const time = cell('track-duration'); time.textContent = durationLabel(trackDuration(song)); time.title = trackDuration(song) ? '歌曲时长' : '音源未提供时长，播放后更新';
     const actions = cell('track-actions');

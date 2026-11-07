@@ -1,3 +1,4 @@
+import { extractMetadata } from '../js/music-catalog.js';
 const API_URL = 'https://music-api.gdstudio.xyz/api.php';
 const QUALITY = { standard: 128, exhigh: 320, lossless: 740, hires: 999, jymaster: 999 };
 const states = new WeakMap();
@@ -123,7 +124,7 @@ export async function handleGdRequest(request, env, url) {
       if (!Array.isArray(payload)) throw new GdError(502, 'GD 音乐台未返回有效的搜索列表');
       const songs = payload.filter(item => /^\d{1,32}$/.test(String(item?.id))).map(item => {
         const song = {
-          id: String(item.id), name: item.name, artists: item.artist, album: item.album,
+          ...extractMetadata(item), id: String(item.id), name: item.name, artists: item.artist, album: item.album,
           cover: /^\d{1,32}$/.test(String(item.pic_id)) ? `/api/v1/music/cover?source=gd&id=${item.pic_id}` : '',
         };
         remember(state.tracks, song.id, song);

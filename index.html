@@ -1406,6 +1406,7 @@
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
     <link rel="stylesheet" href="./css/discovery.css?v=3">
+    <link rel="stylesheet" href="./css/music-catalog.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
@@ -1567,6 +1568,7 @@
                                 </select>
                                 <i class="fas fa-chevron-down" aria-hidden="true"></i>
                             </div>
+                            <button type="button" class="catalog-entry" data-open-catalog>跨源曲库 · 聚合搜索</button>
                             <div class="source-navigation-meta">
                                 <p id="discoveryMusicSourceHint">搜索、播放与歌词免密钥；首页按主题发现音乐</p>
                                 <a class="gd-source-credit" href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">来源：GD音乐台</a>
@@ -1920,6 +1922,7 @@
                                     <span>搜索</span>
                                 </button>
                             </div>
+                            <button type="button" class="catalog-entry" data-open-catalog>跨源曲库 · 聚合搜索</button>
                             <div id="searchResults" class="hidden" aria-live="polite"></div>
                         </section>
                     </section>
@@ -2330,6 +2333,7 @@
                             class="w-full bg-white/10 rounded-full px-4 py-3 pl-11 outline-none focus:bg-white/20 transition-all text-sm font-medium">
                         <i class="fas fa-search absolute left-4 top-3.5 opacity-50"></i>
                     </div>
+                    <button type="button" class="catalog-entry" data-open-catalog>跨源曲库 · 聚合搜索</button>
                     <div class="mobile-source-switcher mb-4 flex-none">
                         <label for="mobileMusicSourceSelect" class="source-navigation-label">音乐源</label>
                         <div class="mobile-source-select-wrap">
@@ -2968,7 +2972,7 @@
             normalizeBilibiliPayload,
             bilibiliVideoUrl,
             normalizePlaylistPayload
-        } from './js/music-data.js?v=40';
+        } from './js/music-data.js?v=41';
         import {
             DOWNLOAD_QUALITY_OPTIONS,
             downloadFilename,
@@ -2976,13 +2980,14 @@
             saveAudioBlob
         } from './js/music-download.js?v=39';
         import { createDownloadSession } from './js/download-session.js?v=22';
-        import { createPlaybackController } from './js/playback-controller.js?v=3';
+        import { createPlaybackController } from './js/playback-controller.js?v=4';
         import { createQueueStore } from './js/queue-store.js?v=1';
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import { isMusicChannel } from './js/music-channels.js?v=1';
         import { createMusicSourceTabs } from './js/music-source-tabs.js?v=4';
-        import { createDiscoveryTable } from './js/discovery-table.js?v=1';
+        import { createCatalogBrowser } from './js/catalog-browser.js?v=1';
+        import { createDiscoveryTable } from './js/discovery-table.js?v=2';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=3';
         import {
@@ -2997,7 +3002,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=9';
+        } from './js/music-service.js?v=10';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -5088,6 +5093,7 @@
 
                         div.onclick = () => {
                             const newSong = {
+                                ...song,
                                 id: song.id,
                                 sourceId: song.sourceId,
                                 name: song.name,
@@ -5103,6 +5109,7 @@
 
                             showToast(`已添加并播放: ${newSong.name}`);
                         };
+                        catalogBrowser.decorateRow(div,song);
                         dom.searchResults.appendChild(div);
                     });
                 } else {
@@ -5121,10 +5128,17 @@
 
         let desktopDiscoveryController = null;
         let discoveryTable = null;
+        let catalogBrowser = null;
         let discoveryLoadingSong = null;
         let discoveryOffset = 0;
         let discoveryPageController = null;
         function initDiscoveryTable() {
+            catalogBrowser = createCatalogBrowser({document, musicService,
+                onPlay: song => addDiscoverySong(song),
+                onQueue: song => addChartSong(song, {playNow:false,source:song.source}),
+            });
+            document.querySelectorAll('[data-open-catalog]').forEach(button => button.addEventListener('click', () => catalogBrowser.open({query:isCompactLayout() ? dom.mobileSearchInput.value : dom.searchInput.value,trigger:button})));
+
             discoveryTable = createDiscoveryTable({
                 document, storage: localStorage, list: dom.desktopDiscoveryList,
                 onPlay: song => {
@@ -5135,6 +5149,7 @@
                 onBatch: (tracks, playNow) => addCollectionTracks(tracks, { label: '发现音乐', playNow, source: musicService.config.source }),
                 onDownload: openDownloadDialog, onSearch: openMusicSearch, onRetry: loadNewSongDiscovery, onNotify: showToast,
                 onMore: loadMoreDiscovery,
+                onDetails: (song,trigger) => catalogBrowser.open({song,trigger}),
                 canDownload: song => !['gd', ...Object.keys(MUSIC_SOURCE_OPTIONS).filter(isMusicChannel)].includes(song.provider) && song.downloadAllowed !== false,
                 getPlayback: () => ({ song: discoveryLoadingSong || playback.state.currentSong, playing: !discoveryLoadingSong && !audio.paused && !audio.ended, loading: Boolean(discoveryLoadingSong), duration: discoveryLoadingSong ? 0 : audio.duration }),
             });
@@ -5427,15 +5442,17 @@
         }
 
         function addDiscoverySong(song) {
-            const existingIndex = queue.playlist.findIndex(item => String(item.id) === String(song.id));
+            const existingIndex = queue.playlist.findIndex(item => song.catalogId && item.catalogId ? song.catalogId === item.catalogId : String(item.id) === String(song.id) && (!item.provider || !song.provider || item.provider === song.provider));
             if (existingIndex >= 0) {
+                if (song.catalogId) Object.assign(queue.playlist[existingIndex], song, {id:queue.playlist[existingIndex].id});
                 window.playSongAtIndex(existingIndex);
                 showToast(`已在播放列表: ${song.name}`);
                 return;
             }
 
             const newSong = {
-                id: song.id,
+                ...song,
+                id: song.catalogId || song.id,
                 sourceId: song.sourceId,
                 name: song.name,
                 artist: song.artist,
@@ -5456,9 +5473,10 @@
         }
 
         function addChartSong(song, { playNow = true, source = '' } = {}) {
-            const playbackId = song.playbackId || song.id;
+            const playbackId = song.catalogId || song.playbackId || song.id;
             const existingIndex = queue.playlist.findIndex(item => String(item.id) === String(playbackId));
             if (existingIndex >= 0) {
+                if (song.catalogId) Object.assign(queue.playlist[existingIndex], song, {id:queue.playlist[existingIndex].id});
                 if (playNow) window.playSongAtIndex(existingIndex);
                 showToast(playNow ? `已在播放列表: ${song.name}` : `${song.name} 已在播放队列`);
                 if (isCompactLayout() && playNow) setMobileExploreOpen(false);
@@ -5466,6 +5484,7 @@
             }
 
             const newSong = {
+                ...song,
                 id: playbackId,
                 sourceId: song.sourceId || playbackId,
                 name: song.name,
@@ -5925,6 +5944,7 @@
                 if (!id || ids.has(id)) return;
                 ids.add(id);
                 uniqueTracks.push({
+                    ...song,
                     id: song.id,
                     sourceId: song.sourceId || song.id,
                     name: song.name || '未知歌曲',
@@ -8283,6 +8303,7 @@
                         // NetEase: Click item to play (and add to list)
                         div.onclick = () => {
                             const newSong = {
+                                ...song,
                                 id: song.id,
                                 sourceId: song.sourceId,
                                 name: song.name,
@@ -8317,6 +8338,7 @@
                             });
                             div.append(download, createOriginalVideoLink(song));
                         }
+                        catalogBrowser.decorateRow(div,song);
                         container.appendChild(div);
                     });
 
