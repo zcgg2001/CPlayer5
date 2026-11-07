@@ -1399,13 +1399,14 @@
     <link rel="stylesheet" href="./css/art-direction.css?v=34">
     <link rel="stylesheet" href="./css/bilibili.css?v=40">
     <link rel="stylesheet" href="./css/studio.css?v=55">
-    <link rel="stylesheet" href="./css/oneko-butterfly.css?v=44">
+    <link rel="stylesheet" href="./css/oneko-butterfly.css?v=45">
+    <link rel="stylesheet" href="./css/desktop-pet-settings.css?v=1">
     <link rel="stylesheet" href="./css/page-scroll-spider.css?v=47">
     <link rel="stylesheet" href="./css/listening-room.css?v=1">
     <link rel="stylesheet" href="./css/music-source-tabs.css?v=4">
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
-    <link rel="stylesheet" href="./css/discovery.css?v=3">
+    <link rel="stylesheet" href="./css/discovery.css?v=4">
     <link rel="stylesheet" href="./css/discovery-home.css?v=1">
     <link rel="stylesheet" href="./css/music-catalog.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
@@ -2677,6 +2678,25 @@
                         </div>
                     </div>
                 </div>
+
+                <section id="desktopPetSettings" class="desktop-pet-settings" aria-labelledby="desktopPetTitle">
+                    <div class="desktop-pet-settings__heading">
+                        <span class="desktop-pet-settings__portrait" aria-hidden="true"></span>
+                        <div><h3 id="desktopPetTitle">桌宠小猫</h3><p>一只陪你听歌的像素小猫</p></div>
+                        <label class="desktop-pet-settings__toggle"><span>显示小猫</span><input data-pet-enabled type="checkbox" role="switch" checked></label>
+                    </div>
+                    <div class="desktop-pet-settings__controls">
+                        <label>小猫的行为<select data-pet-mode>
+                            <option value="butterfly">追逐蝴蝶</option>
+                            <option value="cursor">跟随鼠标</option>
+                            <option value="rest">原地休息</option>
+                            <option value="sleep">趴着睡觉</option>
+                        </select></label>
+                        <button data-pet-recall type="button">找回小猫</button>
+                    </div>
+                    <p class="desktop-pet-settings__hint">拖动调整位置 · 单击切换行为 · 双击睡觉 / 唤醒</p>
+                    <p data-pet-status role="status" aria-live="polite"></p>
+                </section>
 
                 <section class="scroll-spider-setting" aria-labelledby="scrollSpiderSettingsTitle">
                     <img id="scrollSpiderSettingsPreview" src="./img/scroll-spider-anime.svg" alt="滚动挂件形象" width="56" height="64">
@@ -9160,7 +9180,7 @@
 
     </script>
     <script type="module" src="./js/page-scroll-spider.js?v=48"></script>
-    <script type="module" src="./js/oneko-butterfly.js?v=44"></script>
+    <script type="module" src="./js/oneko-butterfly.js?v=45"></script>
 </body>
 
 </html>

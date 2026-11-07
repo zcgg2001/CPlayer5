@@ -46,8 +46,8 @@ test('uses a compact resting layout on mobile and reduced motion', () => {
 });
 
 test('uses the desktop shell boundary for compact and desktop pet layouts', () => {
-  const compact = getPetLayout(1023, 720, false);
-  const desktop = getPetLayout(1024, 720, false);
+  const compact = getPetLayout(767, 720, false);
+  const desktop = getPetLayout(768, 720, false);
 
   assert.equal(compact.mode, 'rest');
   assert.equal(compact.size, 32);

@@ -124,8 +124,6 @@ html:root #desktopPlayerBar #desktopFavoriteBtn[aria-pressed='true'] { color: va
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger { width: auto; min-width: 76px; flex: 0 0 auto; min-height: 36px; height: 36px; gap: 6px; padding-inline: 10px; }
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger > * { flex-shrink: 0; }
 html:root #desktopLayout { bottom: 88px; }
-/* The scroll mascot has its own gutter; other floating pets stay outside browsing results. */
-html:not(.desktop-immersive-open) #onekoPetLayer { display: none !important; }
 html:root #doraemonThumb { --anime-progress-thumb-size: 14px; width: 14px; height: 14px; border: 2px solid var(--studio-accent); border-radius: 50%; background: var(--studio-surface); box-shadow: 0 1px 4px #0002; }
 html:root #doraemonThumb .anime-progress-thumb__character { display: none; }
 html:root #doraemonThumb .anime-progress-thumb__tooltip { font-size: 11px; }

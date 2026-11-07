@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v71';
+const SHELL_CACHE = 'cplayer5-shell-v72';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -59,6 +59,10 @@ const CORE_ASSETS = [
   './js/queue-store.js',
   './js/cache-store.js',
   './js/oneko-butterfly.js',
+  './js/desktop-pet/index.js',
+  './js/desktop-pet/model.js',
+  './js/desktop-pet/settings.js',
+  './css/desktop-pet-settings.css',
   './js/page-scroll-spider.js',
   './js/scroll-spider/index.js',
   './js/scroll-spider/appearance.js',

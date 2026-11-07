@@ -1,15 +1,14 @@
 .oneko-pet-layer {
     position: fixed;
     inset: 0;
-    z-index: 35;
+    z-index: var(--desktop-pet-z-index, 85);
     overflow: hidden;
     pointer-events: none;
     contain: layout style paint;
 }
 
-body:has(#mobilePlaylistSheet[aria-hidden="false"]) .oneko-pet-layer,
-body:has(#mobileChartsSheet[aria-hidden="false"]) .oneko-pet-layer {
-    visibility: hidden;
+.oneko-pet-layer[hidden] {
+    display: none !important;
 }
 
 .oneko-cat {
@@ -134,8 +133,8 @@ body:has(#mobileChartsSheet[aria-hidden="false"]) .oneko-pet-layer {
     display: none;
 }
 
-.oneko-pet-layer[data-mode='rest'] .oneko-butterfly__wing {
-    animation-duration: 900ms;
+.oneko-pet-layer[data-paused='true'] .oneko-butterfly__wing {
+    animation-play-state: paused;
 }
 
 .oneko-pet-layer[data-interaction-mode='cursor'] .oneko-butterfly {
