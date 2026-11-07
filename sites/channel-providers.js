@@ -33,7 +33,7 @@ export async function searchChannel(source, platform, keyword, limit, offset, cl
   if (source === 'netease') {
     const data = await netease(client, false, { s: keyword, type: 1, limit, offset, total: true });
     if (data.code !== 200 || !Array.isArray(data.result?.songs)) throw new ChannelError(502, '网易云搜索暂时不可用');
-    return data.result.songs.map(song => ({ id: String(song.id), name: song.name, artist: artist(song.ar || song.artists), album: (song.al || song.album)?.name, cover: (song.al || song.album)?.picUrl }));
+    return data.result.songs.map(song => ({ id: String(song.id), name: song.name, duration: Number(song.dt || 0) / 1000, artist: artist(song.ar || song.artists), album: (song.al || song.album)?.name, cover: (song.al || song.album)?.picUrl }));
   }
   if (source === 'qq') {
     const key = 'music.search.SearchCgiService.DoSearchForQQMusicMobile';
@@ -49,7 +49,7 @@ export async function searchChannel(source, platform, keyword, limit, offset, cl
     if (data.code !== 0 || data[key]?.code !== 0) return searchChannel('at38-qq', 'qq', keyword, limit, offset, client);
     const body = data[key].data?.body;
     return (body?.item_song || body?.song?.list || []).filter(song => song.mid).map(song => ({
-      id: song.mid, name: song.name, artist: artist(song.singer), album: song.album?.name || song.album?.title,
+      id: song.mid, name: song.name, duration: Number(song.interval || 0), artist: artist(song.singer), album: song.album?.name || song.album?.title,
       cover: song.album?.mid ? `https://y.gtimg.cn/music/photo_new/T002R300x300M000${song.album.mid}.jpg` : '',
     }));
   }

@@ -1,4 +1,4 @@
-export const DESKTOP_SHELL_MEDIA = '(min-width: 1024px)';
+export const DESKTOP_SHELL_MEDIA = '(min-width: 768px)';
 
 export function initialShellState() {
   return { destination: 'library', immersiveOpen: false };

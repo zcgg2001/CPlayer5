@@ -81,6 +81,7 @@ function playbackHarness() {
   const playback = createPlaybackController({ audio, musicService: service, queueStore, setTimer: timer, clearTimer() {} });
   playback.state.quality.controller = new AbortController();
   const context = vm.createContext({
+    discoveryTable: null, discoveryLoadingSong: null,
     dom, playlist: [], currentIndex: -1, currentPlaybackSong: null,
     playbackRequestVersion: 0,
     playbackQualityState: { version: 0, controller: new AbortController() },
@@ -453,6 +454,7 @@ test('refreshing discovery does not cancel independent editorial collections', a
   const context = vm.createContext({
     AbortController, RequestCancelledError,
     dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element() },
+    discoveryPageController: null, discoveryOffset: 0,
     desktopDiscoveryController: null, musicCollectionsController: collectionController, bilibiliCategory: 'all',
     isMusicChannel: () => false,
     supportedMusicSource: source => source,
@@ -490,6 +492,7 @@ test('Bilibili discovery preserves a dated successful snapshot when refresh fail
     AbortController, RequestCancelledError, normalizeBilibiliPayload: musicData.normalizeBilibiliPayload,
     dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element(),
       desktopDiscoverySection: { querySelector: () => detail } },
+    discoveryPageController: null, discoveryOffset: 0,
     bilibiliCategory: 'all', desktopDiscoveryController: null,
     localStorage: { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value) },
     isMusicChannel: () => false,
@@ -541,6 +544,7 @@ test('GD discovery stays independent of ChKSz and captures its initiating source
   const context = vm.createContext({
     AbortController, RequestCancelledError,
     dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element() },
+    discoveryPageController: null, discoveryOffset: 0,
     desktopDiscoveryController: null, bilibiliCategory: 'all',
     isMusicChannel: () => false,
     supportedMusicSource: source => source,
@@ -664,6 +668,7 @@ test('failed GD discovery clears loading and keeps its refresh action available'
   const context = vm.createContext({
     AbortController, RequestCancelledError, console: { error() {} },
     dom: { desktopDiscoveryList: list, desktopDiscoveryRefresh: element() },
+    discoveryPageController: null, discoveryOffset: 0,
     desktopDiscoveryController: null, bilibiliCategory: 'all',
     isMusicChannel: () => false,
     supportedMusicSource: value => value, musicSourceOption: () => ({ label: 'GD' }),

@@ -126,9 +126,9 @@ export class MusicService {
     return `source=${musicSourceOption(source).provider}`;
   }
 
-  async search(query, { signal, source = this.config.source, fetchImpl } = {}) {
+  async search(query, { signal, source = this.config.source, fetchImpl, offset = 0, limit } = {}) {
     const selectedSource = supportedMusicSource(source);
-    const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=${selectedSource === 'gd' ? 10 : 30}`;
+    const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=${limit || (selectedSource === 'gd' ? 10 : 30)}${offset ? `&offset=${offset}` : ''}`;
     const json = await requestJson(url, { signal, fetchImpl, timeoutMs: isMusicChannel(selectedSource) ? 45_000 : selectedSource === 'gd' ? 30_000 : 10_000 });
     const option = musicSourceOption(selectedSource);
     if (isMusicChannel(selectedSource)) return normalizeChannelSongs(json, selectedSource);
@@ -140,7 +140,7 @@ export class MusicService {
   async getNewSongs({ signal, source = this.config.source, category = 'all', fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
     if (selectedSource === 'gd' || isMusicChannel(selectedSource)) {
-      return this.search('华语', { signal, source: selectedSource, fetchImpl });
+      return this.search('华语', { signal, source: selectedSource, fetchImpl, limit: 10 });
     }
     if (selectedSource === 'bilibili') {
       const json = await requestJson(`${this.baseUrl}/discover?source=bilibili&category=${encodeURIComponent(category)}`, { signal, fetchImpl });

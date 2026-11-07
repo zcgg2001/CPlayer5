@@ -46,7 +46,7 @@ class StartupBehaviorTests(unittest.TestCase):
 
     def test_desktop_shell_initializes_with_injected_elements_and_actions(self):
         self.assertIn(
-            "import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';",
+            "import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=23';",
             self.source,
         )
         self.assertIn(

@@ -87,8 +87,8 @@ function fakeShellSetup() {
   return { elements, libraryButton, queueButton };
 }
 
-test('desktop shell begins at 1024px with library active', () => {
-  assert.equal(DESKTOP_SHELL_MEDIA, '(min-width: 1024px)');
+test('desktop shell begins at 768px with library active', () => {
+  assert.equal(DESKTOP_SHELL_MEDIA, '(min-width: 768px)');
   assert.deepEqual(initialShellState(), {
     destination: 'library',
     immersiveOpen: false,

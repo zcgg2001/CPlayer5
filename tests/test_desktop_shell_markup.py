@@ -241,7 +241,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertEqual(section.get("aria-labelledby"), "desktopDiscoveryTitle")
         self.assertEqual(refresh["tag"], "button")
         self.assertEqual(refresh.get("type"), "button")
-        self.assertEqual(refresh.get("aria-label"), "刷新新歌速递")
+        self.assertEqual(refresh.get("aria-label"), "刷新音乐发现")
         self.assertIn("网易云新歌榜", self.source)
 
     def test_discovery_exposes_an_accessible_music_source_switcher(self):

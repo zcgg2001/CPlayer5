@@ -1402,9 +1402,10 @@
     <link rel="stylesheet" href="./css/oneko-butterfly.css?v=44">
     <link rel="stylesheet" href="./css/page-scroll-spider.css?v=47">
     <link rel="stylesheet" href="./css/listening-room.css?v=1">
-    <link rel="stylesheet" href="./css/music-source-tabs.css?v=3">
+    <link rel="stylesheet" href="./css/music-source-tabs.css?v=4">
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
+    <link rel="stylesheet" href="./css/discovery.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
@@ -1586,29 +1587,25 @@
                                 <div class="discovery-heading-copy">
                                     <div class="discovery-title-row">
                                         <h2 id="desktopDiscoveryTitle">新歌速递</h2>
+                                        <span id="discoveryResultCount">0 首</span>
                                         <span class="discovery-source">网易云新歌榜</span>
                                     </div>
                                     <p>真实榜单数据 · 每次展示最新 12 首</p>
                                 </div>
-                                <button id="desktopDiscoveryRefresh" class="discovery-refresh" type="button"
-                                    aria-label="刷新新歌速递">
-                                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                                    <span>刷新</span>
-                                </button>
-                            </header>
-                            <div class="discovery-list-header" aria-hidden="true">
-                                <span>#</span>
-                                <span>标题</span>
-                                <span class="discovery-column-album">专辑</span>
-                                <span>操作</span>
-                            </div>
-                            <div id="desktopDiscoveryList" class="discovery-list" aria-live="polite"
-                                aria-busy="true">
-                                <div class="discovery-status" role="status">
-                                    <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
-                                    <span>正在获取新歌榜...</span>
+                                <div class="discovery-toolbar">
+                                    <label class="discovery-filter-label"><i data-lucide="Search" aria-hidden="true"></i><input id="discoveryFilter" type="search" aria-label="在结果中筛选" placeholder="筛选歌曲、歌手" autocomplete="off"></label>
+                                    <select id="discoverySort" aria-label="排序方式" title="排序方式"><option value="default">默认排序</option><option value="name">歌曲名称</option><option value="artist">歌手名称</option><option value="duration">时长由短到长</option></select>
+                                    <button id="discoveryFavoritesOnly" class="discovery-tool" type="button" aria-label="只看收藏" title="只看收藏" aria-pressed="false"><i data-lucide="Heart" aria-hidden="true"></i></button>
+                                    <button id="discoveryQueueAll" class="discovery-tool" type="button" aria-label="将当前结果加入队列" title="将当前结果加入队列" disabled><i data-lucide="ListPlus" aria-hidden="true"></i></button>
+                                    <button id="discoveryPlayAll" class="discovery-tool discovery-play-all" type="button" aria-label="播放全部结果" title="播放全部结果" disabled><i data-lucide="Play" aria-hidden="true"></i><span>播放全部</span></button>
+                                    <button id="desktopDiscoveryRefresh" class="discovery-refresh discovery-tool" type="button" aria-label="刷新音乐发现" title="刷新音乐发现"><i data-lucide="RotateCw" aria-hidden="true"></i></button>
                                 </div>
+                            </header>
+                            <div class="discovery-track-table" role="table" aria-label="发现音乐歌曲列表">
+                                <div class="discovery-table-head" role="row"><span role="columnheader">#</span><span role="columnheader">标题</span><span class="track-album" role="columnheader">专辑</span><span class="track-duration" role="columnheader">时长</span><span class="track-actions" role="columnheader">操作</span></div>
+                                <div id="desktopDiscoveryList" class="discovery-list" role="rowgroup" aria-live="polite" aria-busy="true"><div class="discovery-status" role="status">正在准备音乐…</div></div>
                             </div>
+                            <div class="discovery-table-footer"><button id="discoveryLoadMore" type="button" hidden>加载更多<i data-lucide="ChevronDown" aria-hidden="true"></i></button></div>
                         </section>
 
                         <section class="music-shelf editorial-shelf" aria-labelledby="editorialPlaylistsTitle">
@@ -1941,7 +1938,7 @@
                         </span>
                     </button>
                     <div class="player-tags" aria-label="当前曲目信息">
-                        <span id="sourceTag">准备播放</span>
+                        <span id="sourceTag">准备播放</span><span class="player-buffering" aria-label="音频缓冲中" role="status"><b></b><b></b><b></b></span>
                         <span id="songIdTag" class="player-technical-id" title="右键或长按复制">ID: --</span>
                         <span id="qualityBadge" class="quality-badge quality-standard">音质 --</span>
                     </div>
@@ -1982,6 +1979,8 @@
                 </div>
 
                 <div class="player-actions">
+                    <button id="desktopFavoriteBtn" class="player-action-button" type="button" aria-label="收藏当前歌曲" title="收藏当前歌曲" aria-pressed="false" disabled><i data-lucide="Heart" aria-hidden="true"></i></button>
+                    <button id="desktopLyricsBtn" class="player-action-button" type="button" aria-label="打开歌词" title="打开歌词" aria-controls="desktopLayout" aria-expanded="false"><i data-lucide="Captions" aria-hidden="true"></i></button>
                     <button id="desktopPlaybackQualityBtn" class="playback-quality-trigger" type="button"
                         aria-label="选择播放音质" aria-haspopup="dialog" aria-controls="playbackQualityDialog">
                         <span class="playback-quality-dot" aria-hidden="true"></span>
@@ -1990,7 +1989,7 @@
                     </button>
                     <button id="desktopPlayerQueueBtn" class="player-action-button" type="button"
                         data-shell-destination="queue" aria-controls="floatingPlaylistPanel" aria-label="打开播放队列">
-                        <i data-lucide="ListMusic" aria-hidden="true"></i>
+                        <i data-lucide="ListMusic" aria-hidden="true"></i><span id="playerQueueCount" class="player-queue-count">0</span>
                     </button>
                     <a id="desktopOriginalVideo" class="player-action-button" target="_blank" rel="noopener noreferrer"
                         aria-label="在 Bilibili 打开原视频" title="在 Bilibili 打开原视频" hidden>
@@ -1999,6 +1998,7 @@
                     <button id="desktopDownloadBtn" class="player-action-button" type="button" aria-label="下载当前歌曲" disabled>
                         <i data-lucide="ArrowDownToLine" aria-hidden="true"></i>
                     </button>
+                    <button id="playerFullscreenBtn" class="player-action-button" type="button" aria-label="切换全屏模式" title="切换全屏模式"><i data-lucide="Maximize" aria-hidden="true"></i></button>
                     <div class="volume-control-group">
                         <button id="volumeBtn" class="player-action-button" type="button" aria-label="调整音量">
                             <i id="volumeIcon" class="fas fa-volume-up" aria-hidden="true"></i>
@@ -2350,6 +2350,14 @@
                         <!-- Search Results -->
                     </div>
                 </div>
+                <div id="mobileBrowsePlayer" class="mobile-browse-player" hidden aria-label="迷你播放器">
+                    <button id="mobileBrowseOpen" type="button" title="打开正在播放" aria-label="打开正在播放">
+                        <img id="mobileBrowseCover" src="./img/icon.svg" width="40" height="40" alt="" referrerpolicy="no-referrer">
+                        <span><strong id="mobileBrowseTitle"></strong><small id="mobileBrowseArtist"></small></span>
+                    </button>
+                    <button id="mobileBrowsePlay" type="button" title="播放" aria-label="播放" aria-pressed="false"><i data-lucide="Play" aria-hidden="true"></i></button>
+                    <button id="mobileBrowseNext" type="button" title="下一曲" aria-label="下一曲"><i data-lucide="SkipForward" aria-hidden="true"></i></button>
+                </div>
             </div>
         </div>
 
@@ -2666,6 +2674,8 @@
                     <button id="scrollSpiderSettingsBtn" type="button" aria-haspopup="dialog">更换形象</button>
                 </section>
 
+                <label class="discovery-skin-setting"><span>动漫进度指针<small>开启后在播放进度上显示角色；默认使用简洁圆点</small></span><input id="animeThumbSkin" type="checkbox"></label>
+
                 <!-- 音乐源切换 -->
                 <div class="music-source-setting p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
                     <label for="musicSourceSelect" class="block text-xs font-bold mb-2">搜索与播放来源</label>
@@ -2941,7 +2951,7 @@
 
     <!-- JavaScript 逻辑 -->
     <script type="module">
-        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';
+        import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=23';
         import { createChartsController } from './js/charts-page.js?v=32';
         import {
             createArtistsController,
@@ -2958,7 +2968,7 @@
             normalizeBilibiliPayload,
             bilibiliVideoUrl,
             normalizePlaylistPayload
-        } from './js/music-data.js?v=39';
+        } from './js/music-data.js?v=40';
         import {
             DOWNLOAD_QUALITY_OPTIONS,
             downloadFilename,
@@ -2971,7 +2981,8 @@
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import { isMusicChannel } from './js/music-channels.js?v=1';
-        import { createMusicSourceTabs } from './js/music-source-tabs.js?v=3';
+        import { createMusicSourceTabs } from './js/music-source-tabs.js?v=4';
+        import { createDiscoveryTable } from './js/discovery-table.js?v=1';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=3';
         import {
@@ -2986,7 +2997,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=8';
+        } from './js/music-service.js?v=9';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -3390,6 +3401,7 @@
             }
 
             initDownloadControls();
+            initDiscoveryTable();
             initEventListeners();
             initSettingsUI();
             initMusicSourceControl();
@@ -3397,6 +3409,8 @@
             loadDefaultPlaylist();
             loadNewSongDiscovery();
             scheduleMusicCollections();
+            const sharedQuery = new URL(location.href).searchParams.get('q');
+            if (sharedQuery) setTimeout(() => openMusicSearch(sharedQuery.slice(0,120)), 150);
             visualizer = initVisualizer();
             syncContinuousRendering();
             // checkSystemTheme(); // Removed
@@ -3500,7 +3514,7 @@
 
             dom.desktopLibraryView?.setAttribute('aria-labelledby', active.titleId);
             if (dom.desktopTopbarTitle) {
-                dom.desktopTopbarTitle.textContent = active.title;
+                dom.desktopTopbarTitle.textContent = view === 'discovery' ? '音乐库' : active.title;
             }
             if (dom.desktopTopbarDescription) {
                 dom.desktopTopbarDescription.textContent = active.description;
@@ -3577,6 +3591,7 @@
             dom.mobileChartsBtn.setAttribute('aria-expanded', String(open));
             dom.mobileMainView.inert = open;
             document.querySelector('.mobile-control-deck').inert = open;
+            mobileUI?.syncBrowsePlayer();
 
             if (open) {
                 mobileChartsOpener = document.activeElement;
@@ -4767,6 +4782,7 @@
         function syncPlaybackControls(playing = Boolean(audio.src && !audio.paused && !audio.ended)) {
             isPlaying = Boolean(playing);
             document.body.classList.toggle('is-audio-playing', isPlaying);
+            discoveryTable?.sync();
             animeProgressThumbs.forEach(component => component.setPlaying(isPlaying));
             setDesktopPlayIcon(isPlaying ? 'pause' : 'play');
             dom.playPauseBtn?.setAttribute('aria-label', isPlaying ? '暂停' : '播放');
@@ -4792,6 +4808,7 @@
         }
 
         function onPlayStart() {
+            dom.desktopPlayerBar?.classList.remove('is-buffering');
             setPlaybackTransitionPending(false);
             syncPlaybackControls(true);
             if (!audioContext) setupAudioContext();
@@ -4859,7 +4876,7 @@
 
             if (hasSong) {
                 if (dom.currentTime?.textContent === '--:--') dom.currentTime.textContent = '0:00';
-                if (dom.totalTime?.textContent === '--:--') dom.totalTime.textContent = '0:00';
+                if (dom.totalTime && audio.duration > 0) dom.totalTime.textContent = formatTime(audio.duration);
                 syncPlaybackControls();
                 return;
             }
@@ -5099,6 +5116,62 @@
         }
 
         let desktopDiscoveryController = null;
+        let discoveryTable = null;
+        let discoveryLoadingSong = null;
+        let discoveryOffset = 0;
+        let discoveryPageController = null;
+        function initDiscoveryTable() {
+            discoveryTable = createDiscoveryTable({
+                document, storage: localStorage, list: dom.desktopDiscoveryList,
+                onPlay: song => {
+                    if (String(playback.state.currentSong?.id) === String(song.id) && (playback.state.currentSong?.provider || 'gd') === (song.provider || 'gd')) togglePlayPause();
+                    else addDiscoverySong(song);
+                },
+                onQueue: song => addChartSong(song, { playNow: false, source: song.source }),
+                onBatch: (tracks, playNow) => addCollectionTracks(tracks, { label: '发现音乐', playNow, source: musicService.config.source }),
+                onDownload: openDownloadDialog, onSearch: openMusicSearch, onRetry: loadNewSongDiscovery, onNotify: showToast,
+                onMore: loadMoreDiscovery,
+                canDownload: song => !['gd', ...Object.keys(MUSIC_SOURCE_OPTIONS).filter(isMusicChannel)].includes(song.provider) && song.downloadAllowed !== false,
+                getPlayback: () => ({ song: discoveryLoadingSong || playback.state.currentSong, playing: !discoveryLoadingSong && !audio.paused && !audio.ended, loading: Boolean(discoveryLoadingSong), duration: discoveryLoadingSong ? 0 : audio.duration }),
+            });
+            for (const event of ['playing','pause','loadedmetadata','durationchange','emptied']) audio.addEventListener(event, () => discoveryTable.sync());
+            audio.addEventListener('waiting', () => dom.desktopPlayerBar.classList.add('is-buffering'));
+            for (const event of ['playing','pause','error','canplay']) audio.addEventListener(event, () => dom.desktopPlayerBar.classList.remove('is-buffering'));
+            document.getElementById('desktopLyricsBtn').addEventListener('click', () => desktopShell.navigate(document.documentElement.classList.contains('desktop-immersive-open') ? 'library' : 'now-playing', { trigger: document.getElementById('desktopLyricsBtn') }));
+            document.getElementById('playerFullscreenBtn').addEventListener('click', () => dom.fullscreenBtn.click());
+            const skin = document.getElementById('animeThumbSkin');
+            skin.checked = localStorage.getItem('cp_anime_thumb') === 'on';
+            const applySkin = () => { document.documentElement.classList.toggle('anime-thumb-enabled', skin.checked); };
+            skin.addEventListener('change', () => { localStorage.setItem('cp_anime_thumb', skin.checked ? 'on' : 'off'); applySkin(); });
+            applySkin();
+            document.getElementById('desktopMiniCover').addEventListener('error', event => { event.currentTarget.src = './img/icon.svg'; });
+
+            document.querySelectorAll('.app-sidebar .app-nav-item, .app-topbar button, #desktopPlayerBar button').forEach(button => {
+                if (!button.title) button.title = button.getAttribute('aria-label') || button.textContent.trim();
+            });
+            document.addEventListener('keydown', event => {
+                if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="slider"],[role="radio"]') || activeDialog()) return;
+                if (event.key === '/') { event.preventDefault(); openMusicSearch(); }
+                else if (event.code === 'Space') { event.preventDefault(); togglePlayPause(); }
+                else if (['ArrowLeft','ArrowRight'].includes(event.key) && audio.duration > 0) { event.preventDefault(); audio.currentTime = Math.max(0,Math.min(audio.duration,audio.currentTime + (event.key === 'ArrowLeft' ? -5 : 5))); updatePlayerState(); }
+            });
+        }
+
+        async function loadMoreDiscovery() {
+            const source = supportedMusicSource(musicService.config.source);
+            const controller = new AbortController();
+            discoveryPageController?.abort(); discoveryPageController = controller;
+            const before = discoveryTable.count();
+            try {
+                const songs = await musicService.search('华语', { source, offset: discoveryOffset, limit: 10, signal: controller.signal });
+                if (controller.signal.aborted || source !== musicService.config.source) return;
+                discoveryOffset += 10;
+                discoveryTable.setSongs(songs, { append: true, more: songs.length >= 10 });
+                if (discoveryTable.count() === before) discoveryTable.setSongs([], { append: true, more: false });
+            } catch (error) {
+                if (!controller.signal.aborted) showToast(`暂时无法加载更多：${requestErrorMessage(error)}`, true);
+            } finally { if (discoveryPageController === controller) discoveryPageController = null; }
+        }
         let bilibiliCategory = 'all';
 
         function useGdMusic() {
@@ -5126,6 +5199,8 @@
 
         async function loadNewSongDiscovery() {
             if (!dom.desktopDiscoveryList) return;
+            discoveryPageController?.abort();
+            discoveryOffset = 10;
 
             const requestSource = supportedMusicSource(musicService.config.source);
             const discoverySource = requestSource;
@@ -5167,7 +5242,7 @@
                     category: bilibiliCategory,
                 });
                 if (requestController.signal.aborted) return;
-                if (!songs.length) throw new Error('New song chart was empty');
+                if (!songs.length) { setDiscoveryStatus('还没有找到歌曲，换个音源或关键词试试。', { empty: true }); return; }
                 renderDiscoverySongs(songs);
                 if (discoverySource === 'chksz') renderNewAlbums(songs);
                 else if (discoverySource !== 'chksz') {
@@ -5199,7 +5274,8 @@
             }
         }
 
-        function setDiscoveryStatus(message, { error = false, action = null } = {}) {
+        function setDiscoveryStatus(message, { error = false, action = null, empty = false } = {}) {
+            if (discoveryTable) { discoveryTable.status(message, { error, action, loading: !error && !empty }); return; }
             const status = document.createElement('div');
             status.className = `discovery-status${error ? ' is-error' : ''}`;
             status.setAttribute('role', 'status');
@@ -5223,6 +5299,11 @@
         }
 
         function renderDiscoverySongs(songs) {
+            if (discoveryTable && musicService.config.source !== 'bilibili') {
+                discoveryTable.setSongs(songs, { more: musicService.config.source !== 'chksz' && songs.length >= 10 });
+                return;
+            }
+            if (discoveryTable) discoveryTable.setSongs(songs, { more: false });
             const fragment = document.createDocumentFragment();
             songs.forEach((song, index) => fragment.appendChild(createDiscoverySongRow(song, index)));
             dom.desktopDiscoveryList.replaceChildren(fragment);
@@ -5268,13 +5349,14 @@
                 image.width = 48;
                 image.height = 48;
                 image.loading = 'lazy';
+                image.addEventListener('error', () => { image.remove(); cover.innerHTML = '<i data-lucide="Music2" aria-hidden="true"></i>'; });
                 image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                 if (song.provider === 'bilibili') {
                     const thumbnail = new URL(coverUrl);
                     thumbnail.pathname += '@480w_270h_1c.webp';
                     image.src = thumbnail.href;
                 } else {
-                    window.getCachedImage(`${coverUrl}?param=96y96`).then(cachedSrc => {
+                    window.getCachedImage(coverUrl).then(cachedSrc => {
                         if (image.isConnected && cachedSrc) image.src = cachedSrc;
                     });
                 }
@@ -5355,6 +5437,7 @@
                 artist: song.artist,
                 cover: song.cover,
                 album: song.album || '',
+                duration: song.duration,
                 source: song.source || 'new-song-chart',
                 provider: song.provider,
             };
@@ -5385,6 +5468,7 @@
                 artist: song.artist,
                 cover: song.cover,
                 album: song.album || '',
+                duration: song.duration,
                 source: source || `chart-${chartsController?.current() || 'hot'}`,
                 provider: song.provider || 'chksz',
             };
@@ -6116,6 +6200,7 @@
         async function loadAndPlaySong(id, songOverride = null) {
             return playback.load(id, songOverride, {
                 onLoading() {
+                    discoveryLoadingSong = songOverride;
                     setPlaybackTransitionPending(false);
             dom.playbackQualityDialog?.removeAttribute('aria-busy');
             if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.remove('opacity-0');
@@ -6123,22 +6208,28 @@
             dom.progressBar.style.width = '0%';
             dom.progressBarContainer?.setAttribute('aria-valuenow', '0');
             dom.currentTime.textContent = playback.state.currentSong ? '0:00' : '--:--';
-            dom.totalTime.textContent = playback.state.currentSong ? '0:00' : '--:--';
+            dom.totalTime.textContent = '--:--';
             updateDoraemonProgress(0, 0, 0);
             resetBufferedProgress();
             if (mobileUI) mobileUI.updateProgress(0, 0, 0);
             setLyricsStatus('加载中...');
-            dom.sourceTag.textContent = `${musicSourceOption(musicService.config.source).label} · 加载中`;
-            dom.songIdTag.textContent = 'ID: Load...';
+            dom.sourceTag.textContent = musicSourceOption(playback.state.currentSong?.provider || musicService.config.source).label;
+            dom.desktopPlayerBar?.classList.add('is-buffering');
+            discoveryTable?.sync();
+            dom.songIdTag.textContent = 'ID: —';
             syncPlaybackQualityDisplay(musicService.config.quality);
 
                 },
                 onResolved(data) {
+                    discoveryLoadingSong = null;
+                    discoveryTable?.sync();
+                    dom.desktopPlayerBar?.classList.remove('is-buffering');
                     syncDesktopPlayerAvailability();
                     dom.songTitle.textContent = data.name || '未知歌曲';
                     dom.artistName.textContent = data.artist || '未知艺术家';
                 },
                 onAutoplayBlocked() {
+                    dom.desktopPlayerBar?.classList.remove('is-buffering');
                     syncPlaybackControls(false);
                     showToast('歌曲已加载，请点击播放键继续');
                 },
@@ -6245,6 +6336,9 @@
                 }
                 },
                 onSettled() {
+                    discoveryLoadingSong = null;
+                    dom.desktopPlayerBar?.classList.remove('is-buffering');
+                    discoveryTable?.sync();
                     if (dom.desktopLoaderOverlay) dom.desktopLoaderOverlay.classList.add('opacity-0');
                     if (dom.mobileLoaderOverlay) dom.mobileLoaderOverlay.classList.add('opacity-0');
                 },
@@ -6255,7 +6349,7 @@
             const state = getPlaybackProgressState(audio.currentTime, audio.duration);
             dom.progressBar.style.width = `${state.progress}%`;
             dom.currentTime.textContent = formatTime(state.currentTime);
-            dom.totalTime.textContent = formatTime(state.duration);
+            dom.totalTime.textContent = state.duration > 0 ? formatTime(state.duration) : '--:--';
             updateDoraemonProgress(state.progress, state.currentTime, state.duration);
 
             // ★ Mobile Update
@@ -7050,6 +7144,8 @@
 
         function syncQueueActions() {
             const count = queue.playlist.length;
+            const badge = document.getElementById('playerQueueCount');
+            if (badge) badge.textContent = count;
             if (dom.playlistCount) dom.playlistCount.textContent = `(${count}首)`;
             if (dom.mobileQueueCount) dom.mobileQueueCount.textContent = `${count} 首歌曲`;
             [dom.clearPlaylistBtn, dom.mobileClearPlaylistBtn].filter(Boolean).forEach(button => {
@@ -7172,7 +7268,7 @@
                 img.className = 'w-full h-full object-cover';
                 img.loading = 'lazy';
                 img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                window.getCachedImage(`${songCover}?param=80y80`).then(cachedSrc => {
+                window.getCachedImage(songCover).then(cachedSrc => {
                     if (img.isConnected) img.src = cachedSrc;
                 });
                 img.alt = songName;
@@ -7721,6 +7817,10 @@
 
             bindEvents() {
                 this.dom.viewToggle?.addEventListener('click', () => this.toggleView());
+                document.getElementById('mobileBrowseOpen').addEventListener('click', () => { this.closeSheet(); setMobileExploreOpen(false); });
+                document.getElementById('mobileBrowsePlay').addEventListener('click', event => { event.stopPropagation(); togglePlayPause(); });
+                document.getElementById('mobileBrowseNext').addEventListener('click', event => { event.stopPropagation(); playNextSong(); });
+                document.getElementById('mobileBrowseCover').addEventListener('error', event => { event.currentTarget.src = './img/icon.svg'; });
 
                 // Swipe Logic
                 let touchStartX = 0;
@@ -7869,6 +7969,7 @@
                         ? this.dom.searchInput
                         : this.dom.closeSheetBtn);
                 }
+                this.syncBrowsePlayer();
             }
 
             closeSheet() {
@@ -7878,6 +7979,7 @@
                 this.dom.sheet.style.transform = ''; // 清除拖拽残留
                 this.dom.sheet.classList.remove('translate-y-0');
                 this.dom.sheet.classList.add('translate-y-[110%]');
+                this.syncBrowsePlayer();
             }
 
             switchSheetTab(tab) {
@@ -8323,6 +8425,31 @@
                 this.dom.playBtn?.setAttribute('aria-pressed', String(Boolean(isPlaying)));
                 const icon = this.dom.playBtn?.querySelector('i');
                 if (icon) icon.className = isPlaying ? 'fas fa-pause pl-0' : 'fas fa-play pl-1';
+                this.syncBrowsePlayer();
+            }
+
+            syncBrowsePlayer() {
+                const bar = document.getElementById('mobileBrowsePlayer');
+                if (!bar) return;
+                const song = playback.state.currentSong;
+                const container = this.dom.sheet.getAttribute('aria-hidden') === 'false' ? this.dom.sheet
+                    : dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false' ? dom.mobileChartsSheet : null;
+                bar.hidden = !song?.id || !container;
+                if (bar.hidden) return;
+                if (bar.parentElement !== container) container.append(bar);
+                document.getElementById('mobileBrowseTitle').textContent = song.name || '未知歌曲';
+                document.getElementById('mobileBrowseArtist').textContent = song.artist || '未知歌手';
+                const cover = document.getElementById('mobileBrowseCover');
+                const src = normalizeMediaUrl(song.cover, {baseUrl: window.location.href}) || './img/icon.svg';
+                if (cover.getAttribute('src') !== src) cover.src = src;
+                const playing = !audio.paused && !audio.ended;
+                const button = document.getElementById('mobileBrowsePlay');
+                button.setAttribute('aria-label', playing ? '暂停' : '播放');
+                button.title = playing ? '暂停' : '播放';
+                button.setAttribute('aria-pressed', String(playing));
+                const glyph = playing ? 'Pause' : 'Play';
+                if (button.dataset.glyph !== glyph) { button.innerHTML = `<i data-lucide="${glyph}" aria-hidden="true"></i>`; button.dataset.glyph = glyph; }
+                document.getElementById('mobileBrowseNext').disabled = queue.playlist.length < 2;
             }
 
             updateProgress(currentTime, duration, progressPercent) {
@@ -8917,6 +9044,13 @@
         }
 
         function syncContinuousRendering() {
+            const lyricsButton = document.getElementById('desktopLyricsBtn');
+            const lyricsOpen = document.documentElement.classList.contains('desktop-immersive-open');
+            if (lyricsButton) {
+                lyricsButton.setAttribute('aria-expanded', String(lyricsOpen));
+                lyricsButton.setAttribute('aria-label', lyricsOpen ? '关闭歌词' : '打开歌词');
+                lyricsButton.title = lyricsOpen ? '关闭歌词' : '打开歌词';
+            }
             const continuousRendering = shouldAnimateContinuously();
             const desktopVisualizerActive = continuousRendering
                 && desktopShellMedia.matches

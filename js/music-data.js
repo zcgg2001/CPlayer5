@@ -58,6 +58,7 @@ export function normalizeSearchPayload(payload) {
     artist: artistText(item),
     album: albumText(item),
     cover: coverUrl(item),
+    ...(item.duration != null || item.dt != null ? { duration: Number(item.duration ?? Number(item.dt) / 1000) || 0 } : {}),
     source: 'ChKSz',
   }));
 }
@@ -93,6 +94,7 @@ export function normalizeSongPayload(payload, requestedLevel = 'jymaster') {
     artist: artistText(item, '未知艺术家'),
     album: albumText(item),
     cover: coverUrl(item),
+    ...(item.duration != null || item.dt != null ? { duration: Number(item.duration ?? Number(item.dt) / 1000) || 0 } : {}),
     source: 'ChKSz',
     level: text(item.level, requestedLevel),
     br: item.br ?? item.bitrate,
@@ -124,6 +126,7 @@ export function normalizePlaylistPayload(payload) {
     artist: artistText(item),
     album: albumText(item),
     cover: coverUrl(item),
+    ...(item.duration != null || item.dt != null ? { duration: Number(item.duration ?? Number(item.dt) / 1000) || 0 } : {}),
   }));
 }
 
