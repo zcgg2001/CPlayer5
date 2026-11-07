@@ -1562,12 +1562,12 @@
                                     <select id="discoveryMusicSourceSelect"
                                         aria-describedby="discoveryMusicSourceHint">
                                         <option value="chksz">ChKSz · 网易云（需密钥）</option>
-                                        <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
+                                        <option value="gd" selected>GD 音乐台 · 网易云（免密钥）</option>
                                         <option value="bilibili">Bilibili · 哔哩哔哩</option>
                                     </select>
                                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                                 </div>
-                                <p id="discoveryMusicSourceHint">网易云搜索、解析与歌词</p>
+                                <p id="discoveryMusicSourceHint">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</p>
                                 <a class="gd-source-credit" href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">来源：GD音乐台</a>
                             </div>
                         </header>
@@ -1900,14 +1900,14 @@
                                 </span>
                                 <div>
                                     <h2 id="desktopSearchTitle">搜索并添加音乐</h2>
-                                    <p id="desktopSearchSource">ChKSz · 网易云</p>
+                                    <p id="desktopSearchSource">GD 音乐台 · 网易云</p>
                                 </div>
                             </div>
                             <div class="bilibili-search-source">
                                 <label for="searchMusicSourceSelect">音乐源</label>
                                 <select id="searchMusicSourceSelect" aria-describedby="desktopSearchSource">
                                     <option value="chksz">ChKSz · 网易云（需密钥）</option>
-                                    <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
+                                    <option value="gd" selected>GD 音乐台 · 网易云（免密钥）</option>
                                     <option value="bilibili">Bilibili · 哔哩哔哩</option>
                                 </select>
                             </div>
@@ -2334,13 +2334,13 @@
                         <label for="mobileMusicSourceSelect">
                             <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
                             <span>音乐源</span>
-                            <span id="mobileMusicSourceHint">网易云搜索、解析与歌词</span>
+                            <span id="mobileMusicSourceHint">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</span>
                         </label>
                         <div class="mobile-source-select-wrap">
                             <select id="mobileMusicSourceSelect"
                                 aria-describedby="mobileMusicSourceHint">
                                 <option value="chksz">ChKSz · 网易云（需密钥）</option>
-                                <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
+                                <option value="gd" selected>GD 音乐台 · 网易云（免密钥）</option>
                                 <option value="bilibili">Bilibili · 哔哩哔哩</option>
                             </select>
                             <i class="fas fa-chevron-down" aria-hidden="true"></i>
@@ -2675,10 +2675,10 @@
                     <select id="musicSourceSelect" aria-describedby="musicSourceHint"
                         class="w-full bg-white/[0.08] border border-white/[0.14] rounded-xl px-3 py-2.5 text-sm font-medium outline-none focus:border-primary-color/60 focus:bg-white/[0.12] transition-colors">
                         <option value="chksz">ChKSz · 网易云（需密钥）</option>
-                        <option value="gd">GD 音乐台 · 网易云（免密钥）</option>
+                        <option value="gd" selected>GD 音乐台 · 网易云（免密钥）</option>
                         <option value="bilibili">Bilibili · 哔哩哔哩</option>
                     </select>
-                    <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">网易云搜索、解析与歌词</p>
+                    <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</p>
                 </div>
 
                 <p id="gdSourceCredit" class="music-key-hint" hidden>来源：<a href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">GD音乐台 (music.gdstudio.xyz)</a> · 仅供非商业学习使用 · 每 5 分钟最多 50 次请求。</p>
@@ -2986,7 +2986,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=4';
+        } from './js/music-service.js?v=5';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;

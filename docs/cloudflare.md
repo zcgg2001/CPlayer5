@@ -6,6 +6,8 @@
 
 本项目使用一个 Cloudflare Worker，入口是 `sites/worker.js`。`ASSETS` 绑定提供静态文件，`/api/*` 交给 Worker。首页由 Worker 注入当前域名，避免社交分享元数据残留占位符。歌词效果、图片挂件和离线资源保留原始路径。
 
+首次访问默认使用 GD 音乐台搜索、播放和获取歌词，无需添加 `?source=gd`。选择优先级为链接中的 `source` 参数、浏览器已保存的音源、默认 GD；手动切换后仍会记住选择。发现页、榜单、歌单和歌手内容继续由 ChKSz 提供，需要有效 Secret。
+
 ## 自定义域名
 
 `cloudflare.config.ts` 中的 `worker.domains` 声明 `music.505zc.tech`。部署时 Cloudflare 为这个主机名创建指向 `cplayer5` 的 Custom Domain，并管理 DNS 与 HTTPS 证书；以后重新部署会保留该声明。

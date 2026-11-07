@@ -402,7 +402,7 @@ test('Bilibili discovery and lyrics keep their own source, category and cancella
 
 test('retired preferences fall back without misrouting old queue entries', () => {
   const service = serviceHarness(() => {}, 'ors-qq');
-  assert.equal(service.config.source, 'chksz');
+  assert.equal(service.config.source, 'gd');
   assert.throws(() => service.sourceForSong({ id: '123', provider: 'ors' }), /已移除/);
 });
 

@@ -26,7 +26,7 @@ test('music service restores and validates preferences at its module boundary', 
   assert.equal(service.config.quality, DEFAULT_QUALITY);
   assert.equal(service.config.source, 'bilibili');
   assert.equal(supportedQuality('missing'), DEFAULT_QUALITY);
-  assert.equal(supportedMusicSource('missing'), 'chksz');
+  assert.equal(supportedMusicSource('missing'), 'gd');
 });
 
 test('music service builds source-aware search requests', async () => {

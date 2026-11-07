@@ -17,7 +17,7 @@ import { downloadFallbackLevels } from './music-download.js';
 export const MUSIC_API_BASE_URL = '/api/v1/music';
 export const NEW_SONGS_PLAYLIST_ID = '3779629';
 export const DEFAULT_QUALITY = 'lossless';
-export const DEFAULT_MUSIC_SOURCE = 'chksz';
+export const DEFAULT_MUSIC_SOURCE = 'gd';
 
 export const MUSIC_SOURCE_OPTIONS = Object.freeze({
   chksz: Object.freeze({
