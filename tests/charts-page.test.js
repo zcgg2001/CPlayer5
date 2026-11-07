@@ -30,43 +30,16 @@ test('normalizes direct playlist responses for local fallback', () => {
   assert.equal(payload.items[0].artist, '歌手');
 });
 
-test('falls back to the secure music proxy when the chart endpoint returns HTML', async () => {
-  const requests = [];
-  const fetchImpl = async url => {
-    requests.push(String(url));
-    if (String(url).startsWith('/api/v1/charts')) {
-      return new Response('<!doctype html><title>CPlayer 5</title>', {
-        status: 200,
-        headers: { 'content-type': 'text/html' },
-      });
-    }
-    return new Response(JSON.stringify({
-      data: {
-        id: 3778678,
-        name: '热歌榜',
-        trackCount: 1,
-        creator: { nickname: '网易云音乐' },
-        tracks: [{
-          id: 301,
-          name: '降级成功',
-          ar: [{ name: '测试歌手' }],
-          al: { name: '测试专辑' },
-        }],
-      },
-    }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    });
-  };
-
-  const payload = await fetchChartPayload(fetchImpl, 'hot');
-
-  assert.equal(requests.length, 2);
-  assert.match(requests[1], /^\/api\/v1\/music\/playlist\?/);
-  assert.equal(payload.chart.provider, 'chksz');
-  assert.equal(payload.items[0].name, '降级成功');
+test('public charts work without a ChKSz key and preserve GD playback identity', async () => {
+  const requests=[];
+  const payload=await fetchChartPayload(async url=>{requests.push(url);return Response.json({collection:{id:'3778678',name:'热歌榜',trackCount:1},tracks:[{id:'301',provider:'gd',name:'歌曲',artist:'歌手'}]});},'hot');
+  assert.deepEqual(requests,['/api/v1/discovery/playlist?id=3778678']);
+  assert.equal(payload.chart.provider,'gd');assert.equal(payload.items[0].provider,'gd');assert.equal(payload.items[0].rank,1);
 });
-
+test('public chart failures never fall back to a quota-dependent endpoint',async()=>{
+  let calls=0;await assert.rejects(fetchChartPayload(async()=>{calls++;return new Response('unavailable',{status:502});},'new'));
+  assert.equal(calls,1);
+});
 
 test('computes rank movement against the previous snapshot', () => {
   const current = [

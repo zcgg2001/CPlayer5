@@ -49,7 +49,7 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue}) 
       const copy=el('div','catalog-result-copy'), details=button(song.name,()=>showDetails(song),'catalog-track-title'); details.dataset.catalogAction=`details:${song.catalogId}`;
       const subtitle=el('p','catalog-muted',`${song.artist || '未知歌手'} · ${song.album || '专辑未提供'}`);
       const meta=el('div','catalog-tags'); meta.append(el('span','catalog-badge',song.version.label),el('span','catalog-badge',`${song.sources.length} 个音源`),badge(song)); copy.append(details,subtitle,meta);
-      const play=button('播放',()=>playRecord(song)); play.disabled=song.sources.every(sourceBlocked); play.setAttribute('aria-label',`播放 ${song.name}`); play.dataset.catalogAction=`play:${song.catalogId}`;
+      const play=button('播放',()=>playRecord(song)); play.disabled=song.sources.every(source => sourceBlocked(source)); play.setAttribute('aria-label',`播放 ${song.name}`); play.dataset.catalogAction=`play:${song.catalogId}`;
       row.append(copy,play); list.append(row);
     }
     if (!visible.length && songs.length) list.append(el('p','catalog-muted','没有符合当前状态的结果。可切回全部状态并检查音源。'));
@@ -120,7 +120,7 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue}) 
     for (const variant of variants) { const link=el('a','',variant.label); const parsed=new URL(variant.url,document.baseURI); if(!['http:','https:'].includes(parsed.protocol))continue; link.href=parsed.href; link.target='_blank'; link.rel='noopener noreferrer'; sizes.append(link); }
     art.append(sizes);
     const copy=el('div'); copy.append(el('p','catalog-eyebrow',song.version.label),el('h3','',song.name),el('p','catalog-muted',song.artist));
-    const actions=el('div','catalog-tools'); const play=button('播放可用音源',()=>playRecord(song),'catalog-button catalog-primary'); play.disabled=song.sources.every(sourceBlocked);
+    const actions=el('div','catalog-tools'); const play=button('播放可用音源',()=>playRecord(song),'catalog-button catalog-primary'); play.disabled=song.sources.every(source => sourceBlocked(source));
     const summary=el('span'); summary.dataset.catalogSummary=''; summary.append(badge(song));
     actions.append(play,button('加入队列',()=>{onQueue(song);}),summary); copy.append(actions); hero.append(art,copy);
     const fields=el('dl','catalog-metadata');

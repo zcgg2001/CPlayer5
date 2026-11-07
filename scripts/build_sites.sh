@@ -35,7 +35,7 @@ cp "$project_dir/sites/bilibili.js" "$server_dir/bilibili.js"
 cp "$project_dir/sites/chksz.js" "$server_dir/chksz.js"
 cp "$project_dir/sites/gd.js" "$server_dir/gd.js"
 
-for module in music-channels channel-http channel-providers music-metadata; do
+for module in music-channels channel-http channel-providers music-metadata discovery-content; do
   cp "$project_dir/sites/$module.js" "$server_dir/$module.js"
 done
 mkdir -p "$dist_dir/js"

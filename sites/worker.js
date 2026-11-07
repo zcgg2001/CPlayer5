@@ -1,3 +1,4 @@
+import { handleDiscoveryContent } from './discovery-content.js';
 import { handleMusicMetadata } from './music-metadata.js';
 import {
   handleArtistsRequest,
@@ -137,6 +138,7 @@ const worker = {
     }
 
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/v1/discovery/')) return handleDiscoveryContent(request,env,url);
     if (url.pathname === '/api/v1/music/metadata') return handleMusicMetadata(request,env,url);
     if (isMusicChannel(url.searchParams.get('source')) && url.pathname.startsWith('/api/v1/music/')) {
       return handleMusicChannelRequest(request, env, url);

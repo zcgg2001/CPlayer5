@@ -1,3 +1,4 @@
+import { catalogRecord } from './music-catalog.js';
 const CHARTS = Object.freeze({
   hot: Object.freeze({ id: '3778678', name: '热歌榜' }),
   new: Object.freeze({ id: '3779629', name: '新歌榜' }),
@@ -6,7 +7,7 @@ const CHARTS = Object.freeze({
 });
 
 const DEFAULT_CHART = 'hot';
-const CACHE_PREFIX = 'cp_chart_snapshot_v1_';
+const CACHE_PREFIX = 'cp_chart_snapshot_v2_';
 
 function text(value, fallback = '') {
   if (value === undefined || value === null) return fallback;
@@ -385,26 +386,16 @@ async function fetchJson(fetchImpl, url, { signal } = {}) {
 }
 
 export async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
-  try {
-    return await fetchJson(
-      fetchImpl,
-      `/api/v1/charts?chart=${encodeURIComponent(chartKey)}&limit=50`,
-      { signal },
-    );
-  } catch (edgeError) {
-    if (signal?.aborted || [401, 402, 403, 429, 503].includes(edgeError.status)) throw edgeError;
-    const chart = CHARTS[chartKey] || CHARTS[DEFAULT_CHART];
-    try {
-      const direct = await fetchJson(
-        fetchImpl,
-        `/api/v1/music/playlist?id=${encodeURIComponent(chart.id)}`,
-        { signal },
-      );
-      return normalizeDirectChartPayload(direct, chartKey, 50);
-    } catch {
-      throw edgeError;
-    }
-  }
+  const chart = CHARTS[chartKey] || CHARTS[DEFAULT_CHART];
+  const data = await fetchJson(fetchImpl, `/api/v1/discovery/playlist?id=${chart.id}`, { signal });
+  if (!Array.isArray(data.tracks) || !data.collection) throw new Error('公开榜单没有返回有效曲目');
+  return {
+    version: 2,
+    chart: { ...chart, key: chartKey, name: data.collection.name || chart.name, description: '网易云公开榜单 · 按榜单原始顺序展示',
+      provider:'gd', sourceName:'网易云公开榜单', cover:data.collection.cover, trackCount:data.collection.trackCount,
+      fetchedAt:new Date(data.fetchedAt || Date.now()).toISOString() },
+    items: data.tracks.slice(0,50).map((song,index) => ({...catalogRecord(song), rank:index+1, playbackId:song.id, playable:true})),
+  };
 }
 
 export function createChartsController({
@@ -454,7 +445,7 @@ export function createChartsController({
           renderSurface(surface, cached, { onPlay, onAdd, stale: true });
         } else {
           surface.title.textContent = CHARTS[activeChart].name;
-          surface.description.textContent = '实时榜单需要 ChKSz；你仍可搜索和播放。';
+          surface.description.textContent = '当前离线；你仍可查看已保存的榜单。';
           surface.source.textContent = '实时更新已暂停';
           surface.count.textContent = '暂无缓存';
           surface.updated.textContent = '';

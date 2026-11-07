@@ -82,7 +82,7 @@ function playbackHarness() {
   const playback = createPlaybackController({ audio, musicService: service, queueStore, setTimer: timer, clearTimer() {} });
   playback.state.quality.controller = new AbortController();
   const context = vm.createContext({
-    discoveryTable: null, discoveryLoadingSong: null,
+    discoveryTable: null, discoveryLoadingSong: null, discoveryHome: null,
     dom, playlist: [], currentIndex: -1, currentPlaybackSong: null,
     playbackRequestVersion: 0,
     playbackQualityState: { version: 0, controller: new AbortController() },
@@ -543,6 +543,7 @@ test('editorial collections wait for a visible shelf before loading', () => {
   const observed = [];
   const shelf = {};
   const context = vm.createContext({
+    discoveryHome: null,
     dom: { editorialPlaylistGrid: { closest: () => shelf } },
     musicService: { config: { source: 'chksz' } }, updateCollectionHeadings() {},
     loadMusicCollections: () => { loads += 1; },
@@ -676,6 +677,7 @@ test('concurrent image cache reads are coalesced and timed-out entries can retry
 test('GD shelves render locally without scheduling ChKSz requests', () => {
   let rendered = 0;
   const context = vm.createContext({
+    discoveryHome: null,
     musicService: { config: { source: 'gd' } },
     renderGdTopics: () => { rendered++; },
     loadMusicCollections: () => assert.fail('Must not request ChKSz'),

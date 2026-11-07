@@ -66,6 +66,7 @@ export function extractMetadata(item) {
   const metadata = {
     duration: positive(supplied.duration ?? item.duration ?? (item.dt ? Number(item.dt) / 1000 : item.interval)),
     bitrate: bitrate > 10000 ? bitrate / 1000 : bitrate,
+    bpm: positive(supplied.bpm ?? item.bpm),
     releaseDate: clean(date), language: clean(supplied.language || item.language).replace(/^(?:-?\d+|unknown)$/i,''),
     genres: (Array.isArray(genres) ? genres : typeof genres === 'string' ? genres.split(/[,、;/]/) : []).map(clean).filter(Boolean),
     label: clean(supplied.label || item.label || item.company || album?.company).replace(/^(?:0|-1|unknown)$/i,''),

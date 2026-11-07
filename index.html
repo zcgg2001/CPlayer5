@@ -1406,6 +1406,7 @@
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
     <link rel="stylesheet" href="./css/discovery.css?v=3">
+    <link rel="stylesheet" href="./css/discovery-home.css?v=1">
     <link rel="stylesheet" href="./css/music-catalog.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
@@ -1553,10 +1554,12 @@
                                 <p class="library-kicker">DISCOVER</p>
                                 <h1 id="desktopLibraryTitle">发现音乐</h1>
                                 <p class="library-description">
-                                    今日新歌与精选专辑
+                                    每日推荐、电台与此刻想听的声音
                                 </p>
                             </div>
                         </header>
+                        <div id="discoveryHomeHost"><div id="discoveryHome"></div></div>
+                        <h2 class="music-shelf-kicker">按音源浏览</h2>
                         <div class="discovery-source-switcher">
                             <label for="discoveryMusicSourceSelect" class="source-navigation-label">音乐源</label>
                             <div class="discovery-source-select-wrap">
@@ -1610,7 +1613,7 @@
                             <div class="discovery-table-footer"><button id="discoveryLoadMore" type="button" hidden>加载更多<i data-lucide="ChevronDown" aria-hidden="true"></i></button></div>
                         </section>
 
-                        <section class="music-shelf editorial-shelf" aria-labelledby="editorialPlaylistsTitle">
+                        <section hidden class="music-shelf editorial-shelf" aria-labelledby="editorialPlaylistsTitle">
                             <header class="music-shelf-heading">
                                 <div>
                                     <p class="music-shelf-kicker">EDITOR'S PICKS</p>
@@ -1623,7 +1626,7 @@
                                 aria-busy="true"></div>
                         </section>
 
-                        <section class="music-shelf album-shelf" aria-labelledby="newAlbumsTitle">
+                        <section hidden class="music-shelf album-shelf" aria-labelledby="newAlbumsTitle">
                             <header class="music-shelf-heading">
                                 <div>
                                     <p class="music-shelf-kicker">NEW RELEASES</p>
@@ -1636,7 +1639,7 @@
                                 aria-busy="true"></div>
                         </section>
 
-                        <section class="music-shelf scene-shelf" aria-labelledby="scenePlaylistsTitle">
+                        <section hidden class="music-shelf scene-shelf" aria-labelledby="scenePlaylistsTitle">
                             <header class="music-shelf-heading">
                                 <div>
                                     <p class="music-shelf-kicker">MOMENTS</p>
@@ -1662,6 +1665,7 @@
                             </div>
                         </header>
 
+                        <button type="button" class="discover-button" data-open-discovery-charts>全部榜单 · 风格 / 地区</button>
                         <section class="charts-workspace" aria-labelledby="desktopChartTitle">
                             <div class="chart-overview">
                                 <span class="chart-overview-art">
@@ -2381,8 +2385,9 @@
 
             <div id="mobileExploreTabs" class="mobile-explore-tabs" role="tablist"
                 aria-label="音乐发现栏目">
+                <button class="mobile-explore-tab" type="button" role="tab" data-mobile-explore="discovery" aria-selected="true" aria-controls="mobileExploreDiscoveryPane"><i class="fas fa-compass" aria-hidden="true"></i>推荐</button>
                 <button class="mobile-explore-tab" type="button" role="tab"
-                    data-mobile-explore="charts" aria-selected="true"
+                    data-mobile-explore="charts" aria-selected="false" tabindex="-1"
                     aria-controls="mobileExploreChartsPane">
                     <i class="fas fa-chart-line" aria-hidden="true"></i>
                     排行榜
@@ -2402,6 +2407,7 @@
             </div>
 
             <div id="mobileExploreContent" class="mobile-charts-content mobile-explore-content">
+                <div id="mobileExploreDiscoveryPane" class="mobile-explore-pane" role="tabpanel" aria-label="发现与推荐"></div>
                 <div id="mobileExploreChartsPane" class="mobile-explore-pane"
                     role="tabpanel" aria-labelledby="mobileChartsPageTitle">
                     <section class="charts-workspace" aria-labelledby="mobileChartTitle">
@@ -2956,7 +2962,7 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=23';
-        import { createChartsController } from './js/charts-page.js?v=32';
+        import { createChartsController } from './js/charts-page.js?v=33';
         import {
             createArtistsController,
             createVideosController,
@@ -2987,6 +2993,7 @@
         import { isMusicChannel } from './js/music-channels.js?v=1';
         import { createMusicSourceTabs } from './js/music-source-tabs.js?v=4';
         import { createCatalogBrowser } from './js/catalog-browser.js?v=1';
+        import { createDiscoveryHome } from './js/discovery-home.js?v=1';
         import { createDiscoveryTable } from './js/discovery-table.js?v=2';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=3';
@@ -3275,7 +3282,7 @@
         let artistsController = null;
         let videosController = null;
         let mobileChartsOpener = null;
-        let mobileExploreView = 'charts';
+        let mobileExploreView = 'discovery';
         let videoPreviewOpener = null;
         let visualizer = null;
 
@@ -3306,7 +3313,7 @@
             initThemeControls();
             initAnimeProgressThumbs();
             chartsController = createChartsController({
-                onlineEnabled: () => musicService.config.source === 'chksz',
+                onlineEnabled: () => navigator.onLine,
                 onSearch: () => openMusicSearch(),
                 onPlay: song => addChartSong(song, { playNow: true }),
                 onAdd: song => addChartSong(song, { playNow: false }),
@@ -3395,7 +3402,7 @@
                 if (isCompactLayout()) {
                     setMobileExploreOpen(true, { view: initialContentView, syncRoute: false });
                 } else {
-                    desktopShell.navigate(initialContentView, { record: false });
+                    desktopShell.navigate(initialContentView === 'discovery' ? 'library' : initialContentView, { record: false });
                 }
             } else {
                 showDesktopMainView('discovery');
@@ -3533,11 +3540,11 @@
 
         function contentViewFromHash() {
             const view = window.location.hash.replace(/^#/, '');
-            return ['charts', 'artists', 'videos'].includes(view) ? view : null;
+            return ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : null;
         }
 
         function syncContentRoute(view) {
-            const nextView = ['charts', 'artists', 'videos'].includes(view) ? view : null;
+            const nextView = ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : null;
             if (nextView) {
                 const nextHash = `#${nextView}`;
                 if (window.location.hash !== nextHash) {
@@ -3555,14 +3562,16 @@
         }
 
         function setMobileExploreView(view, { syncRoute = true } = {}) {
-            const nextView = ['charts', 'artists', 'videos'].includes(view) ? view : 'charts';
+            const nextView = ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : 'discovery';
             mobileExploreView = nextView;
             const labels = {
+                discovery: ['发现音乐', '每日推荐与私人电台'],
                 charts: ['音乐排行榜', '热歌、新歌与趋势'],
                 artists: ['歌手中心', '实时榜单自动聚合'],
                 videos: ['视频中心', '国内音乐视频与现场影像'],
             };
             const panes = {
+                discovery: dom.mobileExploreDiscoveryPane,
                 charts: dom.mobileExploreChartsPane,
                 artists: dom.mobileExploreArtistsPane,
                 videos: dom.mobileExploreVideosPane,
@@ -4130,7 +4139,7 @@
                 tabs[nextIndex]?.click();
             });
             document.addEventListener('keydown', event => {
-                if (event.key === 'Escape' && dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false') {
+                if (event.key === 'Escape' && !document.querySelector('dialog[open]') && dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false') {
                     event.preventDefault();
                     setMobileExploreOpen(false);
                 }
@@ -4140,7 +4149,7 @@
                 if (isCompactLayout()) {
                     setMobileExploreOpen(Boolean(view), { view: view || mobileExploreView, syncRoute: false });
                 } else if (view) {
-                    desktopShell?.navigate(view);
+                    desktopShell?.navigate(view === 'discovery' ? 'library' : view);
                 }
             });
             dom.videoPreviewClose?.addEventListener('click', closeVideoPreview);
@@ -4603,9 +4612,9 @@
                 dom.desktopDiscoveryRefresh.setAttribute('aria-label', isBilibili ? '刷新 Bilibili 音乐' : isSearchSource ? '刷新音乐发现' : '刷新新歌速递');
                 dom.desktopDiscoveryView.querySelector('.library-kicker').textContent = isBilibili ? 'BILIBILI' : 'DISCOVER';
                 dom.desktopDiscoveryView.querySelector('.library-description').textContent = isBilibili
-                    ? '原创、翻唱与音乐现场' : isSearchSource ? '搜索喜欢的歌曲，按主题发现音乐' : '今日新歌与精选专辑 · 数据来自 ChKSz';
+                    ? '原创、翻唱与音乐现场' : '每日推荐、电台与此刻想听的声音';
                 for (const grid of [dom.editorialPlaylistGrid, dom.newAlbumGrid, dom.scenePlaylistGrid]) {
-                    grid.closest('.music-shelf').hidden = isBilibili || (isSearchSource && grid === dom.newAlbumGrid);
+                    grid.closest('.music-shelf').hidden = Boolean(discoveryHome) || isBilibili || (isSearchSource && grid === dom.newAlbumGrid);
                 }
                 [dom.searchInput, dom.mobileSearchInput].filter(Boolean).forEach(input => {
                     input.placeholder = isBilibili ? '视频标题、UP 主、BV 号或链接' : isSearchSource ? '歌曲名或歌手' : '歌曲名、歌手或歌曲 ID';
@@ -4704,6 +4713,8 @@
         }
 
         function activeDialog() {
+            const native = document.querySelector('dialog[open]');
+            if (native) return native;
             const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-hidden="false"]'));
             return dialogs[dialogs.length - 1] || null;
         }
@@ -5128,6 +5139,7 @@
 
         let desktopDiscoveryController = null;
         let discoveryTable = null;
+        let discoveryHome = null;
         let catalogBrowser = null;
         let discoveryLoadingSong = null;
         let discoveryOffset = 0;
@@ -5137,6 +5149,23 @@
                 onPlay: song => addDiscoverySong(song),
                 onQueue: song => addChartSong(song, {playNow:false,source:song.source}),
             });
+            discoveryHome = createDiscoveryHome({ document, root: dom.discoveryHome, musicService, storage: localStorage,
+                onPlay: (song, options) => addDiscoverySong(song, options),
+                onBatch: (songs, label) => addCollectionTracks(songs, {label, playNow:true, source:'recommendations'}),
+                onDetails: (song, trigger) => catalogBrowser.open({song,trigger}),
+                getCurrentSong: () => playback.state.currentSong,
+                getLibrary: () => queue.playlist,
+                notify: showToast,
+            });
+            discoveryHome.connectAudio(audio);
+            const placeDiscoveryHome = () => {
+                const host = isCompactLayout() ? dom.mobileExploreDiscoveryPane : dom.discoveryHomeHost;
+                if (dom.discoveryHome.parentElement !== host) host.append(dom.discoveryHome);
+            };
+            placeDiscoveryHome();
+            desktopShellMedia.addEventListener('change', placeDiscoveryHome);
+            document.querySelectorAll('[data-open-discovery-charts]').forEach(button => button.addEventListener('click', () => discoveryHome.showCharts()));
+
             document.querySelectorAll('[data-open-catalog]').forEach(button => button.addEventListener('click', () => catalogBrowser.open({query:isCompactLayout() ? dom.mobileSearchInput.value : dom.searchInput.value,trigger:button})));
 
             discoveryTable = createDiscoveryTable({
@@ -5441,13 +5470,13 @@
             return row;
         }
 
-        function addDiscoverySong(song) {
+        function addDiscoverySong(song, options = {}) {
             const existingIndex = queue.playlist.findIndex(item => song.catalogId && item.catalogId ? song.catalogId === item.catalogId : String(item.id) === String(song.id) && (!item.provider || !song.provider || item.provider === song.provider));
             if (existingIndex >= 0) {
                 if (song.catalogId) Object.assign(queue.playlist[existingIndex], song, {id:queue.playlist[existingIndex].id});
-                window.playSongAtIndex(existingIndex);
+                const pending = window.playSongAtIndex(existingIndex, options);
                 showToast(`已在播放列表: ${song.name}`);
-                return;
+                return pending;
             }
 
             const newSong = {
@@ -5468,8 +5497,9 @@
             renderAllPlaylistItems();
             if (mobileUI) mobileUI.loadPlaylist();
             if (dom.playlistCount) dom.playlistCount.textContent = `(${queue.playlist.length}首)`;
-            window.playSongAtIndex(targetIndex);
+            const pending = window.playSongAtIndex(targetIndex, options);
             showToast(`已添加并播放: ${newSong.name}`);
+            return pending;
         }
 
         function addChartSong(song, { playNow = true, source = '' } = {}) {
@@ -5747,6 +5777,7 @@
         }
 
         function scheduleMusicCollections() {
+            if (discoveryHome) return;
             if (musicService.config.source !== 'chksz') {
                 if (musicService.config.source !== 'bilibili') renderGdTopics();
                 return;
@@ -5820,6 +5851,7 @@
         }
 
         async function loadMusicCollections() {
+            if (discoveryHome) return;
             if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid || musicService.config.source !== 'chksz') return;
             musicCollectionsController?.abort();
             const requestController = new AbortController();
@@ -5940,12 +5972,12 @@
             const uniqueTracks = [];
             const ids = new Set();
             tracks.forEach(song => {
-                const id = String(song?.id ?? '').trim();
+                const id = String(song?.catalogId || song?.id || '').trim();
                 if (!id || ids.has(id)) return;
                 ids.add(id);
                 uniqueTracks.push({
                     ...song,
-                    id: song.id,
+                    id,
                     sourceId: song.sourceId || song.id,
                     name: song.name || '未知歌曲',
                     artist: song.artist || '未知艺术家',
@@ -6221,7 +6253,8 @@
             });
         }
 
-        async function loadAndPlaySong(id, songOverride = null) {
+        async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
+            discoveryHome?.beforePlay(songOverride);
             return playback.load(id, songOverride, {
                 onLoading() {
                     discoveryLoadingSong = songOverride;
@@ -6260,6 +6293,13 @@
                 onStarted(data, playbackData, session) {
                     const picUrl = playbackData.cover;
                     const { isCurrent } = session;
+                    if (position > 0) {
+                        const resume = () => {
+                            if (isCurrent() && Number.isFinite(audio.duration)) audio.currentTime = position >= audio.duration - 2 ? 0 : Math.min(position, Math.max(0,audio.duration - 1));
+                        };
+                        if (audio.readyState >= 1) resume();
+                        else audio.addEventListener('loadedmetadata', resume, {once:true,signal:session.signal});
+                    }
                 // Show Source
                 if (data.source) {
                     dom.sourceTag.textContent = data.source.toUpperCase() + ' API';
@@ -6348,6 +6388,7 @@
                 },
                 onLyricsError() { setLyricsStatus('歌词加载失败，请稍后重试'); },
                 onError(e) {
+                discoveryHome?.playbackFailed(e);
                 console.error(e);
                 setPlaybackTransitionPending(false);
                 syncPlaybackControls(false);
@@ -7400,7 +7441,7 @@
         }
 
         // Expose functions globally for Mobile UI
-        window.playSongAtIndex = (index) => {
+        window.playSongAtIndex = (index, options = {}) => {
             if (index < 0 || index >= queue.playlist.length) return;
             queue.currentIndex = index; // Sync with global variable
             // currentSongIndex = index; // Removed if not defined
@@ -7408,7 +7449,7 @@
             const song = queue.playlist[index];
             const songId = typeof song === 'object' ? song.id : song;
 
-            loadAndPlaySong(songId, typeof song === 'object' ? song : null);
+            return loadAndPlaySong(songId, typeof song === 'object' ? song : null, options);
 
             // Sync mobile playlist view if active
             if (mobileUI && mobileUI.activeSheetTab === 'playlist') {
@@ -7436,6 +7477,7 @@
         }
 
         function playNextSong() {
+            if (discoveryHome?.radio.active()) return discoveryHome.advanceRadio();
             if (!queue.playlist.length) return;
             // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
             if (queue.currentIndex === -1) {
@@ -7453,6 +7495,7 @@
         }
 
         function playPreviousSong() {
+            discoveryHome?.radio.stop();
             if (!queue.playlist.length) return;
             // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
             if (queue.currentIndex === -1) {
@@ -7470,6 +7513,7 @@
         }
 
         function handleSongEnd() {
+            if (discoveryHome?.radio.active()) return discoveryHome.advanceRadio();
             return playback.ended({
                 onEmpty() {
                     setPlaybackTransitionPending(false);

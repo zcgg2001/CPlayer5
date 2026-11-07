@@ -124,3 +124,17 @@ test('workerd: public metadata enrichment and overlapping requests retain no req
   const responses=await Promise.all([1,2].map(()=>mf.dispatchFetch('https://player.example/api/v1/music/metadata?source=netease&id=1')));
   for(const response of responses){assert.equal(response.status,200);const body=await response.json();assert.equal(body.data.duration,200);assert.equal(body.data.albumEntity.description,'专辑介绍');assert.equal(body.data.artistEntities[0].description,'艺人介绍');}
 });
+
+test('workerd: quota-independent discovery playlists and concurrent chart requests', async t => {
+  const mf=runtime(t,async request=>{
+    const url=new URL(request.url);assert.equal(url.hostname,'music.163.com');
+    assert.equal(request.headers.get('authorization'),null);
+    await new Promise(resolve=>setTimeout(resolve,30));
+    if(url.pathname==='/api/toplist')return Response.json({code:200,list:[{id:123,name:'新歌榜'}]});
+    return Response.json({code:200,result:{id:123,name:'公开歌单',trackCount:1,tracks:[{id:1,name:'曲目',duration:210000,artists:[{id:2,name:'艺人'}],album:{name:'专辑'}}]}});
+  });
+  for(const path of ['charts','playlist?id=123']) {
+    const responses=await Promise.all([1,2].map(()=>mf.dispatchFetch(`https://player.example/api/v1/discovery/${path}`)));
+    for(const response of responses){assert.equal(response.status,200);const body=await response.json();if(body.tracks){assert.equal(body.tracks[0].provider,'gd');assert.equal(body.tracks[0].duration,210);}else assert.equal(body.items[0].name,'新歌榜');}
+  }
+});
