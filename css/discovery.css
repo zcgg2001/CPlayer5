@@ -136,6 +136,7 @@ html:root #desktopLibraryView .bilibili-discovery .discovery-table-head { displa
   html:root #mobileLayout { display: none !important; }
   html:root #desktopLibraryView { padding-right: 88px; }
   html:root #pageScrollSpider { --page-scroll-spider-size: 60px; width: 64px; }
+  html:root #pageScrollSpider .page-scroll-spider__configure { right: calc(100% - 8px); width: 32px; height: 32px; transform: translateY(calc(var(--page-scroll-y) + var(--page-scroll-spider-size) - 32px)); }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
   html:root #desktopShell { grid-template-columns: 72px minmax(0,1fr); }
