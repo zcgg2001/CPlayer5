@@ -1405,7 +1405,7 @@
     <link rel="stylesheet" href="./css/music-source-tabs.css?v=4">
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
-    <link rel="stylesheet" href="./css/discovery.css?v=1">
+    <link rel="stylesheet" href="./css/discovery.css?v=2">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
@@ -3213,9 +3213,12 @@
         }
 
         function syncPlaybackQualityDisplay(level) {
-            const resolvedLevel = supportedQuality(level);
-            const isBilibili = playback.state.currentSong?.provider === 'bilibili';
             const source = musicService.sourceForSong(playback.state.currentSong);
+            const isBilibili = source.provider === 'bilibili';
+            const levels = isMusicChannel(source.provider) ? source.qualities
+                : source.provider === 'gd' ? ['standard', 'exhigh', 'lossless', 'hires'] : Object.keys(QUALITY_DETAILS);
+            const requestedLevel = supportedQuality(level);
+            const resolvedLevel = !playback.state.currentSong && levels.length && !levels.includes(requestedLevel) ? levels.at(-1) : requestedLevel;
             const fixedQuality = isMusicChannel(source.provider) && !source.qualities.length;
             const detail = fixedQuality ? { name: String(playback.state.currentSong?.format || '自动').toUpperCase(), className: 'quality-standard' } : isBilibili
                 ? { name: 'AAC', className: 'quality-standard' }
@@ -3237,6 +3240,7 @@
                 button.disabled = isBilibili || fixedQuality;
                 button.title = fixedQuality ? '此渠道按实际返回音质播放' : isBilibili ? 'Bilibili 公开 AAC 音轨' : '选择播放音质';
                 if (isBilibili) button.setAttribute('aria-label', 'Bilibili 公开 AAC 音轨');
+                else if (fixedQuality) button.setAttribute('aria-label', `播放音质：${detail.name}，此渠道不支持手动切换`);
             });
         }
 
@@ -9089,7 +9093,7 @@
         });
 
     </script>
-    <script type="module" src="./js/page-scroll-spider.js?v=47"></script>
+    <script type="module" src="./js/page-scroll-spider.js?v=48"></script>
     <script type="module" src="./js/oneko-butterfly.js?v=44"></script>
 </body>
 

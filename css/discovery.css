@@ -120,10 +120,12 @@ html:root #desktopPlayerBar .player-action-button { position: relative; width: 3
 html:root #desktopPlayerBar .player-actions { gap: 4px; }
 html:root #desktopPlayerBar #desktopFavoriteBtn[aria-pressed='true'] { color: var(--studio-accent) !important; }
 .player-queue-count { position: absolute; right: -2px; top: -2px; min-width: 14px; padding: 0 3px; border-radius: 6px; color: var(--studio-muted); background: var(--studio-raised); font-size: 9px; line-height: 14px; font-variant-numeric: tabular-nums; }
-html:root #desktopPlayerBar .playback-quality-trigger { padding-inline: 10px; }
+/* The quality label is a text control, so it must not inherit a square icon-button width. */
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger { width: auto; min-width: 76px; flex: 0 0 auto; min-height: 36px; height: 36px; gap: 6px; padding-inline: 10px; }
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger > * { flex-shrink: 0; }
 html:root #desktopLayout { bottom: 88px; }
-/* Decorations never sit over a browsing result or control. The character is opt-in on the progress thumb. */
-html:not(.desktop-immersive-open) #pageScrollSpider, html:not(.desktop-immersive-open) #onekoPetLayer { display: none !important; }
+/* The scroll mascot has its own gutter; other floating pets stay outside browsing results. */
+html:not(.desktop-immersive-open) #onekoPetLayer { display: none !important; }
 html:root #doraemonThumb { --anime-progress-thumb-size: 14px; width: 14px; height: 14px; border: 2px solid var(--studio-accent); border-radius: 50%; background: var(--studio-surface); box-shadow: 0 1px 4px #0002; }
 html:root #doraemonThumb .anime-progress-thumb__character { display: none; }
 html:root #doraemonThumb .anime-progress-thumb__tooltip { font-size: 11px; }
@@ -132,6 +134,8 @@ html:root #desktopLibraryView .bilibili-discovery .discovery-table-head { displa
   html:root #desktopApp { display: grid !important; width: 100%; height: 100dvh; overflow: hidden; }
   html:root #desktopShell { display: grid; width: 100%; height: 100dvh; min-height: 100dvh; grid-template-columns: 240px minmax(0,1fr); grid-template-rows: 56px minmax(0,1fr) 88px; gap: 0; padding: 0; overflow: hidden; }
   html:root #mobileLayout { display: none !important; }
+  html:root #desktopLibraryView { padding-right: 88px; }
+  html:root #pageScrollSpider { --page-scroll-spider-size: 60px; width: 64px; }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
   html:root #desktopShell { grid-template-columns: 72px minmax(0,1fr); }
@@ -140,6 +144,8 @@ html:root #desktopLibraryView .bilibili-discovery .discovery-table-head { displa
   html:root #desktopShell .app-nav-item { width: 44px; padding: 0; justify-content: center; }
   html:root #desktopShell .app-sidebar-tools { width: auto; }
   html:root #desktopLibraryView { padding-inline: 20px; }
+  html:root #desktopLibraryView { padding-right: 72px; }
+  html:root #pageScrollSpider { --page-scroll-spider-size: 48px; width: 52px; }
   html:root #desktopLibraryView .source-navigation-meta { display: none; }
   .discovery-table-head, .discovery-track-row { grid-template-columns: 36px minmax(0,1fr) 60px 108px; gap: 10px; }
   .discovery-table-head .track-album, .discovery-track-row .track-album { display: none; }
@@ -155,9 +161,9 @@ html:root #desktopLibraryView .bilibili-discovery .discovery-table-head { displa
   #discoverySort { max-width: 84px; }
   .discovery-toolbar { gap: 3px; }
   .discovery-play-all span { display: none; }
-  html:root #desktopPlayerBar { grid-template-columns: 180px minmax(220px,1fr) 204px; gap: 8px; padding-inline: 12px; }
+  html:root #desktopPlayerBar { grid-template-columns: 180px minmax(220px,1fr) 228px; gap: 8px; padding-inline: 12px; }
   html:root #desktopPlayerBar .player-actions .player-action-button { width: 32px; flex-basis: 32px; }
-  html:root #desktopPlayerBar .playback-quality-trigger { padding-inline: 6px; }
+  html:root #desktopPlayerBar .player-actions .playback-quality-trigger { min-width: 64px; padding-inline: 8px; }
   html:root #desktopPlayerBar .playback-quality-dot { display: none; }
 }
 @media (hover: none) { .discovery-track-row .track-actions { opacity: 1; } .track-index .track-play { opacity: 1; } .track-number { opacity: 0; } }

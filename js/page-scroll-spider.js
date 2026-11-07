@@ -1,12 +1,13 @@
 // CPlayer integration. The reusable module has no knowledge of player views.
 import { PageScrollSpider } from './scroll-spider/index.js?v=1';
+import { DESKTOP_SHELL_MEDIA } from './app-shell.js?v=23';
 export { PageScrollSpider, clamp, getHandlePosition, getScrollProgress, getWebCurve } from './scroll-spider/index.js?v=1';
 
 export function initPageScrollSpider() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
   if (document.getElementById('pageScrollSpider')) return window.pageScrollSpider || null;
   const resolveTarget = () => {
-    if (window.matchMedia('(min-width: 1024px)').matches) {
+    if (window.matchMedia(DESKTOP_SHELL_MEDIA).matches) {
       return document.documentElement.classList.contains('desktop-immersive-open')
         ? null : document.getElementById('desktopLibraryView');
     }

@@ -6,7 +6,8 @@ import { createPlaybackSession } from '../js/playback-session.js';
 import { normalizeMediaUrl } from '../js/security.js';
 import * as musicData from '../js/music-data.js';
 import { RequestCancelledError } from '../js/http.js?v=37';
-import { MusicService } from '../js/music-service.js';
+import { MusicService, QUALITY_DETAILS, supportedQuality, qualityDetails } from '../js/music-service.js';
+import { isMusicChannel } from '../js/music-channels.js';
 import { createQueueStore } from '../js/queue-store.js';
 import { createPlaybackController } from '../js/playback-controller.js';
 import { createCacheStore } from '../js/cache-store.js';
@@ -251,6 +252,31 @@ function enableQualityChanges(context, replaceAudioSource) {
   context.dom.playbackQualityStatus = element();
   vm.runInContext(inlineFunction('applyPlaybackQuality'), context);
 }
+
+test('quality controls respect the selected provider before playback and retain the actual playing quality', () => {
+  const cases = [
+    {source:'bilibili', preference:'lossless', label:'AAC', disabled:true},
+    {source:'qq', preference:'lossless', label:'自动', disabled:true},
+    {source:'gd', preference:'jymaster', label:'Hi-Res', disabled:false},
+    {source:'netease', preference:'hires', label:'无损', disabled:false},
+    {source:'gd', preference:'hires', current:{id:'1',provider:'gd'}, actual:'standard', label:'标准', disabled:false},
+  ];
+  for (const {source,preference,current = null,actual = preference,label,disabled} of cases) {
+    const service = new MusicService({storage:{getItem:key=>key==='cp_source'?source:preference},location:{search:''}});
+    const nodes = Object.fromEntries(['qualityBadge','mobileQualityBadge','desktopPlaybackQualityLabel','desktopPlaybackQualityBtn','mobilePlaybackQualityBtn'].map(id => {
+      const attributes = new Map();
+      return [id, {...element(), setAttribute:(name,value)=>attributes.set(name,value), getAttribute:name=>attributes.get(name)}];
+    }));
+    const context = vm.createContext({dom:nodes,playback:{state:{currentSong:current}},musicService:service,QUALITY_DETAILS,supportedQuality,qualityDetails,isMusicChannel});
+    vm.runInContext(inlineFunction('syncPlaybackQualityDisplay'), context);
+    context.syncPlaybackQualityDisplay(actual);
+    assert.equal(nodes.desktopPlaybackQualityLabel.textContent,label,source);
+    assert.equal(nodes.desktopPlaybackQualityBtn.disabled,disabled,source);
+    assert.equal(nodes.mobilePlaybackQualityBtn.disabled,disabled,source);
+    if (disabled) assert.doesNotMatch(nodes.desktopPlaybackQualityBtn.getAttribute('aria-label'),/点击选择/);
+    assert.equal(service.config.quality,preference,'display must not overwrite the saved preference');
+  }
+});
 
 test('a quality response cannot replace a song selected while the request was pending', async () => {
   const { context, songs } = playbackHarness();
