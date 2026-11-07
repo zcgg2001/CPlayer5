@@ -1,0 +1,112 @@
+/* Horizontal source navigation shares the listening room's quiet surfaces. */
+.music-source-navigation { display: flex; align-items: stretch; min-width: 0; max-width: 100%; }
+.music-source-scroll { display: grid; place-items: center; flex: 0 0 44px; width: 44px; min-height: 44px; color: var(--studio-ink); background: transparent; border: 0; border-bottom: 1px solid var(--studio-line); cursor: pointer; }
+.music-source-scroll[hidden] { display: none; }
+.music-source-scroll:disabled { opacity: .3; cursor: default; }
+.music-source-scroll:focus-visible { outline: 2px solid var(--studio-accent); outline-offset: -3px; }
+.music-source-scroll svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.music-source-tabs {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  gap: 24px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--studio-line) transparent;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.music-source-tabs .music-source-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-width: 44px;
+  min-height: 48px;
+  padding: 10px 2px 13px;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: var(--studio-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.music-source-tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--studio-accent);
+  transform: scaleX(0);
+  transition: transform 160ms ease;
+}
+
+.music-source-tabs .music-source-tab:hover {
+  color: var(--studio-ink);
+  background: color-mix(in srgb, var(--studio-raised) 35%, transparent);
+}
+.music-source-tabs .music-source-tab[aria-checked='true'] { color: var(--studio-ink); }
+.music-source-tab[aria-checked='true']::after { transform: scaleX(1); }
+.music-source-tabs .music-source-tab:focus-visible { outline: 2px solid var(--studio-accent); outline-offset: -3px; }
+html:root #mobileLayout #mobilePlaylistSheet .music-source-navigation button { color: var(--studio-muted); background: transparent !important; border: 0; box-shadow: none; }
+html:root #mobileLayout #mobilePlaylistSheet .music-source-navigation .music-source-tab[aria-checked='true'] { color: var(--studio-ink); }
+.music-source-platform { font-size: 12px; font-weight: 400; color: var(--studio-muted); }
+.music-source-enhanced > select[hidden],
+.music-source-enhanced > .fa-chevron-down { display: none !important; }
+
+html:root #desktopLibraryView #desktopDiscoveryView > .library-heading { min-height: 116px; margin-bottom: 8px; }
+html:root #desktopLibraryView .discovery-source-switcher {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+  margin: 0 0 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.source-navigation-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.discovery-source-select-wrap, .mobile-source-select-wrap { min-width: 0; }
+.source-navigation-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; }
+html:root #desktopLibraryView #discoveryMusicSourceHint { font-size: 12px; line-height: 1.6; }
+.source-navigation-meta .gd-source-credit { margin: 0; padding: 0; font-size: 12px; }
+.bilibili-search-source { display: block; min-width: 0; }
+.mobile-source-switcher { min-width: 0; }
+.mobile-source-switcher > label { display: block; }
+html:root #mobileMusicSourceHint { display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--studio-muted); }
+.music-source-setting { min-width: 0; }
+html:root #musicSourceHint { font-size: 12px; line-height: 1.6; color: var(--studio-muted); opacity: 1; }
+
+@media (max-width: 767px) {
+  .music-source-tabs { gap: 20px; }
+  .music-source-tabs .music-source-tab { flex-direction: column; gap: 3px; min-height: 62px; padding-inline: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .music-source-tabs .music-source-tab, .music-source-tab::after,
+  html:root #mobileLayout #mobilePlaylistSheet .music-source-navigation button { transition: none !important; }
+}
+
+.channel-source :is(#desktopDiscoveryList, #searchResults, #mobileSearchResults) .discovery-download { display: none; }

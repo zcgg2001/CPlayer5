@@ -5,6 +5,7 @@ import {
 } from './music-content.js';
 import { handleBilibiliRequest } from './bilibili.js';
 import { handleGdRequest } from './gd.js';
+import { handleMusicChannelRequest, isMusicChannel } from './music-channels.js';
 
 import { ChkszError, chkszErrorResponse, requestChksz } from './chksz.js';
 const MUSIC_PROXY_ROUTES = new Map([
@@ -135,6 +136,9 @@ const worker = {
     }
 
     const url = new URL(request.url);
+    if (isMusicChannel(url.searchParams.get('source')) && url.pathname.startsWith('/api/v1/music/')) {
+      return handleMusicChannelRequest(request, env, url);
+    }
     if (url.searchParams.get('source') === 'gd' && url.pathname.startsWith('/api/v1/music/')) {
       return handleGdRequest(request, env, url);
     }

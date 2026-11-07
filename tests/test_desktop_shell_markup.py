@@ -252,7 +252,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
         self.assertEqual(hint["tag"], "p")
         self.assertRegex(
             self.source,
-            r'<label for="discoveryMusicSourceSelect">',
+            r'<label for="discoveryMusicSourceSelect"[^>]*>',
         )
         for source in ("chksz", "bilibili"):
             self.assertIn(f'<option value="{source}">', self.source)

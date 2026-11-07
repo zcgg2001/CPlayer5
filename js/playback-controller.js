@@ -31,7 +31,7 @@ export function createPlaybackController({
     }
 
     async function preloadNext() {
-        if (musicService.config?.source === 'gd') return;
+        if (musicService.config?.source !== 'chksz') return;
         if (!preloadAudio || !queueStore.state.playlist.length) return;
         const next = queueStore.state.playlist[queueStore.next()];
         if (next == null || bilibiliVideoUrl(next) || preloadedSong === next) return;

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createCipheriv } from 'node:crypto';
 import { Miniflare, Response } from 'miniflare';
 
 // Exercise the actual deploy bundle in workerd, not Node's fetch implementation.
@@ -76,4 +77,38 @@ test('workerd: Bilibili audio preserves range bytes and streams the response', a
   assert.equal(response.status, 206, await (response.status === 206 ? Promise.resolve('') : response.text()));
   assert.equal(response.headers.get('content-range'), 'bytes 0-3/100');
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new Uint8Array([0, 1, 2, 3]));
+});
+
+test('workerd: new channels run crypto, parse HTML, and stream HTTP audio with ranges', async t => {
+  const mf = runtime(t, async request => {
+    const url = new URL(request.url);
+    if (url.hostname === 'interface.music.163.com') {
+      assert.equal(request.method,'POST');
+      assert.match(await request.text(),/^params=[A-F0-9]+$/);
+      const cipher = createCipheriv('aes-128-ecb',Buffer.from('e82ckenh8dichen8'),null);
+      return new Response(Buffer.concat([cipher.update(JSON.stringify({code:200,result:{songs:[{id:123,name:'Meting fixture',ar:[{name:'Artist'}]}]}}),'utf8'),cipher.final()]));
+    }
+    if (url.hostname === 'www.at38.cn') {
+      if(url.searchParams.has('keyword'))return new Response('<div class="music-card" data-id="mid123" data-type="qq"><div class="music-info"><h3>QQ fixture</h3><p>歌手：Artist | 专辑：Album | 来源：QQ</p></div></div>');
+      if(url.searchParams.has('action')){
+        assert.match(request.headers.get('cookie'),/sid=fixture/);
+        return Response.json({code:1,url:'http://aqqmusic.tc.qq.com/fixture.mp3'});
+      }
+      return new Response('Home',{headers:{'set-cookie':'sid=fixture; HttpOnly'}});
+    }
+    if (url.hostname === 'aqqmusic.tc.qq.com') {
+      assert.equal(request.headers.get('range'),'bytes=0-3');
+      assert.equal(request.headers.get('cookie'),null);
+      return new Response('ID3!',{status:206,headers:{'content-range':'bytes 0-3/100','content-type':'audio/mpeg'}});
+    }
+    throw new Error(`Unexpected host ${url.hostname}`);
+  });
+  for(const source of ['netease','at38-qq']) {
+    const response=await mf.dispatchFetch(`https://player.example/api/v1/music/search?source=${source}&keyword=test`);
+    assert.equal(response.status,200,await response.clone().text());
+    assert.equal((await response.json()).data.length,1);
+  }
+  const response=await mf.dispatchFetch('https://player.example/api/v1/music/audio?source=at38-qq&id=mid123',{headers:{range:'bytes=0-3'}});
+  assert.equal(response.status,206,await response.clone().text());
+  assert.equal(await response.text(),'ID3!');
 });

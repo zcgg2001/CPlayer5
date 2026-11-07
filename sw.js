@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v63';
+const SHELL_CACHE = 'cplayer5-shell-v65';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -16,6 +16,7 @@ const CORE_ASSETS = [
   './css/bilibili.css',
   './css/studio.css',
   './css/listening-room.css',
+  './css/music-source-tabs.css',
   './css/lyric-effects.css',
   './css/lyric-scenes.css',
   './css/oneko-butterfly.css',
@@ -38,6 +39,8 @@ const CORE_ASSETS = [
   './js/http.js',
   './js/music-data.js',
   './js/music-service.js',
+  './js/music-channels.js',
+  './js/music-source-tabs.js',
   './js/music-key-settings.js',
   './js/music-download.js',
   './js/download-session.js',

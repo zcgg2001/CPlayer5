@@ -1,3 +1,4 @@
+import { MUSIC_CHANNELS, isMusicChannel, channelTrackId, channelSourceId } from './music-channels.js';
 import {
   RequestCancelledError,
   requestErrorMessage,
@@ -20,15 +21,16 @@ export const DEFAULT_QUALITY = 'lossless';
 export const DEFAULT_MUSIC_SOURCE = 'gd';
 
 export const MUSIC_SOURCE_OPTIONS = Object.freeze({
-  chksz: Object.freeze({
-    label: 'ChKSz · 网易云',
-    detail: '网易云搜索、解析与歌词',
-    provider: 'chksz',
-  }),
   gd: Object.freeze({
     label: 'GD 音乐台 · 网易云',
     detail: '搜索、播放与歌词免密钥；首页按主题发现音乐',
     provider: 'gd',
+  }),
+  ...MUSIC_CHANNELS,
+  chksz: Object.freeze({
+    label: 'ChKSz · 网易云',
+    detail: '网易云搜索、解析与歌词；需要有效密钥与可用额度',
+    provider: 'chksz',
   }),
   bilibili: Object.freeze({
     label: 'Bilibili · 哔哩哔哩',
@@ -36,6 +38,15 @@ export const MUSIC_SOURCE_OPTIONS = Object.freeze({
     provider: 'bilibili',
   }),
 });
+
+export function normalizeChannelSongs(payload, source) {
+  if (payload?.code !== 200 || !Array.isArray(payload.data)) return [];
+  return payload.data.filter(song => song?.id && song?.name).map(song => {
+    const sourceId = String(song.sourceId || channelSourceId(source, song.id));
+    return { ...song, id: channelTrackId(source, sourceId), sourceId, provider: source,
+      source: musicSourceOption(source).label, artist: song.artist || '未知歌手', downloadAllowed: false };
+  });
+}
 
 export const QUALITY_DETAILS = Object.freeze({
   standard: { name: '标准', summary: '标准 · 128K', meta: '128K · MP3', className: 'quality-standard' },
@@ -50,7 +61,7 @@ export function supportedQuality(level, fallback = DEFAULT_QUALITY) {
 }
 
 export function supportedMusicSource(source, fallback = DEFAULT_MUSIC_SOURCE) {
-  return MUSIC_SOURCE_OPTIONS[source] ? source : fallback;
+  return Object.hasOwn(MUSIC_SOURCE_OPTIONS, source) ? source : fallback;
 }
 
 export function musicSourceOption(source) {
@@ -97,8 +108,9 @@ export class MusicService {
     if (song?.provider === 'bilibili' || bilibiliVideoUrl(song)) {
       return musicSourceOption('bilibili');
     }
+    if (isMusicChannel(song?.provider)) return musicSourceOption(song.provider);
     const neteaseSource = ['gd', 'chksz'].includes(this.config.source)
-      ? this.config.source : (song?.provider === 'gd' ? 'gd' : 'chksz');
+      ? this.config.source : (song?.provider === 'chksz' ? 'chksz' : 'gd');
     if (song && !song.provider) return musicSourceOption(neteaseSource);
     if (
       ['chksz', 'gd'].includes(song?.provider)
@@ -117,8 +129,9 @@ export class MusicService {
   async search(query, { signal, source = this.config.source, fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
     const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=${selectedSource === 'gd' ? 10 : 30}`;
-    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: selectedSource === 'gd' ? 30_000 : 10_000 });
+    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: isMusicChannel(selectedSource) ? 45_000 : selectedSource === 'gd' ? 30_000 : 10_000 });
     const option = musicSourceOption(selectedSource);
+    if (isMusicChannel(selectedSource)) return normalizeChannelSongs(json, selectedSource);
     return option.provider === 'bilibili'
       ? normalizeBilibiliPayload(json)
       : normalizeSearchPayload(json).map(song => ({ ...song, sourceId: song.id, provider: selectedSource, source: selectedSource === 'gd' ? 'GD 音乐台' : 'ChKSz' }));
@@ -126,8 +139,8 @@ export class MusicService {
 
   async getNewSongs({ signal, source = this.config.source, category = 'all', fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
-    if (selectedSource === 'gd') {
-      return this.search('华语', { signal, source: 'gd', fetchImpl });
+    if (selectedSource === 'gd' || isMusicChannel(selectedSource)) {
+      return this.search('华语', { signal, source: selectedSource, fetchImpl });
     }
     if (selectedSource === 'bilibili') {
       const json = await requestJson(`${this.baseUrl}/discover?source=bilibili&category=${encodeURIComponent(category)}`, { signal, fetchImpl });
@@ -162,28 +175,29 @@ export class MusicService {
     const option = source ? musicSourceOption(source) : this.sourceForSong(song);
     const params = new URLSearchParams({
       source: option.provider,
-      id: String(song?.sourceId || id),
+      id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : String(song?.sourceId || id),
       level: String(level),
     });
-    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: option.provider === 'gd' ? 50_000 : 10_000 });
+    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 50_000 : 10_000 });
     if (option.provider === 'bilibili') return normalizeBilibiliPayload(json)[0] || null;
     const normalized = normalizeSongPayload(json, level);
     if (!normalized) return null;
     return {
-      ...normalized, sourceId: normalized.id, provider: option.provider,
-      source: option.provider === 'gd' ? 'GD 音乐台' : 'ChKSz',
+      ...normalized, id: isMusicChannel(option.provider) ? channelTrackId(option.provider, normalized.id) : normalized.id,
+      sourceId: normalized.id, provider: option.provider, format: json.data?.format,
+      source: isMusicChannel(option.provider) ? option.label : option.provider === 'gd' ? 'GD 音乐台' : 'ChKSz',
       name: song?.name || normalized.name,
       artist: song?.artist || normalized.artist,
       album: song?.album || normalized.album,
       cover: song?.cover || normalized.cover,
-      ...(option.provider === 'gd' ? { downloadAllowed: false } : {}),
+      ...(option.provider === 'gd' || isMusicChannel(option.provider) ? { downloadAllowed: false } : {}),
     };
   }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     const requestSong = queueSong || this.sourceForSong();
     const source = this.sourceForSong(requestSong).provider;
-    const levels = source === 'gd'
+    const levels = source === 'gd' || isMusicChannel(source)
       ? [supportedQuality(level)] : downloadFallbackLevels(supportedQuality(level));
     for (const candidate of levels) {
       const song = await this.getSongAtLevel(id, candidate, { signal, song: requestSong, fetchImpl, source });
@@ -194,9 +208,9 @@ export class MusicService {
 
   async getLyric(id, { song = null, signal, fetchImpl } = {}) {
     const option = ['gd', 'chksz'].includes(song?.provider) ? musicSourceOption(song.provider) : this.sourceForSong(song);
-    const params = new URLSearchParams({ source: option.provider, id });
+    const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : id });
     try {
-      const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: option.provider === 'gd' ? 30_000 : 10_000 });
+      const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 30_000 : 10_000 });
       if (option.provider === 'bilibili') return json.data;
       return normalizeLyricsPayload(json);
     } catch (error) {

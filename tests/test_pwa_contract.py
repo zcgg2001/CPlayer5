@@ -79,7 +79,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v63';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v65';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",

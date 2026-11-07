@@ -407,22 +407,23 @@ test('retired preferences fall back without misrouting old queue entries', () =>
 });
 
 for (const mobile of [false, true]) {
-  test(`${mobile ? 'mobile' : 'desktop'} search ignores obsolete results and numeric Bilibili queries remain searches`, async () => {
+  test(`${mobile ? 'mobile' : 'desktop'} source switching ignores obsolete results and never autoplays a numeric query`, async () => {
     const requests = [];
     const results = element();
     const context = vm.createContext({
       AbortController, RequestCancelledError,
       desktopSearchController: null,
       dom: { searchResults: results },
+      isMusicChannel: () => false,
       supportedMusicSource: source => source,
       musicService: {
         config: { source: 'bilibili' },
         search(query, options) {
-          const request = { ...deferred(), options };
+          const request = { ...deferred(), options, query };
           requests.push(request);
           return request.promise;
         },
-        getSong() { throw new Error('Numeric Bilibili queries must not resolve as NetEase IDs'); },
+        getSong() { throw new Error('Switching sources must not autoplay a numeric query'); },
       },
       setSearchStatus: (container, message) => { container.textContent = message; },
     });
@@ -431,10 +432,11 @@ for (const mobile of [false, true]) {
       : inlineFunction('searchSongs') + '\nthis.runSearch = searchSongs;', context);
     const first = context.runSearch('1989');
     context.musicService.config.source = 'chksz';
-    const second = context.runSearch('new search');
+    const second = context.runSearch('1989', { allowIdPlayback: false });
     assert.equal(requests[0].options.signal.aborted, true);
     assert.equal(requests[0].options.source, 'bilibili');
     assert.equal(requests[1].options.source, 'chksz');
+    assert.equal(requests[1].query, '1989');
     requests[1].resolve([]);
     await second;
     const latestMessage = results.textContent;
@@ -452,6 +454,7 @@ test('refreshing discovery does not cancel independent editorial collections', a
     AbortController, RequestCancelledError,
     dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element() },
     desktopDiscoveryController: null, musicCollectionsController: collectionController, bilibiliCategory: 'all',
+    isMusicChannel: () => false,
     supportedMusicSource: source => source,
     musicSourceOption: source => ({ label: source }),
     musicService: {
@@ -489,6 +492,7 @@ test('Bilibili discovery preserves a dated successful snapshot when refresh fail
       desktopDiscoverySection: { querySelector: () => detail } },
     bilibiliCategory: 'all', desktopDiscoveryController: null,
     localStorage: { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value) },
+    isMusicChannel: () => false,
     supportedMusicSource: value => value, musicSourceOption: () => ({ label: 'Bilibili' }),
     musicService: { config: { source: 'bilibili' }, getNewSongs: async () => [music] },
     setDiscoveryStatus() {}, setCollectionLoading() {},
@@ -538,6 +542,7 @@ test('GD discovery stays independent of ChKSz and captures its initiating source
     AbortController, RequestCancelledError,
     dom: { desktopDiscoveryList: element(), desktopDiscoveryRefresh: element() },
     desktopDiscoveryController: null, bilibiliCategory: 'all',
+    isMusicChannel: () => false,
     supportedMusicSource: source => source,
     musicSourceOption: source => ({ label: source }),
     musicService: {
@@ -660,6 +665,7 @@ test('failed GD discovery clears loading and keeps its refresh action available'
     AbortController, RequestCancelledError, console: { error() {} },
     dom: { desktopDiscoveryList: list, desktopDiscoveryRefresh: element() },
     desktopDiscoveryController: null, bilibiliCategory: 'all',
+    isMusicChannel: () => false,
     supportedMusicSource: value => value, musicSourceOption: () => ({ label: 'GD' }),
     musicService: { config: { source: 'gd' }, getNewSongs: async () => { throw new Error('Offline'); } },
     localStorage: { getItem: () => null },
