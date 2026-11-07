@@ -12,12 +12,14 @@ REQUIRED_CORE_ASSETS = {
     "./offline.html",
     "./playlist-downloader.html",
     "./css/studio.css",
+    "./css/listening-room.css",
     "./css/app-shell.css",
     "./css/charts.css",
     "./css/music-explore.css",
     "./css/anime-progress-thumb.css",
     "./css/noto-sans-sc.css",
     "./js/app-shell.js",
+    "./js/listening-room.js",
     "./js/charts-page.js",
     "./js/music-explore.js",
     "./js/anime-progress-thumb.js",
@@ -77,7 +79,7 @@ class PwaContractTests(unittest.TestCase):
         index_source = (ROOT / "index.html").read_text(encoding="utf-8")
 
         self.assertTrue(worker_source.strip())
-        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v56';", worker_source)
+        self.assertIn("const SHELL_CACHE = 'cplayer5-shell-v61';", worker_source)
         self.assertIn("const COVER_CACHE = 'cplayer5-covers-v1';", worker_source)
         self.assertIn(
             "const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);",

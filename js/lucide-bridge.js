@@ -146,8 +146,10 @@ function stripInterfaceEmoji(value) {
 }
 
 function cleanInterfaceText(root) {
+  // Lyrics are user content, including emoji and their accessible labels.
+  const preservedContent = 'script, style, textarea, input, pre, code, [contenteditable], .lrc-line';
   const cleanNode = node => {
-    if (node.parentElement?.closest('script, style, textarea, input, pre, code, [contenteditable]')) return;
+    if (node.parentElement?.closest(preservedContent)) return;
     const clean = stripInterfaceEmoji(node.nodeValue);
     if (clean !== node.nodeValue) node.nodeValue = clean;
   };
@@ -156,6 +158,7 @@ function cleanInterfaceText(root) {
   while (walker.nextNode()) cleanNode(walker.currentNode);
   const elements = root instanceof HTMLElement ? [root, ...root.querySelectorAll('[aria-label], [title], [placeholder]')] : [];
   elements.forEach(element => {
+    if (element.closest(preservedContent)) return;
     for (const name of ['aria-label', 'title', 'placeholder']) {
       const value = element.getAttribute(name);
       if (value && stripInterfaceEmoji(value) !== value) element.setAttribute(name, stripInterfaceEmoji(value));

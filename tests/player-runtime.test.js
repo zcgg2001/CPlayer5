@@ -308,6 +308,7 @@ test('quality selections during song loading only update the default', async () 
 
 test('lyric lookup handles sorted timestamps, forward seeks and backward seeks with bounded DOM work', () => {
   let removals = 0;
+  const animatedLines = [];
   const lines = Array.from({ length: 1000 }, (_, index) => {
     const line = element();
     const remove = line.classList.remove;
@@ -316,6 +317,8 @@ test('lyric lookup handles sorted timestamps, forward seeks and backward seeks w
   });
   const scroller = { clientHeight: 400, getElementsByClassName: () => lines, scrollTo() {} };
   const context = vm.createContext({
+    listeningRoom: null,
+    lyricEffects: { activateLine: line => animatedLines.push(line) },
     parsedLyrics: lines.map((_, index) => ({ time: index })), activeLyricIndex: -1,
     document: { getElementById: id => id === 'lyricsScroller' ? scroller : null },
     window: { matchMedia: () => ({ matches: true }) },
@@ -331,6 +334,7 @@ test('lyric lookup handles sorted timestamps, forward seeks and backward seeks w
       [time - 1, time + 1].filter(index => index >= 0 && index < lines.length));
     assert.ok(removals - before <= 6);
   }
+  assert.deepEqual(animatedLines, [lines[0], lines[700], lines[4], lines[999]], 'effects activate only on changed lines, including backward seeks');
 });
 
 function serviceHarness(requestJson, storedSource = null) {

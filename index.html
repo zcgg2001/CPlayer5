@@ -1398,11 +1398,14 @@
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=28">
     <link rel="stylesheet" href="./css/art-direction.css?v=34">
     <link rel="stylesheet" href="./css/bilibili.css?v=40">
-    <link rel="stylesheet" href="./css/studio.css?v=54">
+    <link rel="stylesheet" href="./css/studio.css?v=55">
     <link rel="stylesheet" href="./css/oneko-butterfly.css?v=44">
-    <link rel="stylesheet" href="./css/page-scroll-spider.css?v=46">
+    <link rel="stylesheet" href="./css/page-scroll-spider.css?v=47">
+    <link rel="stylesheet" href="./css/listening-room.css?v=1">
+    <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
+    <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
-    <script defer src="./js/lucide-bridge.js?v=42"></script>
+    <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
     <script src="playlist.js?v=22"></script>
 </head>
@@ -2011,10 +2014,11 @@
 
         <section id="desktopLayout" aria-hidden="true" role="dialog"
             aria-label="沉浸式正在播放">
+            <div class="listening-ambient" aria-hidden="true"></div>
             <header class="immersive-header">
                 <div class="immersive-heading">
-                    <strong>CPlayer 5</strong>
-                    <span>IMMERSIVE PLAYER</span>
+                    <strong>此刻，只听音乐</strong>
+                    <span>NOW PLAYING</span>
                 </div>
                 <button id="desktopImmersiveClose" type="button" aria-label="关闭沉浸式播放器">
                     <i class="fas fa-times" aria-hidden="true"></i>
@@ -2037,21 +2041,31 @@
                             </div>
                         </div>
                     </div>
+                    <div class="immersive-track-info">
+                        <h2 id="immersiveTitle">让音乐，填满此刻</h2>
+                        <p id="immersiveArtist">选一首喜欢的歌，开始聆听</p>
+                        <div class="immersive-playback-state">
+                            <span class="listening-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+                            <span id="immersivePlaybackState">准备聆听</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="immersive-lyrics-pane">
+                    <div class="immersive-lyric-heading"><i data-lucide="Captions" aria-hidden="true"></i><span>随歌词，走进音乐</span></div>
                     <div class="lyrics-card">
                         <p id="desktopSubtitleSource" class="subtitle-source" hidden></p>
-                        <div id="lyricsScroller" class="lyrics-scroller">
+                        <div id="lyricsScroller" class="lyrics-scroller" role="region" aria-label="同步歌词，可点击跳转播放" tabindex="0">
                             <div class="lrc-line active">
-                                <span class="lrc-text">CPlayer 5</span>
-                                <span class="lrc-trans">Music for Everyone</span>
+                                <span class="lrc-text">每一句，都在此刻。</span>
+                                <span class="lrc-trans">播放歌曲后，歌词将在这里跟随音乐展开</span>
                             </div>
                         </div>
                         <div class="lyrics-container custom-scrollbar hidden">
                             <div class="lyric-line opacity-50 my-auto">等待播放...</div>
                         </div>
                     </div>
+                    <button id="desktopLyricsResume" class="lyrics-resume" type="button" hidden>回到当前歌词</button>
                 </div>
             </div>
         </section>
@@ -2098,6 +2112,7 @@
 
     <!-- ★ Mobile Layout (Visible < md) -->
     <div id="mobileLayout" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
+        <div class="listening-ambient" aria-hidden="true"></div>
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
@@ -2186,11 +2201,12 @@
                 <!-- Lyrics Scroller -->
                 <div class="w-full h-full overflow-hidden relative mask-gradient-vertical">
                     <div id="mobileLyricsScroller"
-                        class="w-full h-full overflow-y-auto text-center py-4 custom-scrollbar">
+                        class="w-full h-full overflow-y-auto text-center py-4 custom-scrollbar" role="region" aria-label="同步歌词，可点击跳转播放" tabindex="0">
                         <div class="mobile-empty-lyrics text-sm py-8">暂无歌词</div>
                     </div>
                 </div>
 
+                <button id="mobileLyricsResume" class="lyrics-resume" type="button" hidden>回到当前歌词</button>
                 <!-- Swipe Hint -->
                 <!-- <div class="absolute bottom-4 opacity-30 text-xs animate-pulse">
                     歌词页 <i class="fas fa-chevron-right ml-1"></i>
@@ -2245,6 +2261,12 @@
                 <button id="mobilePlaylistToggleBtn" class="p-3 opacity-70 active:scale-95 transition-transform"
                     aria-label="打开播放列表">
                     <i class="fas fa-list-ul text-xl"></i>
+                </button>
+            </div>
+
+            <div class="flex justify-center pb-3">
+                <button id="mobileViewToggle" type="button" aria-label="显示歌词" aria-controls="mobileLyricsPage" aria-pressed="false">
+                    <i data-lucide="Captions" aria-hidden="true"></i><span>歌词</span>
                 </button>
             </div>
 
@@ -2600,6 +2622,30 @@
             <!-- 歌单切换区域 -->
             <div class="max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 mb-4 text-left space-y-3">
 
+                <section class="lyric-settings" aria-labelledby="lyricSettingsTitle">
+                    <div class="lyric-settings__heading">
+                        <div><h3 id="lyricSettingsTitle">歌词设置</h3><label for="lyricEffectSelect">歌词效果</label></div>
+                        <select id="lyricEffectSelect" aria-describedby="lyricEffectDescription lyricCatalogNote">
+                            <option value="amll" selected>AMLL</option>
+                        </select>
+                    </div>
+                    <div class="lyric-random-row"><p id="lyricCatalogNote" class="lyric-catalog-note">歌词效果</p><button id="lyricRandomNext" type="button" hidden>换一种</button></div>
+                    <p id="lyricEffectDescription" class="lyric-settings__description">柔和虚化与弹性聚焦，沉浸在正在唱的这一句。</p>
+                    <div class="lyric-preview">
+                        <div class="lyric-preview__toolbar"><span>效果预览 · 示例歌词</span><button id="lyricPreviewToggle" type="button" aria-pressed="false">暂停预览</button></div>
+                        <div id="lyricEffectPreview" aria-hidden="true"></div>
+                    </div>
+                    <div class="lyric-settings__font">
+                        <div><label for="lyricFontSize">歌词字体大小</label><p id="lyricFontHint">12–60 px · 桌面与手机同步</p></div>
+                        <div class="lyric-font-stepper">
+                            <button id="lyricFontDecrease" type="button" aria-label="减小歌词字号">−</button>
+                            <input id="lyricFontSize" type="number" min="12" max="60" step="1" value="36" inputmode="numeric" aria-describedby="lyricFontHint">
+                            <button id="lyricFontIncrease" type="button" aria-label="增大歌词字号">+</button>
+                        </div>
+                    </div>
+                    <div class="lyric-settings__footer"><span id="lyricEffectFeedback" role="status" aria-live="polite">更改立即生效，自动保存在此浏览器</span><button id="lyricEffectReset" type="button">恢复默认</button></div>
+                </section>
+
                 <!-- 当前歌单来源状态 -->
                 <div id="playlistSourceCard" class="p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
                     <div class="flex items-center gap-3">
@@ -2616,6 +2662,12 @@
                         </div>
                     </div>
                 </div>
+
+                <section class="scroll-spider-setting" aria-labelledby="scrollSpiderSettingsTitle">
+                    <img id="scrollSpiderSettingsPreview" src="./img/scroll-spider-anime.svg" alt="滚动挂件形象" width="56" height="64">
+                    <div><h3 id="scrollSpiderSettingsTitle">滚动挂件</h3><p>上传自己的图片，或使用默认蜘蛛少女。</p></div>
+                    <button id="scrollSpiderSettingsBtn" type="button" aria-haspopup="dialog">更换形象</button>
+                </section>
 
                 <!-- 音乐源切换 -->
                 <div class="p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
@@ -2921,6 +2973,8 @@
         import { createQueueStore } from './js/queue-store.js?v=1';
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
+        import { createListeningRoom } from './js/listening-room.js?v=2';
+        import { createLyricEffects } from './js/lyric-effects.js?v=3';
         import {
             DEFAULT_QUALITY,
             DEFAULT_MUSIC_SOURCE,
@@ -3080,6 +3134,8 @@
         // ================= 业务逻辑 =================
         const musicService = new MusicService();
 
+        let listeningRoom = null;
+        let lyricEffects = null;
         let audio = new Audio();
         audio.crossOrigin = 'anonymous';
         audio.volume = 0.5;
@@ -4640,7 +4696,7 @@
             const idInput = document.getElementById('playlistIdInput');
             const savedId = localStorage.getItem('cp_playlistId');
             if (idInput && savedId) idInput.value = savedId;
-            activateDialog(dom.settingsModal, idInput || dom.closeSettingsBtn);
+            activateDialog(dom.settingsModal, dom.closeSettingsBtn);
 
             // 刷新歌单来源状态
             updateSourceDisplay();
@@ -6141,6 +6197,8 @@
         }
 
         function setLyricsStatus(message) {
+            listeningRoom?.resetLyrics();
+            lyricEffects?.resetLyrics?.();
             parsedLyrics = [];
             activeLyricIndex = -1;
             [dom.desktopSubtitleSource, dom.mobileSubtitleSource].filter(Boolean).forEach(label => {
@@ -6192,7 +6250,9 @@
         }
 
         function renderLyrics() {
-            // Plan B: 使用 DOM 渲染
+            listeningRoom?.resetLyrics();
+            lyricEffects?.resetLyrics?.(true);
+            // Keep text content separate from its playback timing.
             const scroller = document.getElementById('lyricsScroller');
             const mobileScroller = document.getElementById('mobileLyricsScroller'); // ★ Mobile
 
@@ -6215,11 +6275,17 @@
                 div.className = 'lrc-line';
                 div.dataset.time = line.time;
                 div.dataset.idx = idx;
+                div.setAttribute('role', 'button');
+                div.tabIndex = idx === 0 ? 0 : -1;
+                div.setAttribute('aria-label', `跳转到 ${formatTime(line.time)}：${line.text}`);
 
                 // Click to seek
                 div.onclick = () => {
                     audio.currentTime = line.time;
-                    audio.play();
+                    audio.play().catch(() => showToast('请点击播放键继续'));
+                };
+                div.onkeydown = event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); div.click(); }
                 };
 
                 const spanMain = document.createElement('span');
@@ -6243,7 +6309,10 @@
                     if (mobileUI && mobileUI.dom.sheet.classList.contains('translate-y-0')) return;
 
                     audio.currentTime = line.time;
-                    audio.play();
+                    audio.play().catch(() => showToast('请点击播放键继续'));
+                };
+                mobileDiv.onkeydown = event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); mobileDiv.click(); }
                 };
                 mobileFrag.appendChild(mobileDiv);
             });
@@ -6287,12 +6356,20 @@
                         idx + 1,
                     ]).forEach(lineIndex => {
                         const line = lines[lineIndex];
-                        if (line) line.classList.remove('active', 'near');
+                        if (line) {
+                            lyricEffects?.deactivateLine?.(line);
+                            line.classList.remove('active', 'near');
+                            line.removeAttribute('aria-current');
+                            line.tabIndex = -1;
+                        }
                     });
 
                     if (lines[idx]) {
                         lines[idx - 1]?.classList.add('near');
                         lines[idx].classList.add('active');
+                        lines[idx].setAttribute('aria-current', 'true');
+                        lines[idx].tabIndex = 0;
+                        lyricEffects?.activateLine(lines[idx]);
                         lines[idx + 1]?.classList.add('near');
 
                         // Scroll logic
@@ -6301,7 +6378,8 @@
                         const lineHeight = lines[idx].clientHeight;
                         const targetScroll = lineTop - (containerHeight / 2) + (lineHeight / 2);
 
-                        scroller.scrollTo({
+                        if (listeningRoom) listeningRoom.follow(scrollerId, targetScroll);
+                        else scroller.scrollTo({
                             top: targetScroll,
                             behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
                         });
@@ -8029,6 +8107,10 @@
             // View Toggles
             toggleView() {
                 this.currentMode = this.currentMode === 'cover' ? 'lyrics' : 'cover';
+                this.dom.viewToggle?.setAttribute('aria-pressed', String(this.currentMode === 'lyrics'));
+                this.dom.viewToggle?.setAttribute('aria-label', this.currentMode === 'lyrics' ? '显示封面' : '显示歌词');
+                this.dom.mobileLyricsContainer.inert = this.currentMode !== 'lyrics';
+                this.dom.mobileCoverContainer.inert = this.currentMode !== 'cover';
 
                 if (this.currentMode === 'cover') {
                     // Show Cover
@@ -8696,6 +8778,11 @@
 
             // ★ Mobile UI
             mobileUI = new MobileUIManager();
+            document.getElementById('mobileLyricsPage').inert = true;
+            listeningRoom = createListeningRoom({
+                audio, artwork: dom.albumArt, titleSource: dom.songTitle, artistSource: dom.artistName,
+            });
+            lyricEffects = createLyricEffects({ onLayoutChange: () => listeningRoom?.recenterLyrics() });
         }
 
         function syncContinuousRendering() {
@@ -8737,7 +8824,7 @@
         });
 
     </script>
-    <script type="module" src="./js/page-scroll-spider.js?v=46"></script>
+    <script type="module" src="./js/page-scroll-spider.js?v=47"></script>
     <script type="module" src="./js/oneko-butterfly.js?v=44"></script>
 </body>
 

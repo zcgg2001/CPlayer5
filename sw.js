@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v56';
+const SHELL_CACHE = 'cplayer5-shell-v61';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -15,10 +15,18 @@ const CORE_ASSETS = [
   './css/art-direction.css',
   './css/bilibili.css',
   './css/studio.css',
+  './css/listening-room.css',
+  './css/lyric-effects.css',
+  './css/lyric-scenes.css',
   './css/oneko-butterfly.css',
   './css/page-scroll-spider.css',
   './css/noto-sans-sc.css',
   './js/app-shell.js',
+  './js/listening-room.js',
+  './js/lyric-effects.js',
+  './js/lyric-composition.js',
+  './js/lyric-catalog.js',
+  './js/lyric-scenes.js',
   './js/lucide.min.js',
   './js/lucide-bridge.js',
   './js/charts-page.js',
@@ -39,12 +47,16 @@ const CORE_ASSETS = [
   './js/cache-store.js',
   './js/oneko-butterfly.js',
   './js/page-scroll-spider.js',
+  './js/scroll-spider/index.js',
+  './js/scroll-spider/appearance.js',
+  './js/scroll-spider/editor.js',
   './img/icon.svg',
   './img/icon.png',
   './img/favicon.svg',
   './img/doraemon-progress-runner.png',
   './img/oneko-tora.gif',
   './img/scroll-spider-mascot.png',
+  './img/scroll-spider-anime.svg',
   './manifest.json'
 ];
 

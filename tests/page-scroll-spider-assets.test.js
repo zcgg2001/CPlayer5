@@ -19,8 +19,12 @@ test('precaches the restored accessories for offline use', () => {
     './css/page-scroll-spider.css',
     './js/oneko-butterfly.js',
     './js/page-scroll-spider.js',
+    './js/scroll-spider/index.js',
+    './js/scroll-spider/appearance.js',
+    './js/scroll-spider/editor.js',
     './img/oneko-tora.gif',
     './img/scroll-spider-mascot.png',
+    './img/scroll-spider-anime.svg',
   ]) {
     assert.ok(serviceWorker.includes(`'${asset}'`), `${asset} should be precached`);
   }

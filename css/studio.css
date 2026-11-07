@@ -346,25 +346,32 @@ html:root #desktopPlayerBar .player-actions .playback-quality-trigger {
   min-height: 40px;
   gap: 8px;
   padding: 0 13px;
-  color: var(--studio-ink);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 52%),
-    var(--studio-glass) !important;
-  border-color: var(--studio-glass-edge);
+  color: var(--studio-muted);
+  background: color-mix(in srgb, var(--studio-ink) 5%, transparent) !important;
+  border-color: color-mix(in srgb, var(--studio-ink) 10%, transparent);
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 var(--studio-glass-highlight), 0 8px 22px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
-  font-weight: 650;
+  box-shadow: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-weight: 600;
 }
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger:hover:not(:disabled),
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger:focus-visible {
   color: var(--studio-ink);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.24), transparent 56%),
-    var(--studio-glass-strong) !important;
-  border-color: color-mix(in srgb, var(--studio-glass-edge) 68%, var(--studio-ink));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 10px 28px rgba(0, 0, 0, 0.24);
+  background: color-mix(in srgb, var(--studio-ink) 9%, transparent) !important;
+  border-color: color-mix(in srgb, var(--studio-ink) 18%, transparent);
+  box-shadow: none;
+}
+html:root #desktopPlayerBar .player-actions #desktopPlaybackQualityLabel {
+  color: inherit;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger > i {
+  color: inherit;
+  opacity: 0.65;
+}
+html:root #desktopPlayerBar .player-actions .playback-quality-trigger > i .lucide-glyph {
+  width: 14px;
+  height: 14px;
 }
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger:disabled {
   color: var(--studio-muted);
@@ -377,8 +384,9 @@ html:root #desktopPlayerBar .player-actions .playback-quality-trigger:disabled >
 html:root #desktopPlayerBar .player-actions .playback-quality-dot {
   width: 6px;
   height: 6px;
-  background: #9ee9ee;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #9ee9ee 12%, transparent), 0 0 10px rgba(158, 233, 238, 0.36);
+  background: currentColor;
+  opacity: 0.6;
+  box-shadow: none;
 }
 html:root #desktopPlayerBar .player-timeline > span { color: var(--studio-muted); }
 html:root #desktopPlayerBar #desktopMiniCover { border-radius: 4px; border: 0; }

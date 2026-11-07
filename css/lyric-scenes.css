@@ -1,0 +1,160 @@
+/* Shared layout contract: the complete lyric remains readable in every scene. */
+html:root[data-lyric-effect] :is(#lyricsScroller, #mobileLyricsScroller, #lyricEffectPreview) .lrc-line .has-lyric-scene {
+  color: var(--room-ink); background: none; -webkit-text-fill-color: currentColor; text-shadow: none; animation: none;
+  font-size: var(--lyric-font-size, 36px); line-height: 1.45; isolation: isolate;
+}
+.lyric-scene { --scene-accent: #efbc9a; --scene-secondary: #a7cbd4; --scene-paper: #eed9b8; --scene-ink: #272834; position: relative; display: grid; align-items: center; width: 100%; min-height: 250px; padding: 48px 24px; overflow: hidden; border-radius: 12px; isolation: isolate; box-sizing: border-box; }
+.lyric-scenery { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+.lyric-scene-copy { display: block; position: relative; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; text-wrap: balance; }
+.scene-phrase { display: block; max-width: 100%; white-space: pre-wrap; animation: scene-phrase-in 700ms cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--phrase-index) * 90ms); }
+.scene-outline { fill: none; stroke: var(--scene-accent); stroke-width: 2; }
+.scene-fine { fill: none; stroke: currentColor; stroke-width: 1; opacity: .3; }
+.scene-echo { position: absolute; left: 8%; width: 84%; font-size: .5em; font-weight: 450; line-height: 1.4; opacity: .38; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.scene-echo::before { content: attr(data-text); }
+.echo-before { top: 25px; }
+.echo-after { bottom: 25px; }
+@keyframes scene-phrase-in { from { transform: translateY(14px); opacity: .3; } to { transform: translateY(0); opacity: 1; } }
+
+/* 商籁: printed frame, staggered editorial typography. */
+.scene-sonnet { background: var(--scene-paper); color: var(--scene-ink); padding: 45px 34px; border-radius: 2px; }
+.scene-sonnet::before, .scene-sonnet::after { position: absolute; font: 9px/1.2 monospace; letter-spacing: .2em; opacity: .65; }
+.scene-sonnet::before { content: 'LYRICAL STUDY / SONNET'; left: 28px; top: 14px; }
+.scene-sonnet::after { content: 'WORDS IN MOTION'; right: 28px; bottom: 14px; }
+.scene-sonnet .scene-outline { stroke: var(--scene-ink); }
+.scene-sonnet .scene-phrase { font-weight: 850; line-height: 1.3; margin-block: .15em; }
+.scene-sonnet .scene-phrase:nth-child(even) { text-align: right; font-family: Georgia, 'Noto Sans SC', serif; font-style: italic; color: #913e43; }
+
+/* 凝彩: warm/cool slabs, alternating blocks of type. */
+.scene-tempera { background: #38536a; padding-inline: 22px; }
+.scene-color-one { fill: #b9ced0; }
+.scene-color-two { fill: #d9846e; }
+.scene-tempera .scene-outline { stroke: #263d4a; opacity: .45; }
+.scene-tempera .scene-phrase { width: fit-content; padding: .12em .3em; background: #273f50; color: #f6e2c4; margin-block: .15em; line-height: 1.3; font-weight: 850; }
+.scene-tempera .scene-phrase:nth-child(even) { margin-left: auto; color: #263d4a; background: #f1ddbd; }
+
+/* 绘光: slowly moving stage beams and a pool of light. */
+.scene-lumiere { background: #151e2c; color: #fff3e3; text-align: center; padding-block: 70px; }
+.scene-lumiere .lyric-scene-copy { font-weight: 600; text-shadow: 0 0 25px #ffe4bd50; animation: scene-lit 4.8s ease-in-out infinite alternate; }
+.scene-beam { fill: #e8d4b7; opacity: .1; transform-origin: top center; animation: scene-beam-sway 7s ease-in-out infinite alternate; }
+.beam-two { fill: #a2c2f7; animation-delay: -3.5s; }
+.scene-light-pool { fill: #e7d4b0; opacity: .12; }
+@keyframes scene-lit { to { text-shadow: 0 0 35px #ffe4bd80; } }
+@keyframes scene-beam-sway { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+
+/* 花火: typography cutouts surrounded by bounded, slow bursts. */
+.scene-hanabi { color: #28213c; background: #352c51; padding: 55px 24px; }
+.scene-hanabi .scene-phrase { background: #f7cf9a; width: fit-content; padding: .1em .3em; margin: .15em auto; font-weight: 850; box-shadow: 4px 4px 0 #e88b8c; transform-origin: center; }
+.scene-hanabi .scene-phrase:nth-child(even) { background: #b8d7d3; box-shadow: -4px 4px 0 #899ccd; }
+.scene-firework-ray { stroke: #f8d2a2; stroke-width: 4; stroke-linecap: round; }
+.scene-burst { animation: scene-burst-bloom 4.5s ease-out infinite; animation-delay: var(--burst-delay); opacity: .55; }
+.scene-trail { stroke: #f8d2a2; stroke-dasharray: 8 12; opacity: .5; }
+@keyframes scene-burst-bloom { 0%, 100% { transform: scale(.65); opacity: .25; } 40%, 70% { transform: scale(1); opacity: .7; } }
+
+/* 町景: the lyric itself is the shop sign, with a small rainy street below. */
+.scene-machi { background: linear-gradient(#162539, #1d3645); color: #f5dbab; padding: 65px 22px 155px; min-height: 350px; }
+.scene-machi .lyric-scene-copy { padding: 16px 14px; border: 2px solid #bd837c; border-radius: 5px; background: #1d2934; text-align: center; font-weight: 600; text-shadow: 0 0 15px #ffc4a74d; box-shadow: 0 0 16px #ee9c7e25, inset 0 0 18px #ee9c7e12; }
+.scenery-machi { object-fit: cover; }
+.scene-building { fill: #182c3c; stroke: #304354; stroke-width: 2; }
+.scene-window { fill: #9eaa9e; opacity: .28; }
+.scene-shop { fill: #31434b; stroke: #daaf93; stroke-width: 3; }
+.scene-machi .scene-outline { stroke: #a6c1bb; opacity: .65; }
+.scene-reflection { fill: none; stroke: #dfa58c; stroke-width: 12; opacity: .15; }
+.scene-rain-stroke { stroke: #c2dce8; stroke-width: 1.5; opacity: .3; }
+.scene-rain { animation: scene-rainfall 2.4s linear infinite; }
+@keyframes scene-rainfall { from { transform: translate(0,-30px); } to { transform: translate(-30px,60px); } }
+
+/* 雾笺: a misted window and softly revealed handwritten-looking text. */
+.scene-nebbia { background: radial-gradient(circle at 20% 65%, #d3977455, transparent 28%), radial-gradient(circle at 75% 30%, #8db8c353, transparent 30%), #34434a; color: #f1eee2; padding: 55px 28px; }
+.scene-fog-window { fill: #b9cac511; stroke: #c2d3d144; stroke-width: 8; }
+.scene-drop { fill: #cde0e233; stroke: #e1eeee77; stroke-width: 1.2; animation: scene-drop-slide 8s ease-in infinite; animation-delay: var(--drop-delay); }
+.scene-nebbia .lyric-scene-copy { font-family: 'Kaiti SC', STKaiti, KaiTi, 'Noto Sans SC', serif; font-weight: 500; letter-spacing: .06em; text-align: center; text-shadow: 0 1px 2px #07101d80; animation: scene-fog-clear 1.4s ease-out both; }
+@keyframes scene-drop-slide { 0%, 65% { transform: translateY(0); } 100% { transform: translateY(55px); } }
+@keyframes scene-fog-clear { from { filter: blur(6px); opacity: .25; } to { filter: blur(0); opacity: 1; } }
+
+/* 流光 / 云阶: a centered line, and semantic staircase fragments. */
+.scene-glow { min-height: 200px; padding: 45px 14px; text-align: center; }
+.scene-glow .lyric-scene-copy { color: #ffe2ce; background: linear-gradient(100deg, #d3acb3 10%, #fff7df 45%, #fff 50%, #fff7df 55%, #d3acb3 90%); background-size: 260% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: lyric-glow 3.6s ease-in-out infinite; }
+html[data-theme="light"] :is(#lyricsScroller, #mobileLyricsScroller) .scene-glow .lyric-scene-copy { background-image: linear-gradient(100deg, #714355, #b92e4b, #543746); }
+.scene-cloud { padding: 24px 5px; min-height: 220px; }
+.scene-cloud .scene-phrase { padding: .15em 0 .15em .35em; margin-left: calc(var(--phrase-index) * 6%); max-width: calc(100% - var(--phrase-index) * 6%); border-left: 1px solid color-mix(in srgb, var(--composition-accent) 45%, transparent); margin-block: .2em; font-size: calc(1em - var(--phrase-index) * .05em); }
+.scene-cloud .scene-phrase:nth-child(even) { color: var(--composition-accent); }
+
+/* 浮名: oversized foreground words over a cropped type echo. */
+.scene-fume { padding: 50px 12px; min-height: 300px; }
+.scene-fume .scene-echo { font-size: 2.5em; font-weight: 900; opacity: .045; left: -20%; width: 150%; white-space: nowrap; }
+.scene-fume .echo-before { top: 0; transform: rotate(-7deg); }
+.scene-fume .echo-after { bottom: 0; transform: rotate(5deg); }
+.scene-fume .scene-phrase { font-size: 1.35em; font-weight: 900; line-height: 1.18; letter-spacing: -.04em; }
+.scene-fume .scene-phrase:nth-child(even) { text-align: right; color: var(--composition-accent); }
+
+/* 莫奈: cover portrait and a lyric rail, with artwork fallback colors. */
+.scene-monet { padding: 35px 42% 35px 8px; min-height: 280px; }
+.scene-monet .lyric-scene-copy { font-size: .86em; font-weight: 600; line-height: 1.5; }
+.scene-art-frame { position: absolute; right: 3%; top: 16%; width: 33%; height: 68%; border-radius: 50% 50% 12px 12px; overflow: hidden; background: radial-gradient(ellipse at 40% 30%, #dfb5bb, transparent 60%), linear-gradient(160deg, #777d9c, #b3cec2); box-shadow: 0 12px 28px #0002; transform: rotate(3deg); }
+.scene-art-frame img { width: 100%; height: 100%; object-fit: cover; }
+.scene-paint-ellipse { fill: var(--composition-accent); opacity: .1; }
+
+/* 回环 / 时计: adjacent lyric echoes follow an orbit or the dial. */
+.scene-claddagh { padding: 85px 36px; min-height: 300px; text-align: center; }
+.scene-claddagh .lyric-scene-copy { font-weight: 700; text-shadow: 0 0 18px var(--composition-glow); }
+.scene-claddagh .echo-before { top: 40px; transform: rotate(-9deg); }
+.scene-claddagh .echo-after { bottom: 40px; transform: rotate(-9deg); }
+.scene-orbit { fill: none; stroke: var(--composition-accent); stroke-width: 2; opacity: .35; stroke-dasharray: 8 7; animation: scene-orbit-drift 12s linear infinite; }
+.orbit-inner { opacity: .13; stroke-dasharray: none; }
+.scene-orbit-dot { fill: var(--composition-accent); opacity: .8; }
+@keyframes scene-orbit-drift { to { stroke-dashoffset: -180; } }
+.scene-pendolo { padding: 90px 12px 90px 24%; min-height: 310px; }
+.scene-pendolo .lyric-scene-copy { font-size: .9em; font-weight: 650; }
+.scene-pendolo .scene-echo { left: 28%; width: 68%; }
+.scene-pendolo .echo-before { top: 38px; transform: rotate(-6deg); }
+.scene-pendolo .echo-after { bottom: 38px; transform: rotate(6deg); }
+.scene-clock-ring { fill: none; stroke: var(--composition-accent); stroke-width: 1.5; opacity: .35; }
+.scene-clock-hand { fill: none; stroke: var(--composition-accent); stroke-width: 4; opacity: .5; }
+.scene-clock-hub { fill: var(--composition-accent); opacity: .5; }
+.scene-clock { animation: scene-clock-tick 60s steps(60,end) infinite; }
+@keyframes scene-clock-tick { to { transform: rotate(360deg); } }
+
+/* 镜台: shallow perspective text and floating geometric frames. */
+.scene-diorama { padding: 70px 30px; min-height: 300px; background: linear-gradient(155deg, #232738, #34384b); color: #f9ede0; perspective: 700px; }
+.scene-diorama .lyric-scene-copy { padding: 18px; border: 1px solid #ffffff30; background: #363748cc; box-shadow: 12px 18px 40px #12132450; transform: rotateY(-7deg) rotateX(3deg); animation: scene-depth-drift 8s ease-in-out infinite alternate; }
+.scene-depth-plane { fill: #d5c8c30b; stroke: #d5c8c36a; stroke-width: 2; }
+.depth-1 { fill: #a2c7d61a; stroke: #a2c7d66a; }
+.scene-perspective-grid { fill: none; stroke: #c6d2e0; stroke-width: 1; opacity: .13; }
+@keyframes scene-depth-drift { to { transform: rotateY(5deg) rotateX(-2deg) translateY(-3px); } }
+
+/* 静止 is an actual static mode, including following and ambient artwork. */
+html:root[data-lyric-effect="still"] :is(#lyricsScroller, #mobileLyricsScroller, #lyricEffectPreview) .lrc-line { text-align: center; filter: none; transform: none; transition: none; opacity: .25; }
+html:root[data-lyric-effect="still"] :is(#lyricsScroller, #mobileLyricsScroller, #lyricEffectPreview) .lrc-line.active { opacity: 1; }
+html:root[data-lyric-effect="still"] :is(#lyricsScroller, #mobileLyricsScroller, #lyricEffectPreview) .lrc-line.near { opacity: .5; }
+html:root[data-lyric-effect="still"] :is(.listening-ambient-art, .listening-bars i) { animation: none !important; }
+
+/* The same lifecycle rules cover every SVG, glyph and scene decoration. */
+html:root:not(.listening-playing) :is(#lyricsScroller, #mobileLyricsScroller) .lyric-scene *,
+#desktopLayout:not(.is-open) #lyricsScroller .lyric-scene *,
+#mobileLyricsPage[inert] .lyric-scene *,
+#lyricEffectPreview:not(.is-preview-playing) .lyric-scene * { animation-play-state: paused !important; }
+html:root:not(.listening-playing) :is(#lyricsScroller, #mobileLyricsScroller) :is(.scene-phrase, .scene-nebbia .lyric-scene-copy),
+#lyricEffectPreview:not(.is-preview-playing) :is(.scene-phrase, .scene-nebbia .lyric-scene-copy) { animation: none !important; }
+html:root[data-lyric-effect] #lyricEffectPreview .active:has(.lyric-scene) { padding-block: 0; }
+html:root[data-lyric-effect] #lyricEffectPreview:has(.lyric-scene) { padding-inline: 12px; }
+.lyric-catalog-note { margin: 8px 0 0; color: var(--studio-muted); font-size: 11px; }
+#lyricRandomNext { min-height: 44px; padding: 0 12px; border: 1px solid var(--studio-line); border-radius: 9px; color: var(--studio-ink); background: var(--studio-raised); cursor: pointer; }
+#lyricRandomNext[hidden] { display: none; }
+.lyric-random-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+@media (max-width: 480px) {
+  .lyric-scene { padding-inline: 15px; }
+  .scene-sonnet { padding-inline: 22px; }
+  .scene-machi { min-height: 280px; padding-block: 40px 75px; }
+  .scene-monet { padding-left: 4px; padding-right: 40%; }
+  .scene-pendolo { padding-left: 23%; padding-right: 8px; }
+  .scene-fume .scene-phrase { font-size: 1.08em; }
+  .scene-diorama .lyric-scene-copy { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lyric-scene, .lyric-scene * { animation: none !important; transition: none !important; }
+  .scene-diorama .lyric-scene-copy { transform: none; }
+}
+@media (forced-colors: active) {
+  .lyric-scene, .scene-phrase, .lyric-scene-copy { color: CanvasText !important; background: Canvas !important; -webkit-text-fill-color: CanvasText !important; text-shadow: none !important; }
+  .lyric-scenery, .scene-art-frame, .scene-echo { display: none; }
+}
