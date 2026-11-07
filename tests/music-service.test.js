@@ -73,7 +73,7 @@ test('ChKSz collections play through the selected API and retain listing metadat
     }
     return Response.json({ code: 200, data: { id: track.id, url: 'https://example.com/song.mp3', level: 'exhigh' } });
   };
-  const discovery = await service.getNewSongs({ fetchImpl });
+  const discovery = await service.getNewSongs({ source: 'chksz', fetchImpl });
   const collection = await service.getPlaylistCollection('3779629', { fetchImpl });
   assert.equal(discovery[0].provider, 'chksz');
   assert.deepEqual(collection.tracks, discovery);
@@ -91,4 +91,30 @@ test('ChKSz collections play through the selected API and retain listing metadat
     { path: '/api/v1/music/song', source: 'gd' },
     { path: '/api/v1/music/song', source: 'chksz' },
   ]);
+});
+
+
+test('GD discovery, search, playback and lyrics work while ChKSz quota is exhausted', async () => {
+  const service = new MusicService({ storage: null, location: { search: '' } });
+  const calls = [];
+  const fetchImpl = async value => {
+    const url = new URL(value, 'https://player.example');
+    calls.push(url);
+    if (url.searchParams.get('source') !== 'gd') {
+      return Response.json({ error: { code: 'chksz_error', message: '额度已用尽' } }, { status: 402 });
+    }
+    if (url.pathname.endsWith('/search')) return Response.json({ code: 200, data: [{ id: 1, name: 'Song', artists: ['Artist'] }] });
+    if (url.pathname.endsWith('/lyric')) return Response.json({ code: 200, data: { lrc: '[00:01]歌词' } });
+    return Response.json({ code: 200, data: { id: 1, url: 'https://example.com/song.mp3', level: 'standard' } });
+  };
+  const discovered = await service.getNewSongs({ fetchImpl });
+  const found = await service.search('Song', { fetchImpl });
+  const played = await service.getSong(found[0].id, { song: found[0], fetchImpl });
+  const lyric = await service.getLyric(played.id, { song: played, fetchImpl });
+  assert.equal(discovered[0].provider, 'gd');
+  assert.equal(played.provider, 'gd');
+  assert.equal(lyric.lrc, '[00:01]歌词');
+  assert.equal(calls.length, 4);
+  assert.ok(calls.every(url => url.searchParams.get('source') === 'gd'));
+  assert.ok(calls.every(url => !url.pathname.endsWith('/playlist')));
 });

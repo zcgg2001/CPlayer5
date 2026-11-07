@@ -777,6 +777,8 @@ function videoSurface(prefix) {
 export function createArtistsController({
   onPlay,
   onAdd,
+  onlineEnabled = () => true,
+  onSearch = () => {},
   fetchImpl = globalThis.fetch?.bind(globalThis),
   storage = globalThis.localStorage,
 } = {}) {
@@ -785,17 +787,51 @@ export function createArtistsController({
     scope: 'trending',
     payloads: new Map(),
     loading: new Map(),
+    version: 0,
   };
 
   const load = async (scope = state.scope, { force = false } = {}) => {
     const resolved = Object.hasOwn(ARTIST_SCOPES, scope) ? scope : 'trending';
     state.scope = resolved;
     syncTabs(surfaces.map(surface => surface.tabs), 'data-artist-scope', resolved);
+    if (!onlineEnabled()) {
+      state.version++;
+      state.loading.clear();
+      const cached = state.payloads.get(resolved)
+        || readSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, normalizeArtistsPayload);
+      surfaces.forEach(surface => {
+        if (cached) {
+          renderArtists(surface, cached, { onPlay, onAdd });
+          surface.source.textContent = `${cached.collection.sourceName} · 已保存的内容`;
+        } else {
+          surface.grid.replaceChildren();
+          surface.detail?.replaceChildren();
+          surface.title.textContent = ARTIST_SCOPES[resolved];
+          surface.description.textContent = '歌手榜单需要 ChKSz；你仍可搜索歌手名字查找作品。';
+          surface.source.textContent = '实时更新已暂停';
+          surface.count.textContent = '暂无缓存';
+          surface.updated.textContent = '';
+          const message = document.createElement('div');
+          message.className = 'content-empty-state';
+          message.setAttribute('role', 'status');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'content-primary-action';
+          button.textContent = '搜索歌手与歌曲';
+          button.addEventListener('click', onSearch);
+          message.append(document.createTextNode('暂无已保存的歌手内容。'), button);
+          surface.grid.appendChild(message);
+        }
+        setSurfaceBusy(surface, false);
+      });
+      return cached || null;
+    }
     if (!force && state.payloads.has(resolved)) {
       surfaces.forEach(surface => renderArtists(surface, state.payloads.get(resolved), { onPlay, onAdd }));
       return state.payloads.get(resolved);
     }
     if (state.loading.has(resolved)) return state.loading.get(resolved);
+    const version = ++state.version;
 
     surfaces.forEach(surface => {
       setSurfaceBusy(surface, true);
@@ -809,13 +845,21 @@ export function createArtistsController({
 
     const pending = fetchArtistsPayload(fetchImpl, resolved)
       .then(payload => {
+        if (version !== state.version) return null;
         state.payloads.set(resolved, payload);
         writeSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, payload);
         surfaces.forEach(surface => renderArtists(surface, payload, { onPlay, onAdd }));
         return payload;
       })
       .catch(error => {
-        if (cached) return cached;
+        if (version !== state.version) return null;
+        if (cached) {
+          surfaces.forEach(surface => {
+            renderArtists(surface, cached, { onPlay, onAdd });
+            surface.source.textContent = `${cached.collection.sourceName} · 已保存的内容`;
+          });
+          return cached;
+        }
         surfaces.forEach(surface => {
           setSurfaceBusy(surface, false);
           surface.grid.replaceChildren();
@@ -827,7 +871,9 @@ export function createArtistsController({
         });
         throw error;
       })
-      .finally(() => state.loading.delete(resolved));
+      .finally(() => {
+        if (state.loading.get(resolved) === pending) state.loading.delete(resolved);
+      });
     state.loading.set(resolved, pending);
     return pending;
   };

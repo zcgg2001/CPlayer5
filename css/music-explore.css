@@ -893,3 +893,23 @@
 @keyframes content-spin {
   to { transform: rotate(360deg); }
 }
+.gd-topic-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 156px;
+  padding: 24px;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 8px;
+  color: inherit;
+  background: linear-gradient(135deg, hsl(var(--topic-hue) 45% 50% / 0.16), transparent);
+  text-align: left;
+  cursor: pointer;
+}
+.gd-topic-card strong { font-size: 18px; font-weight: 600; }
+.gd-topic-card > span { font-size: 12px; opacity: 0.65; }
+.gd-topic-card .gd-topic-action { margin-top: auto; opacity: 0.9; }
+.gd-topic-card:hover { border-color: color-mix(in srgb, currentColor 40%, transparent); }
+.gd-topic-card:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }

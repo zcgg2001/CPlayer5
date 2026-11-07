@@ -1394,7 +1394,7 @@
     </style>
     <link rel="stylesheet" href="./css/app-shell.css?v=24">
     <link rel="stylesheet" href="./css/charts.css?v=22">
-    <link rel="stylesheet" href="./css/music-explore.css?v=22">
+    <link rel="stylesheet" href="./css/music-explore.css?v=23">
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=28">
     <link rel="stylesheet" href="./css/art-direction.css?v=34">
     <link rel="stylesheet" href="./css/bilibili.css?v=40">
@@ -1567,7 +1567,7 @@
                                     </select>
                                     <i class="fas fa-chevron-down" aria-hidden="true"></i>
                                 </div>
-                                <p id="discoveryMusicSourceHint">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</p>
+                                <p id="discoveryMusicSourceHint">搜索、播放与歌词免密钥；首页按主题发现音乐</p>
                                 <a class="gd-source-credit" href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">来源：GD音乐台</a>
                             </div>
                         </header>
@@ -2334,7 +2334,7 @@
                         <label for="mobileMusicSourceSelect">
                             <i class="fas fa-broadcast-tower" aria-hidden="true"></i>
                             <span>音乐源</span>
-                            <span id="mobileMusicSourceHint">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</span>
+                            <span id="mobileMusicSourceHint">搜索、播放与歌词免密钥；首页按主题发现音乐</span>
                         </label>
                         <div class="mobile-source-select-wrap">
                             <select id="mobileMusicSourceSelect"
@@ -2678,7 +2678,7 @@
                         <option value="gd" selected>GD 音乐台 · 网易云（免密钥）</option>
                         <option value="bilibili">Bilibili · 哔哩哔哩</option>
                     </select>
-                    <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz</p>
+                    <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">搜索、播放与歌词免密钥；首页按主题发现音乐</p>
                 </div>
 
                 <p id="gdSourceCredit" class="music-key-hint" hidden>来源：<a href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">GD音乐台 (music.gdstudio.xyz)</a> · 仅供非商业学习使用 · 每 5 分钟最多 50 次请求。</p>
@@ -2945,12 +2945,12 @@
     <!-- JavaScript 逻辑 -->
     <script type="module">
         import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=22';
-        import { createChartsController } from './js/charts-page.js?v=31';
+        import { createChartsController } from './js/charts-page.js?v=32';
         import {
             createArtistsController,
             createVideosController,
             formatReleaseDate
-        } from './js/music-explore.js?v=31';
+        } from './js/music-explore.js?v=32';
         import { normalizeMediaUrl } from './js/security.js?v=35';
         import {
             RequestCancelledError,
@@ -2986,7 +2986,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=5';
+        } from './js/music-service.js?v=6';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -3284,10 +3284,14 @@
             initThemeControls();
             initAnimeProgressThumbs();
             chartsController = createChartsController({
+                onlineEnabled: () => musicService.config.source === 'chksz',
+                onSearch: () => openMusicSearch(),
                 onPlay: song => addChartSong(song, { playNow: true }),
                 onAdd: song => addChartSong(song, { playNow: false }),
             });
             artistsController = createArtistsController({
+                onlineEnabled: () => musicService.config.source === 'chksz',
+                onSearch: () => openMusicSearch(),
                 onPlay: song => addChartSong(song, {
                     playNow: true,
                     source: `artist-${artistsController?.current() || 'trending'}`,
@@ -4561,12 +4565,12 @@
                 dom.mobileBilibiliBrowse.hidden = !isBilibili;
                 dom.desktopLibraryTitle.textContent = isBilibili ? 'Bilibili 音乐' : '发现音乐';
                 dom.desktopSearchSource.textContent = option.label;
-                dom.desktopDiscoveryRefresh.setAttribute('aria-label', isBilibili ? '刷新 Bilibili 音乐' : '刷新新歌速递');
+                dom.desktopDiscoveryRefresh.setAttribute('aria-label', isBilibili ? '刷新 Bilibili 音乐' : isGd ? '刷新 GD 发现' : '刷新新歌速递');
                 dom.desktopDiscoveryView.querySelector('.library-kicker').textContent = isBilibili ? 'BILIBILI' : 'DISCOVER';
                 dom.desktopDiscoveryView.querySelector('.library-description').textContent = isBilibili
-                    ? '原创、翻唱与音乐现场' : '今日新歌与精选专辑 · 数据来自 ChKSz';
+                    ? '原创、翻唱与音乐现场' : isGd ? '搜索喜欢的歌曲，按主题发现音乐' : '今日新歌与精选专辑 · 数据来自 ChKSz';
                 for (const grid of [dom.editorialPlaylistGrid, dom.newAlbumGrid, dom.scenePlaylistGrid]) {
-                    grid.closest('.music-shelf').hidden = isBilibili;
+                    grid.closest('.music-shelf').hidden = isBilibili || (isGd && grid === dom.newAlbumGrid);
                 }
                 [dom.searchInput, dom.mobileSearchInput].filter(Boolean).forEach(input => {
                     input.placeholder = isBilibili ? '视频标题、UP 主、BV 号或链接' : isGd ? '歌曲名或歌手' : '歌曲名、歌手或歌曲 ID';
@@ -4606,8 +4610,11 @@
                     if (nextSource === previousSource) return;
                     desktopSearchController?.abort();
                     mobileUI?.searchController?.abort();
-                    const discoverySourceChanged = (previousSource === 'bilibili') !== (nextSource === 'bilibili');
-                    if (discoverySourceChanged) musicCollectionsController?.abort();
+                    const discoverySourceChanged = previousSource !== nextSource;
+                    if (discoverySourceChanged) {
+                        desktopDiscoveryController?.abort();
+                        musicCollectionsController?.abort();
+                    }
                     musicService.saveSettings('source', nextSource);
                     const pageUrl = new URL(window.location.href);
                     pageUrl.searchParams.set('source', nextSource);
@@ -4622,6 +4629,8 @@
                     if (discoverySourceChanged) {
                         loadNewSongDiscovery();
                         if (nextSource !== 'bilibili') scheduleMusicCollections();
+                        if (nextSource !== 'chksz' || contentViewFromHash() === 'charts') chartsController?.refresh();
+                        if (nextSource !== 'chksz' || contentViewFromHash() === 'artists') artistsController?.refresh();
                     }
                     showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
                 });
@@ -5074,19 +5083,44 @@
         let desktopDiscoveryController = null;
         let bilibiliCategory = 'all';
 
+        function useGdMusic() {
+            const select = dom.musicSourceSelect;
+            if (!select) return;
+            select.value = 'gd';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function openMusicSearch(query = '') {
+            if (isCompactLayout()) {
+                setMobileExploreOpen(false);
+                mobileUI?.openSheet();
+                mobileUI?.switchSheetTab('search');
+                dom.mobileSearchInput.value = query;
+                dom.mobileSearchInput.focus();
+                if (query) mobileUI?.handleSearch(query);
+            } else {
+                desktopShell.navigate('search');
+                dom.searchInput.value = query;
+                dom.searchInput.focus();
+                if (query) searchSongs(query);
+            }
+        }
+
         async function loadNewSongDiscovery() {
             if (!dom.desktopDiscoveryList) return;
 
             const requestSource = supportedMusicSource(musicService.config.source);
-            const discoverySource = requestSource === 'bilibili' ? 'bilibili' : 'chksz';
+            const discoverySource = requestSource;
             const sourceOption = musicSourceOption(discoverySource);
-            const snapshotKey = `cp_bilibili_discovery_v1_${bilibiliCategory}`;
+            const snapshotKey = requestSource === 'gd' ? 'cp_gd_discovery_v1' : `cp_bilibili_discovery_v1_${bilibiliCategory}`;
             let snapshot = null;
-            if (requestSource === 'bilibili') {
+            if (requestSource !== 'chksz') {
                 try {
                     const saved = JSON.parse(globalThis.localStorage?.getItem(snapshotKey) || 'null');
                     if (saved?.savedAt > Date.now() - 86400000) {
-                        const songs = normalizeBilibiliPayload({ code: 200, data: saved.songs });
+                        const songs = requestSource === 'gd'
+                            ? normalizeSearchPayload({ code: 200, data: saved.songs }).map(song => ({ ...song, provider: 'gd', source: 'GD 音乐台' }))
+                            : normalizeBilibiliPayload({ code: 200, data: saved.songs });
                         if (songs.length) snapshot = { songs: songs.slice(0, 12), savedAt: saved.savedAt };
                     }
                 } catch { }
@@ -5094,11 +5128,11 @@
             const sourceLabel = dom.desktopDiscoverySection?.querySelector('.discovery-source');
             const sourceDetail = dom.desktopDiscoverySection?.querySelector('.discovery-heading-copy > p');
             if (sourceLabel) sourceLabel.textContent = discoverySource === 'chksz'
-                ? 'ChKSz · 网易云新歌榜' : 'Bilibili · 公开内容';
+                ? 'ChKSz · 网易云新歌榜' : discoverySource === 'gd' ? 'GD 音乐台 · 华语搜索' : 'Bilibili · 公开内容';
             if (sourceDetail) sourceDetail.textContent = discoverySource === 'chksz'
-                ? '真实榜单数据 · 每次展示最新 12 首' : '音乐区视频 · UP 主作品';
+                ? '真实榜单数据 · 每次展示最新 12 首' : discoverySource === 'gd' ? '关键词「华语」的搜索结果 · 点击即可播放' : '音乐区视频 · UP 主作品';
             if (dom.desktopDiscoveryTitle) dom.desktopDiscoveryTitle.textContent = discoverySource === 'chksz' ? '新歌速递'
-                : (dom.bilibiliCategories.querySelector('[aria-selected="true"]')?.textContent || '音乐区热榜');
+                : discoverySource === 'gd' ? '随心发现' : (dom.bilibiliCategories.querySelector('[aria-selected="true"]')?.textContent || '音乐区热榜');
 
             desktopDiscoveryController?.abort();
             const requestController = new AbortController();
@@ -5118,7 +5152,7 @@
                 if (!songs.length) throw new Error('New song chart was empty');
                 renderDiscoverySongs(songs);
                 if (discoverySource === 'chksz') renderNewAlbums(songs);
-                else if (discoverySource === 'bilibili') {
+                else if (discoverySource !== 'chksz') {
                     try {
                         globalThis.localStorage?.setItem(snapshotKey, JSON.stringify({ songs, savedAt: Date.now() }));
                     } catch { }
@@ -5131,7 +5165,9 @@
                     return;
                 }
                 console.error('新歌榜加载失败:', error);
-                setDiscoveryStatus(`${sourceOption.label}加载失败：${requestErrorMessage(error)}`, { error: true });
+                setDiscoveryStatus(`${sourceOption.label}加载失败：${requestErrorMessage(error)}。搜索与播放仍可独立使用。`, {
+                    error: true, action: discoverySource === 'chksz' ? useGdMusic : null,
+                });
                 setCollectionStatus(dom.newAlbumGrid, '新碟加载失败，请刷新后重试', {
                     error: true,
                     retry: loadNewSongDiscovery,
@@ -5145,7 +5181,7 @@
             }
         }
 
-        function setDiscoveryStatus(message, { error = false } = {}) {
+        function setDiscoveryStatus(message, { error = false, action = null } = {}) {
             const status = document.createElement('div');
             status.className = `discovery-status${error ? ' is-error' : ''}`;
             status.setAttribute('role', 'status');
@@ -5157,6 +5193,14 @@
             const label = document.createElement('span');
             label.textContent = message;
             status.append(icon, label);
+            if (action) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'content-primary-action';
+                button.textContent = '使用 GD 音乐台';
+                button.addEventListener('click', action);
+                status.appendChild(button);
+            }
             dom.desktopDiscoveryList.replaceChildren(status);
         }
 
@@ -5370,7 +5414,7 @@
             container.replaceChildren(fragment);
         }
 
-        function setCollectionStatus(container, message, { error = false, retry = null } = {}) {
+        function setCollectionStatus(container, message, { error = false, retry = null, retryLabel = '重新加载' } = {}) {
             if (!container) return;
             container.setAttribute('aria-busy', 'false');
             const status = document.createElement('div');
@@ -5387,7 +5431,7 @@
             if (retry) {
                 const retryButton = document.createElement('button');
                 retryButton.type = 'button';
-                retryButton.textContent = '重新加载';
+                retryButton.textContent = retryLabel;
                 retryButton.addEventListener('click', retry);
                 status.appendChild(retryButton);
             }
@@ -5578,6 +5622,11 @@
         }
 
         function scheduleMusicCollections() {
+            if (musicService.config.source !== 'chksz') {
+                if (musicService.config.source === 'gd') renderGdTopics();
+                return;
+            }
+            updateCollectionHeadings(false);
             const shelves = [dom.editorialPlaylistGrid, dom.scenePlaylistGrid]
                 .map(grid => grid?.closest('.music-shelf')).filter(Boolean);
             if (!shelves.length) return;
@@ -5593,22 +5642,78 @@
             shelves.forEach(shelf => observer.observe(shelf));
         }
 
+        function updateCollectionHeadings(gd) {
+            for (const [grid, title, description, note] of [
+                [dom.editorialPlaylistGrid, gd ? '按主题发现' : '编辑精选', gd ? '选一个主题，寻找喜欢的声音' : '网易云精选榜单', gd ? '点击搜索' : '每日更新'],
+                [dom.scenePlaylistGrid, gd ? '此刻想听' : '场景歌单', gd ? '通勤、专注、运动与夜晚' : '网易云歌单 · 通勤、专注、运动与夜晚', gd ? '按需加载' : '随心切换'],
+            ]) {
+                const shelf = grid?.closest('.music-shelf');
+                if (!shelf) continue;
+                shelf.querySelector('h2').textContent = title;
+                shelf.querySelector('.music-shelf-heading > div > p:last-child').textContent = description;
+                shelf.querySelector('.music-shelf-note').textContent = note;
+            }
+        }
+
+        function renderGdTopics() {
+            updateCollectionHeadings(true);
+            const groups = [
+                [dom.editorialPlaylistGrid, [
+                    ['华语旋律', '华语', '听见熟悉的声音'], ['粤语经典', '粤语', '旋律里的旧时光'],
+                    ['日语流行', '日语', '轻盈明亮的节奏'], ['古典乐章', '古典', '给思绪留一点空白'],
+                    ['民谣故事', '民谣', '吉他与生活的片段'], ['爵士时光', '爵士', '随性一点，慢一点'],
+                ]],
+                [dom.scenePlaylistGrid, [
+                    ['清晨通勤', '轻快', '让节奏叫醒今天'], ['沉浸专注', '纯音乐', '安静陪伴手边的事'],
+                    ['夜晚独处', '夜晚', '把一天慢慢放下'], ['运动能量', '运动', '跟随节拍向前'],
+                    ['雨天陪伴', '雨', '窗外与耳边的旋律'], ['周末散步', '治愈', '留一些时间给自己'],
+                ]],
+            ];
+            for (const [container, topics] of groups) {
+                if (!container) continue;
+                const fragment = document.createDocumentFragment();
+                topics.forEach(([title, keyword, description], index) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'gd-topic-card';
+                    button.style.setProperty('--topic-hue', String(190 + index * 29));
+                    button.setAttribute('aria-label', `搜索${title}`);
+                    const name = document.createElement('strong');
+                    name.textContent = title;
+                    const detail = document.createElement('span');
+                    detail.textContent = description;
+                    const action = document.createElement('span');
+                    action.className = 'gd-topic-action';
+                    action.textContent = '搜索歌曲 →';
+                    button.append(name, detail, action);
+                    button.addEventListener('click', () => openMusicSearch(keyword));
+                    fragment.appendChild(button);
+                });
+                container.replaceChildren(fragment);
+                container.setAttribute('aria-busy', 'false');
+            }
+        }
+
         async function loadMusicCollections() {
-            if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid || musicService.config.source === 'bilibili') return;
+            if (!dom.editorialPlaylistGrid || !dom.scenePlaylistGrid || musicService.config.source !== 'chksz') return;
             musicCollectionsController?.abort();
             const requestController = new AbortController();
             musicCollectionsController = requestController;
             setCollectionLoading(dom.editorialPlaylistGrid, EDITORIAL_PLAYLISTS.length, '正在整理编辑精选');
             setCollectionLoading(dom.scenePlaylistGrid, SCENE_PLAYLISTS.length, '正在准备场景歌单', { scene: true });
 
+            const collections = [];
             try {
-                const collections = [];
                 for (const config of EDITORIAL_PLAYLISTS) {
                     const collection = await musicService.getPlaylistCollection(config.id, {
                         signal: requestController.signal,
                     });
+                    if (requestController.signal.aborted) return;
                     if (!collection?.tracks?.length) throw new Error(`Playlist ${config.id} was empty`);
                     collections.push({ config, collection });
+                    const partialMap = new Map(collections.map(item => [String(item.collection.id), item.collection]));
+                    renderEditorialCollections(collections);
+                    renderSceneCollections(partialMap);
                 }
                 if (requestController.signal.aborted) return;
                 if (!collections.length) throw new Error('All editorial playlists failed');
@@ -5619,13 +5724,19 @@
             } catch (error) {
                 if (error instanceof RequestCancelledError || requestController.signal.aborted) return;
                 console.error('音乐精选加载失败:', error);
+                if (collections.length) {
+                    for (const grid of [dom.editorialPlaylistGrid, dom.scenePlaylistGrid]) {
+                        grid.closest('.music-shelf').querySelector('.music-shelf-note').textContent = '部分内容暂不可用';
+                    }
+                    return;
+                }
                 setCollectionStatus(dom.editorialPlaylistGrid, requestErrorMessage(error), {
                     error: true,
-                    retry: loadMusicCollections,
+                    retry: useGdMusic, retryLabel: '使用 GD 音乐台',
                 });
                 setCollectionStatus(dom.scenePlaylistGrid, requestErrorMessage(error), {
                     error: true,
-                    retry: loadMusicCollections,
+                    retry: useGdMusic, retryLabel: '使用 GD 音乐台',
                 });
             } finally {
                 if (musicCollectionsController === requestController) {
@@ -5682,7 +5793,7 @@
             if (collection.resolvedTracks?.length) return collection.resolvedTracks;
             const fallbackTracks = collection.tracks || [];
             try {
-                const source = 'chksz';
+                const source = musicService.config.source === 'gd' ? 'gd' : 'chksz';
                 const results = await musicService.search(`${collection.name} ${collection.artist || ''}`.trim(), { source });
                 const expectedAlbum = collection.name.toLocaleLowerCase();
                 const exactMatches = results.filter(song =>
@@ -6445,7 +6556,7 @@
         }
 
         // 加载指定歌单
-        async function loadPlaylistById(listId) {
+        async function loadPlaylistById(listId, { cachedOnly = false } = {}) {
             currentPlaylistId = listId;
             localStorage.setItem('cp_playlistId', listId);
 
@@ -6473,15 +6584,17 @@
                     document.getElementById('playlistCount').textContent = `(${queue.playlist.length}首)`;
 
                     // 后台静默更新缓存
-                    setTimeout(() => refreshPlaylistInBackground(listId), 5000);
-                    return;
+                    if (!cachedOnly) setTimeout(() => refreshPlaylistInBackground(listId), 5000);
+                    return true;
                 }
             } catch (e) {
                 console.warn('缓存读取失败:', e);
             }
 
-            // 从 API 加载
+            // GD 启动只恢复本地歌单，不依赖 ChKSz。
+            if (cachedOnly) return false;
             await fetchAndLoadPlaylist(listId);
+            return true;
         }
 
         // 后台静默更新歌单缓存
@@ -6572,8 +6685,8 @@
                 const input = document.getElementById('playlistIdInput');
                 if (input) input.value = savedId;
                 try {
-                    await loadPlaylistById(savedId);
-                    return;
+                    const restored = await loadPlaylistById(savedId, { cachedOnly: musicService.config.source !== 'chksz' });
+                    if (restored) return;
                 } catch (e) {
                     console.error('已保存的歌单加载失败:', e);
                 }

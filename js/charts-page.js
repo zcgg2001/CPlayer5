@@ -317,7 +317,7 @@ function setLoading(surface) {
   }
 }
 
-function setError(surface, message, retry) {
+function setError(surface, message, retry, actionLabel = '重新加载') {
   surface.list.setAttribute('aria-busy', 'false');
   const status = document.createElement('div');
   status.className = 'chart-empty-state';
@@ -328,7 +328,7 @@ function setError(surface, message, retry) {
   status.appendChild(copy);
   const button = document.createElement('button');
   button.type = 'button';
-  button.textContent = '重新加载';
+  button.textContent = actionLabel;
   button.addEventListener('click', retry);
   status.appendChild(button);
   surface.list.replaceChildren(status);
@@ -340,7 +340,7 @@ function renderSurface(surface, payload, options) {
   surface.title.textContent = chart.name;
   surface.description.textContent = chart.description || '实时音乐排行榜';
   surface.source.textContent = options.stale
-    ? `${chart.sourceName || '音乐数据'} · 离线缓存`
+    ? `${chart.sourceName || '音乐数据'} · 已保存的榜单`
     : `${chart.sourceName || '音乐数据'} · 自动更新`;
   surface.updated.textContent = formatUpdatedAt(chart.fetchedAt);
   surface.count.textContent = `${chart.trackCount || items.length} 首`;
@@ -367,7 +367,7 @@ function renderSurface(surface, payload, options) {
 async function fetchJson(fetchImpl, url, { signal } = {}) {
   const response = await fetchImpl(url, {
     headers: { accept: 'application/json' },
-    signal,
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35_000)]) : AbortSignal.timeout(35_000),
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
@@ -413,6 +413,8 @@ export function createChartsController({
   storage,
   onPlay = () => {},
   onAdd = () => {},
+  onlineEnabled = () => true,
+  onSearch = () => {},
 } = {}) {
   if (storage === undefined) {
     try {
@@ -442,6 +444,29 @@ export function createChartsController({
   };
 
   const load = async ({ force = false } = {}) => {
+    if (!onlineEnabled()) {
+      requestController?.abort();
+      loadedChart = '';
+      syncTabs();
+      const cached = readSnapshot(storage, activeChart);
+      surfaces.forEach(surface => {
+        if (cached) {
+          renderSurface(surface, cached, { onPlay, onAdd, stale: true });
+        } else {
+          surface.title.textContent = CHARTS[activeChart].name;
+          surface.description.textContent = '实时榜单需要 ChKSz；你仍可搜索和播放。';
+          surface.source.textContent = '实时更新已暂停';
+          surface.count.textContent = '暂无缓存';
+          surface.updated.textContent = '';
+          setError(surface, '暂无已保存的榜单，试试搜索喜欢的歌曲。', onSearch, '搜索音乐');
+        }
+        if (surface.refresh) {
+          surface.refresh.disabled = false;
+          surface.refresh.removeAttribute('aria-busy');
+        }
+      });
+      return;
+    }
     if (!fetchImpl) return;
     if (!force && loadedChart === activeChart) return;
     requestController?.abort();
@@ -478,6 +503,7 @@ export function createChartsController({
         ));
       }
     } finally {
+      if (requestController !== controller) return;
       surfaces.forEach(surface => {
         if (surface.refresh) {
           surface.refresh.disabled = false;

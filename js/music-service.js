@@ -27,7 +27,7 @@ export const MUSIC_SOURCE_OPTIONS = Object.freeze({
   }),
   gd: Object.freeze({
     label: 'GD 音乐台 · 网易云',
-    detail: 'GD 搜索、播放与歌词免密钥；榜单、歌单和歌手仍使用 ChKSz',
+    detail: '搜索、播放与歌词免密钥；首页按主题发现音乐',
     provider: 'gd',
   }),
   bilibili: Object.freeze({
@@ -126,6 +126,9 @@ export class MusicService {
 
   async getNewSongs({ signal, source = this.config.source, category = 'all', fetchImpl } = {}) {
     const selectedSource = supportedMusicSource(source);
+    if (selectedSource === 'gd') {
+      return this.search('华语', { signal, source: 'gd', fetchImpl });
+    }
     if (selectedSource === 'bilibili') {
       const json = await requestJson(`${this.baseUrl}/discover?source=bilibili&category=${encodeURIComponent(category)}`, { signal, fetchImpl });
       return normalizeBilibiliPayload(json).slice(0, 12);

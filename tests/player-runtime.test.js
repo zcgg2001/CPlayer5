@@ -511,6 +511,7 @@ test('editorial collections wait for a visible shelf before loading', () => {
   const shelf = {};
   const context = vm.createContext({
     dom: { editorialPlaylistGrid: { closest: () => shelf } },
+    musicService: { config: { source: 'chksz' } }, updateCollectionHeadings() {},
     loadMusicCollections: () => { loads += 1; },
     IntersectionObserver: class {
       constructor(callback) { onIntersection = callback; }
@@ -529,7 +530,7 @@ test('editorial collections wait for a visible shelf before loading', () => {
   assert.equal(disconnected, true);
 });
 
-test('GD discovery uses ChKSz and survives a playback API change while loading', async () => {
+test('GD discovery stays independent of ChKSz and captures its initiating source', async () => {
   const pending = deferred();
   const rendered = [];
   const albums = [];
@@ -542,23 +543,23 @@ test('GD discovery uses ChKSz and survives a playback API change while loading',
     musicService: {
       config: { source: 'gd' },
       getNewSongs({ source }) {
-        assert.equal(source, 'chksz');
+        assert.equal(source, 'gd');
         return pending.promise;
       },
     },
     setDiscoveryStatus() {}, setCollectionLoading() {},
     renderDiscoverySongs: songs => rendered.push(...songs),
     renderNewAlbums: songs => albums.push(...songs),
-    localStorage: { setItem: () => assert.fail('NetEase songs must not enter Bilibili snapshots') },
+    localStorage: { getItem: () => null, setItem: key => assert.equal(key, 'cp_gd_discovery_v1') },
   });
   vm.runInContext(inlineFunction('loadNewSongDiscovery'), context);
   const loading = context.loadNewSongDiscovery();
   context.musicService.config.source = 'chksz';
-  const track = { ...song('65766'), provider: 'chksz' };
+  const track = { ...song('65766'), provider: 'gd' };
   pending.resolve([track]);
   await loading;
   assert.deepEqual(rendered, [track]);
-  assert.deepEqual(albums, [track]);
+  assert.deepEqual(albums, []);
   assert.equal(context.dom.desktopDiscoveryRefresh.disabled, false);
 });
 
@@ -581,13 +582,13 @@ test('saving a ChKSz key refreshes collections while keeping GD playback selecte
   assert.deepEqual(refreshed, ['discovery', 'collections', 'artists']);
 });
 
-test('album track expansion uses ChKSz with GD playback selected', async () => {
+test('album track expansion uses GD with GD playback selected', async () => {
   const track = { ...song('65766'), album: '专辑', provider: 'chksz' };
   const context = vm.createContext({
     musicService: {
       config: { source: 'gd' },
       async search(query, { source }) {
-        assert.equal(source, 'chksz');
+        assert.equal(source, 'gd');
         return [track];
       },
     },
@@ -634,4 +635,40 @@ test('concurrent image cache reads are coalesced and timed-out entries can retry
   assert.equal(reads.length, 3);
   reads[2].onerror();
   assert.equal(await retry, url);
+});
+
+
+test('GD shelves render locally without scheduling ChKSz requests', () => {
+  let rendered = 0;
+  const context = vm.createContext({
+    musicService: { config: { source: 'gd' } },
+    renderGdTopics: () => { rendered++; },
+    loadMusicCollections: () => assert.fail('Must not request ChKSz'),
+    IntersectionObserver: class { constructor() { assert.fail('Must not schedule ChKSz'); } },
+  });
+  vm.runInContext(inlineFunction('scheduleMusicCollections'), context);
+  context.scheduleMusicCollections();
+  assert.equal(rendered, 1);
+});
+
+test('failed GD discovery clears loading and keeps its refresh action available', async () => {
+  const list = element();
+  const attributes = new Map();
+  list.setAttribute = (key, value) => attributes.set(key, value);
+  const messages = [];
+  const context = vm.createContext({
+    AbortController, RequestCancelledError, console: { error() {} },
+    dom: { desktopDiscoveryList: list, desktopDiscoveryRefresh: element() },
+    desktopDiscoveryController: null, bilibiliCategory: 'all',
+    supportedMusicSource: value => value, musicSourceOption: () => ({ label: 'GD' }),
+    musicService: { config: { source: 'gd' }, getNewSongs: async () => { throw new Error('Offline'); } },
+    localStorage: { getItem: () => null },
+    requestErrorMessage: () => '网络错误',
+    setDiscoveryStatus: message => messages.push(message), setCollectionStatus() {},
+  });
+  vm.runInContext(inlineFunction('loadNewSongDiscovery'), context);
+  await context.loadNewSongDiscovery();
+  assert.equal(attributes.get('aria-busy'), 'false');
+  assert.equal(context.dom.desktopDiscoveryRefresh.disabled, false);
+  assert.match(messages.at(-1), /搜索与播放仍可独立使用/);
 });
