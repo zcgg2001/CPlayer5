@@ -1,8 +1,18 @@
 # Cloudflare 部署与联调
 
-线上地址：https://cplayer5.cz162111.workers.dev
+线上地址：https://music.505zc.tech
+
+备用入口：https://cplayer5.cz162111.workers.dev
 
 本项目使用一个 Cloudflare Worker，入口是 `sites/worker.js`。`ASSETS` 绑定提供静态文件，`/api/*` 交给 Worker。首页由 Worker 注入当前域名，避免社交分享元数据残留占位符。歌词效果、图片挂件和离线资源保留原始路径。
+
+## 自定义域名
+
+`cloudflare.config.ts` 中的 `worker.domains` 声明 `music.505zc.tech`。部署时 Cloudflare 为这个主机名创建指向 `cplayer5` 的 Custom Domain，并管理 DNS 与 HTTPS 证书；以后重新部署会保留该声明。
+
+域名所在的 `505zc.tech` 必须在同一账号中保持有效。部署前核对同名 DNS 记录，避免保留指向旧站点的冲突解析。CLI 需要 Zone Read 与 Workers 管理权限；核对现有 DNS 还需要 DNS Records Read。如果 Cloudflare 返回 `100117`，需先备份并删除该主机名的旧 A/CNAME 记录，再部署自定义域名；删除操作额外需要 DNS Records Edit（`dns_records:edit`）。原有 workers.dev 地址作为备用入口保留。
+
+配置同时显式保留 `previewUrls: true`，与当前控制台的预览地址设置一致，避免 CLI 因配置冲突中止上传。
 
 ## 构建和发布
 
@@ -45,12 +55,12 @@ GitHub Actions 运行原有检查、Cloudflare 部署预检查和 workerd 回归
 
 ```bash
 # 顺序检查三种音源；也可在地址后指定 gd、chksz 或 bilibili
-npm run probe:music -- https://cplayer5.cz162111.workers.dev
+npm run probe:music -- https://music.505zc.tech
 ```
 
 脚本每个音源选取一首真实搜索结果，以标准音质检查解析地址、读取少量音频数据，并检查歌词响应。不会输出密钥或带签名的音频地址；遇到鉴权、额度或限流错误就停止该音源，不重试、不切换源。非零退出表示至少一项尚未通过。ChKSz 检查会消耗接口额度。
 
-脚本所在网络若无法访问 workers.dev，应使用正常浏览器检查同一站点，区分访问站点失败和音乐服务失败。浏览器中还需确认实际播放时间推进，HTTP 200 本身不足以证明音频可播。
+脚本所在网络若无法访问站点，应使用正常浏览器检查同一地址，区分访问站点失败和音乐服务失败。浏览器中还需确认实际播放时间推进，HTTP 200 本身不足以证明音频可播。
 
 | 音源 | 检查范围与边界 |
 | --- | --- |

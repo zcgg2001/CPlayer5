@@ -181,7 +181,7 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 ### Cloudflare 部署
 
-Cloudflare 站点：[cplayer5.cz162111.workers.dev](https://cplayer5.cz162111.workers.dev)。使用 Workers 同时部署同源音乐 API 和静态资源，保留全部歌词效果和挂件模块。
+Cloudflare 站点：[music.505zc.tech](https://music.505zc.tech)，备用入口：[cplayer5.cz162111.workers.dev](https://cplayer5.cz162111.workers.dev)。使用 Workers 同时部署同源音乐 API 和静态资源，保留全部歌词效果和挂件模块。
 
 ```bash
 npm ci

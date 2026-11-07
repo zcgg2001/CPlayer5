@@ -2,7 +2,9 @@
 
 日期：2026-11-07（Asia/Shanghai）。
 
-站点：https://cplayer5.cz162111.workers.dev
+站点：https://music.505zc.tech
+
+备用入口及首次部署检查地址：https://cplayer5.cz162111.workers.dev
 
 首次部署版本：`614696cf-70bd-4506-a946-f87b47065dfd`。
 
@@ -25,3 +27,21 @@
 本次终端网络访问 workers.dev 失败，但同机真实浏览器能访问站点。在线证据以浏览器结果为准；终端失败不记为音乐源失败。外部音源结果仅代表此次样本和网络出口，不能据此声明所有歌曲、全部音质或长期可用性。
 
 本地验证：104 项 Python 测试、230 项 JavaScript 测试及 5 项 workerd 运行时回归通过；静态资源、构建产物、Node 服务冒烟和 Cloudflare 部署预检查通过。
+
+## 自定义域名验收
+
+2026-11-07 14:22（Asia/Shanghai）绑定 `music.505zc.tech` 到 `cplayer5`，部署版本：`0ef9cd30-096c-4c14-8bc6-59e3fc86da2a`。
+
+旧 A 记录已在本机备份并删除；Cloudflare 已创建受管理的代理 DNS 记录。Worker API 确认域名归属为 `cplayer5`，权威 DNS 返回 Cloudflare 边缘地址。域名声明及线上已启用的预览地址设置已写入 `cloudflare.config.ts`，部署预检查通过。
+
+| 检查项 | 新域名检查结果 |
+| --- | --- |
+| HTTPS | 浏览器正常验证证书，使用 TLS 1.3，`isSecureContext: true`。 |
+| 首页 | HTTP 200，标题 `CPlayer 5`，分享图片使用 `https://music.505zc.tech`。 |
+| 静态路由 | index.html、离线页、歌单工具、Service Worker、音乐数据模块全部返回 200。 |
+| API 路由 | 密钥状态返回 200、`configured: true`、`editable: false`；未知 API 返回 JSON 404。 |
+| GD | 搜索返回 3 首；样本 `2668397359` 标准音质 128 kbps，跨域音频实际播放到 1.53 秒，readyState 4，歌词 1470 字符。 |
+| ChKSz | 同一样本搜索、解析及播放通过；标准音质 128 kbps，实际播放到 1.54 秒，readyState 4，歌词 1470 字符。 |
+| Bilibili | 本次域名切换未重复请求；此前上游 429 的限制仍按未通过记录，不宣称恢复。 |
+
+本轮变更仅涉及域名及部署配置，重新执行了构建和部署预检查，并在新域名完成上述在线验证。

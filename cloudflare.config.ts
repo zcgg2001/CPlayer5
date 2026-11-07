@@ -6,6 +6,8 @@ export default defineConfig({
     entrypoint: './sites/worker.js',
     compatibilityDate: '2026-11-07',
     workersDev: true,
+    previewUrls: true,
+    domains: ['music.505zc.tech'],
     env: { ASSETS: bindings.assets() },
     // Keep homepage metadata rewriting and all APIs in the Worker. Other
     // assets can be served directly without invoking JavaScript.
