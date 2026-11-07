@@ -5,6 +5,9 @@ __pycache__/
 .superpowers/
 .worktrees/
 dist/
+node_modules/
+.cloudflare/
+.wrangler/
 output/playwright/
 .playwright-cli/
 .env

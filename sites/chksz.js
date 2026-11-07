@@ -50,9 +50,14 @@ export async function requestChksz(endpoint, params, { apiKey, fetchImpl = globa
   try {
     const response = await fetchImpl(url.href, {
       headers: { accept: 'application/json', 'user-agent': 'CPlayer5/5.3 music-proxy' },
-      redirect: 'error',
+      redirect: 'manual',
       signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
     });
+    // Workers supports manual redirects; never forward the API key to a new URL.
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
+      throw new ChkszError(502, '音乐接口返回了意外的跳转');
+    }
     const headers = {};
     for (const name of RESPONSE_HEADERS) {
       const value = response.headers.get(name);

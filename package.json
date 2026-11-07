@@ -7,6 +7,19 @@
     "smoke:server": "sh scripts/smoke_server.sh",
     "start": "node server.js",
     "serve": "node server.js",
-    "test": "python3 -m unittest discover -s tests -v && node --test tests/*.test.js && python3 scripts/check_static_site.py"
+    "test": "python3 -m unittest discover -s tests -v && node --test tests/*.test.js && python3 scripts/check_static_site.py",
+    "cf:build": "npm run build && cf build",
+    "cf:dev": "npm run build && cf dev",
+    "cf:preview": "vite preview",
+    "test:worker": "node --test tests/cloudflare-runtime.js",
+    "probe:music": "node scripts/probe_music_sources.js",
+    "cf:deploy": "npm run cf:build && cf deploy --prebuilt --mode production",
+    "cf:check": "npm run cf:build && cf deploy --prebuilt --mode production --dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "2.0.0-beta.v.12",
+    "cf": "1.0.0-beta.28",
+    "miniflare": "5.20261104.0-beta",
+    "vite": "8.3.6"
   }
 }

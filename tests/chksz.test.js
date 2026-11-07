@@ -11,7 +11,7 @@ for (const status of [400, 401, 402, 403, 404, 429, 503]) {
     const key = 'chksz_test_fixture_only';
     const env = { CHKSZ_API_KEY: key, MUSIC_FETCH: async (_url, options) => {
       ++calls;
-      assert.equal(options.redirect, 'error');
+      assert.equal(options.redirect, 'manual');
       return Response.json({ msg: `接口错误 ${status} ${key}` }, {
         status, headers: { 'retry-after': '42', 'x-quota-free-remaining': '0', 'x-quota-paid-remaining': '0' },
       });

@@ -93,7 +93,7 @@ test('selects the highest available AAC track and returns an ID-based local stre
   assert.match(source.url, /^\/api\/v1\/bilibili\/audio\?id=/);
   assert.doesNotMatch(source.url, /bilivideo/);
   assert.equal(requests[1].target.searchParams.get('cid'), '456');
-  assert.ok(requests.every(({ options }) => !options.headers.cookie && options.redirect === 'error'));
+  assert.ok(requests.every(({ options }) => !options.headers.cookie && options.redirect === 'manual'));
 });
 
 test('does not invent or downgrade restrictions for paid and no-background videos', async () => {
@@ -122,7 +122,7 @@ test('rejects preview-only playback and untrusted media addresses', async () => 
   }
 });
 
-test('coalesces pending lookups, caches responses and expires stale entries', async () => {
+test('keeps pending lookups independent, caches completed responses and expires stale entries', async () => {
   let calls = 0;
   let clock = 100;
   let complete;
@@ -136,10 +136,10 @@ test('coalesces pending lookups, caches responses and expires stale entries', as
   complete();
   await Promise.all([first, second]);
   await client.search('music');
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   clock += 61_000;
   await client.search('music');
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
 });
 
 test('backs off after upstream rate limiting rather than retrying repeatedly', async () => {
@@ -292,7 +292,7 @@ test('selects human Chinese subtitles before AI and other languages, then caches
   assert.equal(requests[2].target.pathname, '/bfs/subtitle/zh.json');
   await client.lyrics(`bili:${bvid}:2`);
   assert.equal(requests.length, 3);
-  assert.ok(requests.every(({ options }) => !options.headers.cookie && options.redirect === 'error'));
+  assert.ok(requests.every(({ options }) => !options.headers.cookie && options.redirect === 'manual'));
 });
 
 test('never fetches subtitle resources when the upstream requires login', async () => {

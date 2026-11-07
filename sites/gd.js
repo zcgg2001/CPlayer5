@@ -30,17 +30,25 @@ function remember(map, key, value) {
   if (map.size > 256) map.delete(map.keys().next().value);
 }
 
-async function reserve(state, type) {
-  if (state.busy) await new Promise(resolve => {
-    state.pending.push({ resolve, priority: type === 'pic' ? 1 : 0 });
-    state.pending.sort((a, b) => a.priority - b.priority);
-  });
-  state.busy = true;
-  return () => {
-    const next = state.pending.shift();
-    if (next) next.resolve();
-    else state.busy = false;
-  };
+async function reserve(state, type, signal) {
+  const entry = { priority: type === 'pic' ? 1 : 0 };
+  state.pending.push(entry);
+  state.pending.sort((a, b) => a.priority - b.priority);
+  const deadline = Date.now() + 15_000;
+  try {
+    while (state.busy || state.pending[0] !== entry) {
+      signal?.throwIfAborted();
+      if (Date.now() >= deadline) throw new GdError(429, 'GD 音乐台请求排队中，请稍后重试', '1');
+      // Each invocation owns its timer. A resolver stored by another request
+      // can be canceled as a hung request by the Workers runtime.
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    signal?.throwIfAborted();
+    state.busy = true;
+    return () => { state.busy = false; };
+  } finally {
+    state.pending.splice(state.pending.indexOf(entry), 1);
+  }
 }
 
 // Serialize upstream requests, cache successful responses, and never retry a refusal.
@@ -49,7 +57,7 @@ async function requestGd(params, fetchImpl, signal) {
   const url = new URL(API_URL);
   url.search = new URLSearchParams({ source: 'netease', ...params });
   // A pending song or lyric takes precedence over thumbnails.
-  const release = await reserve(state, params.types);
+  const release = await reserve(state, params.types, signal);
   try {
     signal?.throwIfAborted();
     const cached = state.cache.get(url.href);
@@ -64,9 +72,13 @@ async function requestGd(params, fetchImpl, signal) {
     state.requests.push(Date.now());
     const response = await fetchImpl(url.href, {
       headers: { accept: 'application/json', 'user-agent': 'CPlayer5/5.3 music-proxy' },
-      redirect: 'error',
+      redirect: 'manual',
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12_000)]) : AbortSignal.timeout(12_000),
     });
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
+      throw new GdError(502, 'GD 音乐台返回了意外的跳转');
+    }
     let payload;
     try { payload = await response.json(); } catch { /* HTML errors are not shown as provider messages. */ }
     const status = response.ok ? (Number(payload?.code) >= 400 ? Number(payload.code) : 200) : response.status;

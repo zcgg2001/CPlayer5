@@ -17,6 +17,7 @@ const MUSIC_QUALITY_LEVELS = new Set(['standard', 'exhigh', 'lossless', 'hires',
 
 const HTML_ROUTES = new Map([
   ['/', '/index.html'],
+  ['/index.html', '/index.html'],
   ['/playlist-downloader', '/playlist-downloader.html'],
   ['/offline', '/offline.html'],
 ]);
@@ -167,6 +168,9 @@ const worker = {
     }
     if (url.pathname === '/api/v1/videos') {
       return handleVideosRequest(request, env);
+    }
+    if (url.pathname.startsWith('/api/')) {
+      return musicProxyError(request, 404, 'not_found', '接口不存在');
     }
 
     const routeAsset = HTML_ROUTES.get(url.pathname.replace(/\/$/, '') || '/');

@@ -143,7 +143,7 @@ cd CPlayer
 
 ### 2. 构建与启动服务
 
-项目无需安装 npm 依赖，本地已在 Node.js 26.3.1 验证（运行环境需要支持 `AbortSignal.any` 和原生流）。网易云功能需要在服务进程中配置 `CHKSZ_API_KEY`，Bilibili 公开内容不需要此密钥。
+本地 Node 服务本身无需第三方依赖（需要支持 `AbortSignal.any` 和原生流）。Cloudflare 构建工具需要先运行 `npm ci`，统一使用 `.node-version` 中的 Node.js 26.12.0。ChKSz 功能需要在服务进程中配置 `CHKSZ_API_KEY`，GD 和 Bilibili 公开内容不需要此密钥。
 
 ```bash
 npm run build
@@ -178,6 +178,20 @@ python3 scripts/check_static_site.py
 CI 还会对构建产物、字体 MIME 类型、页面路由以及缺少音乐服务密钥时的结构化错误响应进行验证。
 
 GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探测播放器、歌单下载器、离线页、Service Worker 和 PWA 清单。
+
+### Cloudflare 部署
+
+Cloudflare 站点：[cplayer5.cz162111.workers.dev](https://cplayer5.cz162111.workers.dev)。使用 Workers 同时部署同源音乐 API 和静态资源，保留全部歌词效果和挂件模块。
+
+```bash
+npm ci
+npm run cf:check
+npm run test:worker
+npx cf auth login --no-device
+npm run cf:deploy
+```
+
+在 Worker 的 Settings → Variables and Secrets 中添加 Secret `CHKSZ_API_KEY`。网页设置只显示是否已配置，不开放线上密钥修改。详细配置、联调命令及音源限制见 [Cloudflare 部署说明](docs/cloudflare.md)。
 
 ## 项目结构
 

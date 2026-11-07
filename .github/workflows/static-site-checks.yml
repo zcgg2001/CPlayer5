@@ -14,6 +14,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Node for Cloudflare tooling
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install pinned build tools
+        run: npm ci
+
       - name: Run unit tests
         run: python3 -m unittest discover -s tests -v
 
@@ -28,6 +37,9 @@ jobs:
 
       - name: Smoke test the Node service
         run: npm run smoke:server
+
+      - name: Validate Cloudflare deployment and Workers runtime
+        run: npm run cf:check && npm run test:worker
 
       - name: Probe static pages
         shell: bash

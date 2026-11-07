@@ -67,6 +67,25 @@ test('drops the upstream content length after rewriting the player shell', async
   assert.equal((await response.text()).includes('https://player.example/'), true);
 });
 
+test('rewrites metadata for direct index.html requests and HEAD', async () => {
+  const { env } = createEnv();
+  const response = await worker.fetch(new Request('https://player.example/index.html'), env);
+  assert.match(await response.text(), /https:\/\/player\.example\/img\/og\.png/);
+  const head = await worker.fetch(new Request('https://player.example/index.html', { method: 'HEAD' }), env);
+  assert.equal(await head.text(), '');
+  assert.match(head.headers.get('cache-control'), /no-store/);
+});
+
+test('unknown APIs return JSON 404 even for browser navigations', async () => {
+  const { env, requestedPaths } = createEnv();
+  const response = await worker.fetch(new Request('https://player.example/api/v1/not-found', {
+    headers: { accept: 'text/html' },
+  }), env);
+  assert.equal(response.status, 404);
+  assert.equal((await response.json()).error.code, 'not_found');
+  assert.deepEqual(requestedPaths, []);
+});
+
 
 test('serves the same-origin chart API without touching static assets', async () => {
   const { env, requestedPaths } = createEnv();

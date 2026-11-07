@@ -157,16 +157,15 @@ export function createBilibiliClient({ fetchImpl = globalThis.fetch, now = Date.
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
     const key = url.href;
     const existing = cache.get(key);
-    if (existing && existing.expires > now()) return existing.promise;
+    if (existing && existing.expires > now()) return existing.data;
     if (blockedUntil > now()) throw new BilibiliError(429, 'provider_rate_limited', 'Bilibili 请求频繁，请稍后重试');
     const wait = Math.max(0, nextRequestAt - now());
     if (wait > 5000) throw new BilibiliError(429, 'provider_busy', 'Bilibili 请求排队中，请稍后重试');
     nextRequestAt = now() + wait + intervalMs;
-    const entry = { expires: now() + ttl, promise: null };
-    entry.promise = (async () => {
+    const data = await (async () => {
       if (wait) await new Promise(resolve => setTimeout(resolve, wait));
       if (blockedUntil > now()) throw new BilibiliError(429, 'provider_rate_limited', 'Bilibili 请求频繁，请稍后重试');
-      const response = await fetchImpl(url.href, { headers: HEADERS, signal: AbortSignal.timeout(8000), redirect: 'error' });
+      const response = await fetchImpl(url.href, { headers: HEADERS, signal: AbortSignal.timeout(8000), redirect: 'manual' });
       if (response.status === 429 || response.status === 412) {
         blockedUntil = now() + 30_000;
         throw new BilibiliError(429, 'provider_rate_limited', 'Bilibili 暂时限制了请求，请稍后重试');
@@ -181,14 +180,12 @@ export function createBilibiliClient({ fetchImpl = globalThis.fetch, now = Date.
         throw new BilibiliError(502, 'provider_rejected', '该内容暂不可用，可能需要在 Bilibili 登录或已被下架');
       }
       return payload.data;
-    })().catch(error => {
-      if (cache.get(key) === entry) cache.delete(key);
-      throw error;
-    });
+    })();
+    // Cache completed data only; live fetch promises belong to one invocation.
     cache.delete(key);
-    cache.set(key, entry);
+    cache.set(key, { expires: now() + ttl, data });
     while (cache.size > 80) cache.delete(cache.keys().next().value);
-    return entry.promise;
+    return data;
   }
 
   async function details(id) {
@@ -282,7 +279,7 @@ export function createBilibiliClient({ fetchImpl = globalThis.fetch, now = Date.
     if (cached?.expires > now()) lrc = cached.lrc;
     else {
       const response = await fetchImpl(selected.url, {
-        headers: HEADERS, redirect: 'error',
+        headers: HEADERS, redirect: 'manual',
         signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000),
       });
       lrc = subtitleBodyToLrc(await readSubtitleJson(response));
@@ -324,7 +321,7 @@ async function streamAudio(request, env, client, { download = false } = {}) {
   const headers = { referer: REFERER, 'user-agent': HEADERS['user-agent'] };
   if (range) headers.range = range;
   const upstream = await fetchImpl(resolved.mediaUrl, {
-    method: request.method, headers, redirect: 'error',
+    method: request.method, headers, redirect: 'manual',
     signal: AbortSignal.any([request.signal, AbortSignal.timeout(120_000)]),
   });
   if (![200, 206, 416].includes(upstream.status)) {
