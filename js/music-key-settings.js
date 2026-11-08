@@ -56,8 +56,7 @@ export function createMusicKeySettings({ documentRef = document, onEnabled = () 
       if (id !== refreshId) return;
       state = next;
       render();
-      if (state.editable && !state.configured
-        && documentRef.getElementById('settingsModal').getAttribute('aria-hidden') === 'false') input.focus();
+      // Refreshing key status must not steal focus from lyric or other settings.
     } catch {
       if (id !== refreshId) return;
       render();

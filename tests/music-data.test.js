@@ -125,6 +125,16 @@ test('normalizes lyric responses', () => {
   assert.equal(normalizeLyricsPayload({ code: 500 }), null);
 });
 
+test('preserves timed words and auxiliary tracks supplied as lyric objects', () => {
+  assert.deepEqual(normalizeLyricsPayload({code:200,data:{
+    lrc:{lyric:'[00:01]你'},yrc:{lyric:'[1000,1000](1000,800,0)你'},
+    ytlrc:{lyric:'[00:01]You'},romalrc:{lyric:'[00:01]ni'},ttml:'<tt/>',
+  }}),{
+    lrc:'[00:01]你',tlrc:'',yrc:'[1000,1000](1000,800,0)你',
+    ytlrc:'[00:01]You',romalrc:'[00:01]ni',ttml:'<tt/>',
+  });
+});
+
 test('normalizes supported playlist response shapes', () => {
   const track = {
     id: 2,

@@ -174,7 +174,7 @@ export async function channelLyric(source, platform, id, client) {
   }
   if (platform === 'netease') {
     const data = await netease(client, true, { id: Number(id), cp: false, tv: 0, lv: 0, rv: 0, kv: 0, yv: 0, ytv: 0, yrv: 0 });
-    return { lrc: data.lrc?.lyric || '', tlyric: data.tlyric?.lyric || '', yrc: data.yrc?.lyric || '' };
+    return { lrc: data.lrc?.lyric || '', tlyric: data.tlyric?.lyric || '', yrc: data.yrc?.lyric || '', ytlrc: data.ytlrc?.lyric || '', romalrc: data.romalrc?.lyric || '', yromalrc: data.yromalrc?.lyric || '' };
   }
   if (platform === 'qq') {
     const data = await client.json(withQuery('https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg', { songmid: id, g_tk:5381, loginUin:0, hostUin:0, format:'json', inCharset:'utf8', outCharset:'utf-8', platform:'yqq' }), { headers: { referer:'https://y.qq.com/portal/player.html' } });

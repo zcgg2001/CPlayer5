@@ -118,7 +118,8 @@ export function normalizeLyricsPayload(payload) {
   return {
     lrc: text(typeof lrc === 'object' ? lrc?.lyric : lrc),
     tlrc: text(typeof translated === 'object' ? translated?.lyric : translated),
-    yrc: text(payload.data.yrc),
+    yrc: text(typeof payload.data.yrc === 'object' ? payload.data.yrc?.lyric : payload.data.yrc),
+    ...Object.fromEntries(['ttml', 'qrc', 'krc', 'vtt', 'romalrc', 'ytlrc', 'yromalrc'].filter(key => payload.data[key]).map(key => [key, text(typeof payload.data[key] === 'object' ? payload.data[key]?.lyric : payload.data[key])])),
   };
 }
 

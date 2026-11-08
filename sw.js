@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v76';
+const SHELL_CACHE = 'cplayer5-shell-v77';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -32,6 +32,19 @@ const CORE_ASSETS = [
   './js/app-shell.js',
   './js/listening-room.js',
   './js/lyric-effects.js',
+  './js/lyrics/backgrounds/canvas.js',
+  './js/lyrics/backgrounds/index.js',
+  './js/lyrics/backgrounds/fountain.js',
+  './js/lyrics/clock.js',
+  './js/lyrics/controller.js',
+  './js/lyrics/document.js',
+  './js/lyrics/registry.js',
+  './js/lyrics/renderers/stage.js',
+  './js/lyrics/renderers/words.js',
+  './js/lyrics/runtime.js',
+  './js/lyrics/settings.js',
+  './js/lyrics/sources.js',
+  './css/lyrics/runtime.css',
   './js/lyric-composition.js',
   './js/lyric-catalog.js',
   './js/lyric-scenes.js',

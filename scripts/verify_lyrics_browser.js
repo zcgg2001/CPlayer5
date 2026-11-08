@@ -1,0 +1,88 @@
+// Playwright CLI run-code callback. See docs/lyrics-validation.md.
+async (originalPage) => {
+  const context = await originalPage.context().browser().newContext({ serviceWorkers: 'block', viewport: {width:1440,height:1000} });
+  const page = await context.newPage();
+  const errors = []; page.on('pageerror', error => errors.push(error.message));
+  // A local, silent 45-second PCM fixture: no copyrighted audio or external API needed.
+  const wav = Buffer.alloc(44 + 45 * 8000 * 2);
+  wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(8000, 24); wav.writeUInt32LE(16000, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+  wav.write('data', 36); wav.writeUInt32LE(wav.length - 44, 40);
+  const audioRoute = async route => { const range=route.request().headers().range; const match=range?.match(/bytes=(\d+)-(\d*)/); const start=Number(match?.[1]||0), end=match?.[2]?Number(match[2]):wav.length-1; await route.fulfill({status:match?206:200,body:wav.subarray(start,end+1),contentType:'audio/wav',headers:{'Accept-Ranges':'bytes', 'Content-Length':String(end-start+1), ...(match?{'Content-Range':`bytes ${start}-${end}/${wav.length}`}:{})}}); };
+  await page.route('**/__lyrics-test.wav', audioRoute);
+  await page.route('**/api/v1/music/audio?**', audioRoute);
+  const yrc = '[1000,5000](1000,900,0)风穿过(2400,1200,0)城市的(4200,1200,0)窗\n[6500,5000](6500,1100,0)让每一句(8000,1400,0)落在(9700,1200,0)心上\n[12000,5000](12000,1200,0)We keep(13600,1200,0) the light(15200,1200,0) alive\n[18000,5000](18000,1000,0)星光(19500,1400,0)沿着旋律(21300,1200,0)流淌\n[28000,5000](28000,1000,0)此刻(29500,1100,0)只听见(31200,1500,0)你和我';
+  await page.route('**/api/v1/music/song?**', route => route.fulfill({json: {code: 200, data: {id:new URL(route.request().url()).searchParams.get('id'), name:'歌词验收样本', artist:'CPlayer', album:'原创测试', duration:45, url:'http://127.0.0.1:8788/__lyrics-test.wav', cover:'http://127.0.0.1:8788/img/icon.png', level:'standard'}}}));
+  await page.route('**/api/v1/music/lyric?**', route => route.fulfill({json: {code:200, data: {yrc, lrc:'[00:01]风穿过城市的窗\n[00:06.5]让每一句落在心上\n[00:12]We keep the light alive\n[00:18]星光沿着旋律流淌\n[00:28]此刻只听见你和我', tlyric:'[00:01]The wind passes through the city\n[00:06.5]Let every word find its place'}}}));
+  await page.goto('http://127.0.0.1:8788/');
+  await page.evaluate(async () => { for(const reg of await navigator.serviceWorker.getRegistrations()) await reg.unregister(); localStorage.setItem('cp_lyricAppearance',JSON.stringify({effect:'glow',fontSize:36})); });
+  await page.addInitScript(() => { window.__lyricTestAudio = []; window.Audio = new Proxy(window.Audio, { construct(Target, args) { const audio = Reflect.construct(Target, args); window.__lyricTestAudio.push(audio); return audio; } }); });
+  await page.reload();
+  await page.waitForFunction(() => typeof window.insertSongToPlaylist === 'function');
+  await page.evaluate(() => { window.insertSongToPlaylist({id:'123456',sourceId:'123456',provider:'chksz',name:'歌词验收样本',artist:'CPlayer',duration:45}); window.playSongAtIndex(window.playlist.findIndex(song=>song.id==='123456')); });
+  await page.waitForFunction(() => [...document.querySelectorAll('.lyric-source-badge')].some(node=>node.textContent.includes('逐字')));
+  await page.getByRole('button',{name:'打开歌词',exact:true}).click();
+  await page.evaluate(() => {const audio=window.__lyricTestAudio[0]; audio.pause(); audio.currentTime=2.8; });
+  await page.waitForFunction(() => document.querySelector('#lyricsScroller')?.parentElement.querySelector('.lyric-stage .lyric-timed-word.is-singing')?.textContent === '城市的' && Math.abs(window.__lyricTestAudio[0].currentTime - 2.8) < .01,null,{timeout:8000}).catch(async error=>{throw Error('Initial timing failed '+JSON.stringify(await page.evaluate(()=>({time:window.__lyricTestAudio[0].currentTime,ready:window.__lyricTestAudio[0].readyState,duration:window.__lyricTestAudio[0].duration}))))});
+  const initial = await page.evaluate(() => {const host=document.getElementById('lyricsScroller').parentElement; return {source:host.querySelector('.lyric-source-badge').textContent, word:host.querySelector('.lyric-timed-word.is-singing')?.textContent,progress:host.querySelector('.lyric-timed-word.is-singing')?.style.getPropertyValue('--word-progress'),size:host.getBoundingClientRect().toJSON(),stage:!host.querySelector('.lyric-stage').hidden}; });
+  await page.screenshot({path:'output/playwright/folia-desktop-glow.png',scale:'css'});
+  if (initial.word !== '城市的' || Math.abs(parseFloat(initial.progress) - 33.33) > .2) throw Error('Word clock mismatch: ' + JSON.stringify(initial));
+  const modes = ['plain','amll','bounce','sonnet','tempera','lumiere','hanabi','machi','nebbia','glow','cadenza','cloud','fume','tilt','monet','claddagh','pendolo','cappella','diorama','still'];
+  const results = [];
+  for (const mode of modes) {
+    await page.getByRole('button',{name:'歌词外观',exact:true}).click();
+    await page.getByLabel('歌词效果',{exact:true}).selectOption(mode);
+    await page.getByRole('button',{name:'关闭设置',exact:true}).click();
+    await page.evaluate(() => { const audio = window.__lyricTestAudio[0]; audio.pause(); audio.currentTime = 8.8; });
+    await page.waitForFunction(() => document.getElementById('settingsModal').getAttribute('aria-hidden') === 'true');
+    await page.waitForFunction(() => [...document.querySelectorAll('#lyricsScroller > [data-state=active], #lyricsScroller + .lyric-stage [data-state=active], #desktopLayout .lyric-stage [data-state=active]')].some(node=>node.checkVisibility() && node.textContent.includes('让每一句')));
+    const result = await page.evaluate(() => {const host=document.getElementById('lyricsScroller').parentElement;const stage=host.querySelector('.lyric-stage');return {mode:document.documentElement.dataset.lyricEffect, view:host.dataset.view,words:host.querySelectorAll('.lyric-timed-word').length, background:getComputedStyle(host).backgroundColor, border:getComputedStyle(host).borderWidth, fountain:document.querySelectorAll('#desktopLayout > .lyric-music-fountain').length, active:[...host.querySelectorAll('[data-state="active"]')].filter(n=>n.checkVisibility()).map(n=>n.textContent)};});
+    if (!result.active.some(text=>text.includes('让每一句'))) throw Error('Missing current line: '+mode);
+    if (result.background !== 'rgba(0, 0, 0, 0)' || result.border !== '0px' || result.fountain !== 1) throw Error('Surface or fountain contract: '+mode);
+    results.push(result);
+    await page.locator('#desktopLayout').screenshot({path:'output/playwright/folia-mode-'+mode+'.png',animations:'disabled'});
+  }
+  const ttml = await page.evaluate(async () => { const {parseText,normalizeDocument}=await import('/js/lyrics/document.js'); const raw='<tt xmlns="http://www.w3.org/ns/ttml" xmlns:ttm="http://www.w3.org/ns/ttml#metadata"><body><div><p begin="00:00:01.000" end="00:00:05.000" ttm:agent="v1"><span begin="00:00:01.000" end="00:00:02.000">你好</span><span ttm:role="x-translation">Hello</span><span ttm:role="x-bg"><span begin="00:00:02.000" end="00:00:03.000">和声</span></span></p></div></body></tt>'; const doc=normalizeDocument(parseText(raw,'ttml')); return {lines:doc.lines.length,words:doc.hasWordLevel,text:doc.lines[0].text,translation:doc.lines[0].translation,harmony:doc.lines[1].harmony}; });
+  if(ttml.lines!==2 || !ttml.words || ttml.translation!=='Hello' || !ttml.harmony) throw Error('TTML regression '+JSON.stringify(ttml));
+  await page.getByRole('button',{name:'歌词外观',exact:true}).click();
+  await page.getByLabel('歌词效果',{exact:true}).selectOption('glow');
+  await page.getByRole('button',{name:'关闭设置',exact:true}).click();
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#mobileViewToggle').click();
+  await page.evaluate(() => { const audio=window.__lyricTestAudio[0];audio.pause(); audio.currentTime=8.8; });
+  await page.waitForFunction(() => !document.getElementById('mobileLyricsPage').inert);
+  await page.waitForFunction(() => [...document.querySelectorAll('#mobileLyricsScroller')][0]?.parentElement.querySelector('[data-state=active]')?.textContent.includes('让每一句'));
+  const mobile = await page.evaluate(() => { const host=document.getElementById('mobileLyricsScroller').parentElement; return {width:host.clientWidth, overflow:document.documentElement.scrollWidth>innerWidth, backgrounds:[...host.querySelectorAll('.lyric-stage-line')].map(n=>({background:getComputedStyle(n).backgroundColor,border:getComputedStyle(n).borderWidth})), active:[...host.querySelectorAll('[data-state="active"]')].filter(n=>n.checkVisibility()).map(n=>n.textContent)}; });
+  if(mobile.backgrounds.some(n=>n.background!=='rgba(0, 0, 0, 0)'||n.border!=='0px') || mobile.overflow || !mobile.active.some(x=>x.includes('让每一句'))) throw Error('Mobile regression '+JSON.stringify(mobile));
+  await page.screenshot({path:'output/playwright/folia-mobile-glow.png',scale:'css',animations:'disabled'});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.waitForFunction(() => [...document.querySelectorAll('.lyric-music-fountain')].every(n=>n.hidden));
+  const reduced = await page.evaluate(() => [...document.querySelectorAll('.lyric-music-fountain')].every(n=>n.hidden));
+  if(!reduced) throw Error('Reduced motion must disable fountains');
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await page.setViewportSize({width:1440,height:1000});
+  await page.getByRole('button',{name:'歌词外观',exact:true}).click();
+  await page.getByText('歌词与时间校正',{exact:true}).click();
+  await page.getByLabel('歌词校正（毫秒，正值提前）').fill('500');
+  await page.getByLabel('歌词校正（毫秒，正值提前）').press('Tab');
+  await page.getByLabel('底部音乐喷泉',{exact:true}).uncheck();
+  await page.locator('input[type=file][accept=".lrc,.yrc,.ttml,.qrc,.krc,.vtt,.txt"]').setInputFiles({name:'manual-check.lrc',mimeType:'text/plain',buffer:Buffer.from('[00:01]手动导入的第一句\n[00:06]下一句')});
+  await page.waitForFunction(()=>[...document.querySelectorAll('.lyric-source-badge')].some(n=>n.textContent.includes('manual-check.lrc')));
+  await page.getByRole('button',{name:'刷新在线歌词',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('lyricEffectFeedback').textContent.includes('保留当前手动选择'));
+  await page.getByRole('button',{name:'关闭设置',exact:true}).click();
+  await page.getByRole('button',{name:'跳转到：手动导入的第一句',exact:true}).filter({visible:true}).click();
+  await page.waitForFunction(()=>Math.abs(window.__lyricTestAudio[0].currentTime-.5)<.02);
+  const saved=await page.evaluate(()=>({tracks:JSON.parse(localStorage.getItem('cp_lyricTracks_v1')),global:JSON.parse(localStorage.getItem('cp_lyricStudio_v1'))}));
+  if(saved.global.offset!==0||saved.global.fountain!==false||!saved.tracks.some(t=>t.offset===500&&t.document?.source==='manual-check.lrc')) throw Error('Settings persistence regression');
+  await page.evaluate(()=>{window.insertSongToPlaylist({id:'123457',sourceId:'123457',provider:'chksz',name:'另一首测试歌',artist:'CPlayer',duration:45});window.playSongAtIndex(window.playlist.findIndex(s=>s.id==='123457'));});
+  await page.waitForFunction(()=>document.querySelector('[data-lyric-setting=offset]').value==='0'&&document.querySelector('#desktopLayout .lyric-source-badge').textContent.includes('逐字'));
+  await page.evaluate(()=>window.playSongAtIndex(window.playlist.findIndex(s=>s.id==='123456')));
+  await page.waitForFunction(()=>document.querySelector('[data-lyric-setting=offset]').value==='500'&&document.querySelector('#desktopLayout .lyric-source-badge').textContent.includes('manual-check.lrc'));
+  await page.evaluate(()=>window.__lyricTestAudio[0].pause());
+  const settingsChecks={manualImport:true,refreshPreservesManual:true,seekInvertsOffset:true,globalOffsetIsolated:true,trackPreferenceRestored:true};
+
+  if (errors.length) throw Error('Uncaught browser errors: '+errors.join('; '));
+  return {initial,modes:results.length,ttml,mobile,reduced,settingsChecks,errors};
+}
