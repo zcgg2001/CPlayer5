@@ -1,0 +1,474 @@
+{
+  "local": {
+    "site": "http://127.0.0.1:8808",
+    "checkedAt": "2026-11-08T15:21:02.968Z",
+    "rounds": 1,
+    "method": "Sequential samples per provider; two providers at most in parallel. Search, highest-quality resolution, then first 4 KiB of real audio. Samples may hit caches; not a concurrency or endurance test.",
+    "sources": [
+      {
+        "provider": "op-applemusic",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "535824738",
+            "searchMs": 2030,
+            "resolveMs": 7036,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 853,
+            "status": "passed",
+            "totalMs": 9919
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "536030695",
+            "searchMs": 1765,
+            "resolveMs": 626,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 513,
+            "status": "passed",
+            "totalMs": 2904
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "1624001324",
+            "searchMs": 754,
+            "resolveMs": 1885,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 1606,
+            "status": "passed",
+            "totalMs": 4245
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 4245
+      },
+      {
+        "provider": "op-netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "2668397359",
+            "searchMs": 1193,
+            "resolveMs": 6605,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 48000,
+              "bitDepth": 24,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 276,
+            "status": "passed",
+            "totalMs": 8074
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 1940,
+            "resolveMs": 678,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 964,
+            "status": "passed",
+            "totalMs": 3582
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 1420,
+            "resolveMs": 3581,
+            "requestedLevel": "hires",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "format": "mp3",
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 225,
+            "status": "passed",
+            "totalMs": 5226
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 5226
+      },
+      {
+        "provider": "op-qq",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "0039MnYb0qxYhV",
+            "searchMs": 294,
+            "resolveMs": 6295,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 192000,
+              "bitDepth": 24,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 6654,
+            "status": "passed",
+            "totalMs": 13243
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "002qU5aY3Qu24y",
+            "searchMs": 3125,
+            "resolveMs": 1490,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 192000,
+              "bitDepth": 24,
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 2176,
+            "status": "passed",
+            "totalMs": 6791
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "003aAYrm3GE0Ac",
+            "searchMs": 2651,
+            "resolveMs": 8489,
+            "requestedLevel": "hires",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/ogg",
+              "bytes": 4096,
+              "signature": "4f67675300020000",
+              "format": "unknown",
+              "host": "127.0.0.1:8808"
+            },
+            "audioMs": 666,
+            "status": "passed",
+            "totalMs": 11806
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 11806
+      }
+    ],
+    "completedAt": "2026-11-08T15:21:51.707Z"
+  },
+  "production": {
+    "site": "https://music.505zc.tech",
+    "checkedAt": "2026-11-08T15:27:16.010Z",
+    "rounds": 1,
+    "method": "Sequential samples per provider; two providers at most in parallel. Search, highest-quality resolution, then first 4 KiB of real audio. Samples may hit caches; not a concurrency or endurance test.",
+    "sources": [
+      {
+        "provider": "op-netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "2668397359",
+            "searchMs": 1597,
+            "resolveMs": 993,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 48000,
+              "bitDepth": 24,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 426,
+            "status": "passed",
+            "totalMs": 3016
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 1382,
+            "resolveMs": 1413,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 424,
+            "status": "passed",
+            "totalMs": 3219
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 971,
+            "resolveMs": 846,
+            "requestedLevel": "hires",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "format": "mp3",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 437,
+            "status": "passed",
+            "totalMs": 2254
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 3016
+      },
+      {
+        "provider": "op-applemusic",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "535824738",
+            "searchMs": 3342,
+            "resolveMs": 1848,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 246,
+            "status": "passed",
+            "totalMs": 5436
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "536030695",
+            "searchMs": 1128,
+            "resolveMs": 1147,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 924,
+            "status": "passed",
+            "totalMs": 3199
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "1624001324",
+            "searchMs": 1075,
+            "resolveMs": 864,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 44100,
+              "bitDepth": 16,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2652,
+            "status": "passed",
+            "totalMs": 4591
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 4591
+      },
+      {
+        "provider": "op-qq",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "0039MnYb0qxYhV",
+            "searchMs": 1004,
+            "resolveMs": 911,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 192000,
+              "bitDepth": 24,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 10424,
+            "status": "passed",
+            "totalMs": 12339
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "002qU5aY3Qu24y",
+            "searchMs": 1630,
+            "resolveMs": 1269,
+            "requestedLevel": "hires",
+            "resolvedLevel": "hires",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "format": "flac",
+              "sampleRate": 192000,
+              "bitDepth": 24,
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 7061,
+            "status": "passed",
+            "totalMs": 9960
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "003aAYrm3GE0Ac",
+            "searchMs": 1250,
+            "resolveMs": 1706,
+            "requestedLevel": "hires",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/ogg",
+              "bytes": 4096,
+              "signature": "4f67675300020000",
+              "format": "unknown",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1077,
+            "status": "passed",
+            "totalMs": 4033
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 9960
+      }
+    ],
+    "completedAt": "2026-11-08T15:27:50.876Z"
+  }
+}

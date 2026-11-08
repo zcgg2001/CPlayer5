@@ -1,5 +1,5 @@
 export class ChannelError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+  constructor(status, message, retryAfter) { super(message); this.status = status; this.retryAfter = retryAfter; }
 }
 export const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36';
 export const JBSOU = 'https://www.jbsou.cn/';
@@ -16,9 +16,16 @@ const AUDIO_HOSTS = {
   netease: ['music.126.net'], qq: ['stream.qqmusic.qq.com', 'aqqmusic.tc.qq.com'],
   kugou: ['kugou.com'], kuwo: ['kuwo.cn'],
 };
-export function audioUrl(value, platform) {
+export function audioUrl(value, platform, source = '') {
   let url;
   try { url = checkedUrl(value); } catch { throw new ChannelError(502, '渠道返回了无效的音频地址'); }
+  if (source.startsWith('op-')) {
+    if (url.protocol !== 'https:' || !['music.op.wiki', 'music.zr.wiki'].includes(url.hostname)
+      || !/^\/api\/v1\/playbacks\/[A-Za-z0-9_.~-]{1,256}\/audio$/.test(url.pathname)) {
+      throw new ChannelError(502, 'OP Music 返回了不支持的音频地址');
+    }
+    return url;
+  }
   if (!(AUDIO_HOSTS[platform] || []).some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))) {
     throw new ChannelError(502, '渠道返回了不支持的音频地址');
   }
@@ -65,9 +72,9 @@ export function createChannelClient(fetchImpl, signal) {
   const fetch = async (url, options = {}) => {
     const response = await fetchImpl(String(url), {
       ...options, headers: { 'user-agent': USER_AGENT, ...options.headers }, redirect: 'manual',
-      signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
+      signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : []), AbortSignal.timeout(15_000)]),
     });
-    if (response.status === 429) { await response.body?.cancel(); throw new ChannelError(429, '渠道请求过于频繁，请稍后重试'); }
+    if (response.status === 429) { await response.body?.cancel(); throw new ChannelError(429, '渠道请求过于频繁，请稍后重试', response.headers.get('retry-after')); }
     return response;
   };
   const json = async (url, options) => {

@@ -14,6 +14,8 @@ function harness(resolve, options={}) {
 test('each provider starts at its maximum and a ceiling constrains manual quality',()=>{
  assert.deepEqual(playbackLevels('gd'),['hires','lossless','exhigh','standard']);
  assert.deepEqual(playbackLevels('netease'),['lossless','exhigh','standard']);
+ assert.deepEqual(playbackLevels('op-applemusic'),['hires','lossless','exhigh','standard']);
+ assert.deepEqual(playbackLevels('op-qq','lossless'),['lossless','exhigh','standard']);
  assert.deepEqual(playbackLevels('chksz','exhigh'),['exhigh','standard']);
 });
 test('legacy numeric IDs can use exact NetEase IDs without search and start lossless',async()=>{
@@ -51,6 +53,26 @@ test('cross-platform fallback searches and uses matched source IDs rather than c
 });
 test('abort exits without poisoning provider health',async()=>{
  const {router}=harness(()=>{throw new RequestCancelledError();});await assert.rejects(router.candidates(track.id,{song:track}).next(),RequestCancelledError);assert.deepEqual(router.health(),{});
+});
+test('OP NetEase reuses verified platform IDs and skips pending tasks without trying every quality',async()=>{
+ const {router,calls}=harness((id,level,{source})=>{
+  if(source==='at38-netease')return playable(source,level);
+  throw new HttpStatusError(503,{error:{message:'OP Music 音频仍在准备，已切换其他渠道'}});
+ });
+ assert.equal((await router.candidates(track.id,{song:track}).next()).value.provider,'at38-netease');
+ const op=calls.filter(x=>x.source==='op-netease');assert.equal(op.length,1);assert.equal(op[0].id,'op-netease:123');assert.equal(op[0].level,'hires');
+});
+test('OP QQ shares mids, while Apple IDs stay isolated and later matching uses prepared album metadata',async()=>{
+ const h=harness((id,level,{source})=>source==='op-qq'?playable(source,level):Promise.reject(new HttpStatusError(503)));
+ const qq={...track,id:'qq:mid123',sourceId:'mid123',provider:'qq'};
+ assert.equal((await h.router.candidates(qq.id,{song:qq}).next()).value.provider,'op-qq');assert.equal(h.calls.find(x=>x.source==='op-qq').id,'op-qq:mid123');
+ const apple={...track,id:'op-applemusic:999',sourceId:'999',provider:'op-applemusic',album:''};
+ const second=harness((id,level,{source})=>({...playable(source,level),album:track.album,duration:track.duration}));
+ second.service.search=async(query,{source})=>source==='chksz'?[{...track,provider:'chksz',id:'123'}]:[];
+ const iterator=second.router.candidates(apple.id,{song:apple});
+ assert.equal((await iterator.next()).value.provider,'op-applemusic');
+ const recovered=(await iterator.next({skipProvider:true})).value;assert.equal(recovered.provider,'chksz');
+ assert.equal(second.calls[1].id,'123');
 });
 test('provider cooldown expires and successful real playback clears failure history',async()=>{
  let now=100000;const {router}=harness((id,l,{source})=>playable(source,l),{now:()=>now});router.failure({provider:'chksz'},new HttpStatusError(429,null,'1'));

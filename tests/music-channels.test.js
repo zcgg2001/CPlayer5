@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 import worker from '../sites/worker.js';
 import { MusicService, MUSIC_SOURCE_OPTIONS } from '../js/music-service.js';
 import { MUSIC_CHANNELS, channelTrackId } from '../js/music-channels.js';
+import { SOURCE_PLATFORMS } from '../js/music-source-tabs.js';
 
 const request = (source, action, params = {}, headers = {}) => new Request(`https://player.example/api/v1/music/${action}?${new URLSearchParams({source,...params})}`,{headers});
 const payload = (data, init) => Response.json(data, init);
+
+test('every channel has a reachable platform in the shared source picker',()=>{
+  const visible=new Set(SOURCE_PLATFORMS.map(([id])=>id));
+  for(const channel of Object.values(MUSIC_CHANNELS))assert.equal(visible.has(channel.platform),true,channel.label);
+});
 
 for (const [source, channel] of Object.entries(MUSIC_CHANNELS)) {
   test(`${source} retains its identity through search, queue, playback and lyrics`, async () => {

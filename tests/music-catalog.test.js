@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { catalogRecord, aggregateSongs, artworkVariants, extractMetadata, relatedMusic, availability, groupAvailability, sourceBlocked } from '../js/music-catalog.js';
+import { CATALOG_SOURCES, catalogRecord, aggregateSongs, artworkVariants, extractMetadata, relatedMusic, availability, groupAvailability, sourceBlocked } from '../js/music-catalog.js';
 import { createCatalogService, probeAudio, failureAvailability } from '../js/catalog-service.js';
 import { MusicService } from '../js/music-service.js';
 const track=(provider,id,extra={})=>({provider,id,sourceId:id,name:'青花瓷',artist:'周杰伦',album:'我很忙',...extra});
@@ -73,7 +73,7 @@ test('aggregate search limits concurrency, reports partial failures and never ca
   let active=0,max=0; const calls=[];
   const api={config:{quality:'lossless'},async search(q,{source}){calls.push(source);active++;max=Math.max(max,active);await new Promise(resolve=>setTimeout(resolve,5));active--;if(source==='qq')throw new Error('failure');return[track(source,'1')];}};
   const service=createCatalogService(api);const progress=[];const result=await service.search('青花瓷',{onProgress:s=>progress.push(s.completed)});
-  assert.equal(max,3);assert.equal(calls.includes('chksz'),false);assert.equal(result.completed,10);assert.deepEqual(result.failures,['qq']);assert.equal(progress.length,10);
+  assert.equal(max,3);assert.equal(calls.includes('chksz'),false);assert.equal(result.completed,CATALOG_SOURCES.length);assert.deepEqual(result.failures,['qq']);assert.equal(progress.length,CATALOG_SOURCES.length);
 });
 test('search cancellation stops scheduling and deadlines preserve other results',async()=>{
   const calls=[];const controller=new AbortController();

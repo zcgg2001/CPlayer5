@@ -125,6 +125,25 @@ test('workerd: public metadata enrichment and overlapping requests retain no req
   for(const response of responses){assert.equal(response.status,200);const body=await response.json();assert.equal(body.data.duration,200);assert.equal(body.data.albumEntity.description,'专辑介绍');assert.equal(body.data.artistEntities[0].description,'艺人介绍');}
 });
 
+test('workerd: OP task polling, native FLAC detection and same-origin Range playback', async t => {
+  const path='/api/v1/playbacks/runtime-op';let posts=0,polls=0;
+  const task={id:'runtime-op',platform:'applemusic',selected_id:'123',track_id:'123',status:'completed',format:'m4a',quality:'hires',audio_url:`https://music.zr.wiki${path}/audio?rev=current`};
+  const prefix=new Uint8Array(64);prefix.set(new TextEncoder().encode('fLaC'));prefix[7]=34;
+  new DataView(prefix.buffer).setBigUint64(18,(44100n<<44n)|(15n<<36n));
+  const mf=runtime(t,async request=>{
+    const url=new URL(request.url);assert.equal(request.headers.get('cookie'),null);assert.match(request.headers.get('user-agent'),/^CPlayer5/);
+    if(request.method==='POST'){posts++;assert.equal((await request.json()).quality,'hires');return Response.json({playback:{...task,status:'queued'},status_url:path});}
+    if(url.pathname===path){polls++;return Response.json(task);}
+    assert.equal(url.hostname,'music.zr.wiki');assert.equal(url.searchParams.get('rev'),'current');
+    const probe=request.headers.get('range')==='bytes=0-63';
+    return new Response(probe?prefix:new TextEncoder().encode('fLaC'),{status:206,headers:{'content-type':'audio/flac','content-range':probe?'bytes 0-63/1000':'bytes 0-3/1000'}});
+  });
+  const resolved=await mf.dispatchFetch('https://player.example/api/v1/music/song?source=op-applemusic&id=123&level=hires');
+  assert.equal(resolved.status,200);const {data}=await resolved.json();assert.equal(data.level,'lossless');assert.equal(data.format,'flac');assert.equal(data.sampleRate,44100);
+  const audio=await mf.dispatchFetch(new URL(data.url,'https://player.example').href,{headers:{range:'bytes=0-3'}});
+  assert.equal(audio.status,206);assert.equal(await audio.text(),'fLaC');assert.equal(posts,1);assert.equal(polls,1);
+});
+
 test('workerd: quota-independent discovery playlists and concurrent chart requests', async t => {
   const mf=runtime(t,async request=>{
     const url=new URL(request.url);assert.equal(url.hostname,'music.163.com');

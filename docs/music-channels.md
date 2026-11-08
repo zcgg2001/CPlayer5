@@ -5,6 +5,9 @@
 | 平台 | 渠道 | source / provider | 音质选择 |
 | --- | --- | --- | --- |
 | 网易云 | Meting | `netease` | 标准、极高、无损 |
+| Apple Music | OP Music | `op-applemusic` | 标准、极高、无损、Hi-Res |
+| 网易云 | OP Music | `op-netease` | 标准、极高、无损、Hi-Res |
+| QQ 音乐 | OP Music | `op-qq` | 标准、极高、无损、Hi-Res |
 | 网易云 | 51ape | `at38-netease` | 按实际返回音质 |
 | 网易云 | 煎饼 | `jianbin-netease` | 按实际返回音质 |
 | QQ 音乐 | 51ape | `at38-qq` | 按实际返回音质 |
@@ -35,6 +38,20 @@
 HTML 使用 `cheerio/slim` 解析。网易云 eapi 使用 Node crypto，Workers 的兼容日期为 2026-11-07；真实 workerd 测试同时验证加密请求与解密响应。
 
 ## 验证
+
+### OP Music 接入（2026-11-08）
+
+依据 [OP Music API 文档](https://music.op.wiki/docs/api/) 的公开匿名接口实现 `sites/op-music.js`。实时 `/api/v1/platforms` 列出 Apple Music、网易云、QQ、YouTube Music 和 Bilibili；本次接入前三个音乐曲库。文档中列出的酷狗和汽水未出现在实时列表中，不添加无效入口。视频平台继续保持现有独立行为。
+
+- 搜索不创建播放任务；上游只支持最多 20 条、没有分页，后续页不重复返回第一页。
+- 每次解析只 POST 一次，始终传精确 `selected_id`、非空 `query`，前端 `exhigh` 对应上游 `high`；默认从 `hires` 开始。
+- queued / processing / streaming 均串行每秒查状态，最多 7 次查询、整个解析最多 10 秒；只有 completed 才读取最新 `audio_url`，保留 `rev` 参数。不会将专用 WASM ALAC 分包流交给普通 audio 元素。
+- 音质准备失败可以降档；准备超时、网络和认证/限流错误换源。404 不无限重建，Retry-After 传递给既有冷却策略。
+- 完成后先读取最多 64 字节音频头并取消流。FLAC 读取真实采样率与位深，24 bit 或高于 48 kHz 标记 Hi-Res；16 bit / 44.1 kHz 显示无损。压缩音频不因请求 Hi-Res 就显示无损，未知码率不伪造。
+- API 只访问 `music.op.wiki`；音频只允许 HTTPS 的 `music.op.wiki` / `music.zr.wiki` 指定任务 `/audio` 路径，逐跳检查，拒绝任意地址、其他任务和 `/audio/stream`。使用明确的 CPlayer5 User-Agent，不转发用户 Cookie、Authorization 或 Referer。
+- 网易云 ID 与 QQ mid 可在已验证使用同一 ID 的渠道间切换；Apple ID 不跨平台复用。搜索缺少专辑时不只凭同名自动匹配，准备任务返回的专辑/时长可用于后续严格匹配。
+
+本地 3 个渠道各 3 首、共 9 个样本均通过，样本包括缓存和提前准备的任务，不能表示首次冷准备或长期可用性。Apple Music 样本为 16 bit / 44.1 kHz FLAC；QQ 两个样本为 24 bit / 192 kHz FLAC，另一个实际返回 Ogg。网易云搜索首条可能是翻唱，采样不会证明它与另一平台首条为同一录音。生产测试结果见 [OP Music 验证记录](op-music-validation.md)。
 
 ```bash
 # 本地直连上游；不读取 ChKSz Secret

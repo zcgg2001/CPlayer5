@@ -4,7 +4,7 @@ import { RequestCancelledError } from './http.js';
 
 // ChKSz returned the fastest successful samples and 24-bit / 192 kHz FLAC;
 // Meting is the first fallback. Real playback evidence overrides this initial order.
-export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'at38-netease', 'jianbin-netease', 'qq', 'at38-qq', 'jianbin-qq', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
+export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
 const QUALITY_ORDER = ['jymaster', 'hires', 'lossless', 'exhigh', 'standard'];
 const HEALTH_KEY = 'cp_playback_health_v1';
 export function actualPlaybackQuality(data) {
@@ -76,12 +76,12 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     };
     for (const item of sources) add({ ...original, ...item, sources:undefined, provider:item.provider || service.sourceForSong(item).provider });
     const neteaseId = neteaseMetadataId(original);
-    if (neteaseId) for (const provider of ['netease','chksz','gd','at38-netease']) {
+    if (neteaseId) for (const provider of ['netease','chksz','gd','at38-netease','op-netease']) {
       if (!direct.has(provider)) add({ ...original, sources:undefined, provider, id:MUSIC_CHANNELS[provider]?channelTrackId(provider,neteaseId):neteaseId, sourceId:neteaseId, availability:undefined });
     }
-    for (const item of sources) if (['qq','at38-qq'].includes(item.provider)) {
+    for (const item of sources) if (['qq','at38-qq','op-qq'].includes(item.provider)) {
       const mid=channelSourceId(item.provider,item.sourceId||item.id);
-      if (/^[a-zA-Z0-9]{1,128}$/.test(mid)) for (const provider of ['qq','at38-qq']) if(!direct.has(provider)) add({...item,provider,id:channelTrackId(provider,mid),sourceId:mid,availability:undefined});
+      if (/^[a-zA-Z0-9]{1,128}$/.test(mid)) for (const provider of ['qq','at38-qq','op-qq']) if(!direct.has(provider)) add({...item,provider,id:channelTrackId(provider,mid),sourceId:mid,availability:undefined});
     }
     const video = sources.some(item=>item.provider==='bilibili');
     const primaryPlatform=platform(sources[0]?.provider || service.sourceForSong(original).provider);
@@ -119,6 +119,10 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
             const resolved=await bounded(timeoutMs=>service.getSongAtLevel(track.id,requestedLevel,{song:track,source:provider,signal,fetchImpl,timeoutMs,exactQuality:true}),12000);
             if(!resolved?.url || seenUrls.has(resolved.url))continue;
             const data=actualPlaybackQuality(resolved);
+            // Some catalogs (including OP) only reveal album/duration after
+            // preparation. Keep that evidence for strict later source matching.
+            if (!original.album && data.album) original.album = data.album;
+            if (!original.duration && data.duration) original.duration = data.duration;
             seenUrls.add(data.url);
             const result={...data,id:original.id||id,catalogId:original.catalogId,sources:original.sources,requestedLevel,
               routing:{automatic:true,attempt:attempts,resolveMs:Math.max(0,now()-began)}};

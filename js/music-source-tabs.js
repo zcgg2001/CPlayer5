@@ -1,6 +1,6 @@
 // A shared select/change contract keeps all four source pickers synchronized.
 export const SOURCE_PLATFORMS = Object.freeze([
-  ['netease', '网易云'], ['qq', 'QQ 音乐'], ['kuwo', '酷我'], ['kugou', '酷狗'], ['bilibili', 'Bilibili'],
+  ['netease', '网易云'], ['qq', 'QQ 音乐'], ['applemusic', 'Apple Music'], ['kuwo', '酷我'], ['kugou', '酷狗'], ['bilibili', 'Bilibili'],
 ]);
 export const sourcePlatform = (source, options) => options[source]?.platform || (source === 'bilibili' ? 'bilibili' : 'netease');
 

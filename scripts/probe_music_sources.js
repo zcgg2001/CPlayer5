@@ -59,7 +59,7 @@ async function probe(provider) {
       if (!song) throw new Error('No search results');
       sample.name = song.name; sample.id = song.id; sample.searchMs = Date.now() - start;
       stage = 'resolve';
-      const level = provider === 'chksz' ? 'jymaster' : provider === 'gd' ? 'hires' : provider === 'netease' ? 'lossless' : 'standard';
+      const level = provider === 'chksz' ? 'jymaster' : provider === 'gd' ? 'hires' : MUSIC_CHANNELS[provider]?.qualities.at(-1) || 'standard';
       const began = Date.now();
       const resolved = await json(`/api/v1/music/song?${new URLSearchParams({ source: provider, id: song.id, level })}`);
       const playback = provider === 'bilibili' ? normalizeBilibiliPayload(resolved)[0] : normalizeSongPayload(resolved, level);

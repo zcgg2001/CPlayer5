@@ -5,6 +5,7 @@ import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:
 import { Buffer } from 'node:buffer';
 import { load } from 'cheerio/slim';
 import { ChannelError, AT38, JBSOU, GEQUKE, audioUrl, jbsouUrl, boundedBytes, responseText } from './channel-http.js';
+import { searchOp, resolveOp, lyricOp } from './op-music.js';
 
 const EAPI_KEY = Buffer.from('e82ckenh8dichen8');
 const withQuery = (base, params) => `${base}?${new URLSearchParams(params)}`;
@@ -31,6 +32,7 @@ async function netease(client, lyric, payload) {
 }
 
 export async function searchChannel(source, platform, keyword, limit, offset, client) {
+  if (source.startsWith('op-')) return searchOp(source, keyword, limit, offset, client);
   if (source === 'netease') {
     const data = await netease(client, false, { s: keyword, type: 1, limit, offset, total: true });
     if (data.code !== 200 || !Array.isArray(data.result?.songs)) throw new ChannelError(502, '网易云搜索暂时不可用');
@@ -111,6 +113,7 @@ export async function resolveJbsou(id, platform, client, cover = false) {
 
 const pageValue = (html, name) => html.match(new RegExp(`window\\.${name}\\s*=\\s*['"]([^'"]*)['"]`))?.[1] || '';
 export async function resolveChannel(source, platform, id, level, client) {
+  if (source.startsWith('op-')) return resolveOp(source, id, level, client);
   if (source.startsWith('jianbin-')) return { url: await resolveJbsou(id, platform, client) };
   validateId(id, source === 'gequke' ? 'kuwo' : platform);
   if (source === 'netease') {
@@ -158,6 +161,7 @@ export async function resolveChannel(source, platform, id, level, client) {
 }
 
 export async function channelLyric(source, platform, id, client) {
+  if (source.startsWith('op-')) return lyricOp(source, id, client);
   if (source.startsWith('jianbin-')) {
     const url = jbsouUrl(id), expected = { netease: 'wy', qq: 'qq', kugou: 'kg', kuwo: 'kw' };
     if (url.searchParams.get('type') !== expected[platform]) return { lrc: '' };

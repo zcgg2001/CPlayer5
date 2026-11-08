@@ -1,6 +1,7 @@
 import { MUSIC_CHANNELS, isMusicChannel } from '../js/music-channels.js';
 import { ChannelError, USER_AGENT, checkedUrl, audioUrl, createChannelClient } from './channel-http.js';
 import { searchChannel, resolveChannel, resolveJbsou, channelLyric } from './channel-providers.js';
+import { OP_USER_AGENT } from './op-music.js';
 
 export { isMusicChannel };
 // Only completed, public metadata is cached; sessions, streams and promises stay request-local.
@@ -31,8 +32,9 @@ function coverUrl(value) {
   return url.href;
 }
 
-async function streamAudio(request, info, platform, fetchImpl) {
-  let url = audioUrl(info.url, platform);
+async function streamAudio(request, info, platform, fetchImpl, source) {
+  let url = audioUrl(info.url, platform, source);
+  const originalPath = url.pathname;
   const range = request.headers.get('range');
   if (range && !/^bytes=(?:\d+-\d*|-\d+)$/.test(range)) throw new ChannelError(416, '不支持的音频范围');
   for (let hop = 0; hop < 4; hop++) {
@@ -42,14 +44,15 @@ async function streamAudio(request, info, platform, fetchImpl) {
     try {
       response = await fetchImpl(url.href, {
         method: request.method, redirect: 'manual',
-        headers: { 'user-agent': USER_AGENT, ...(range ? { range } : {}) },
+        headers: { 'user-agent': source.startsWith('op-') ? OP_USER_AGENT : USER_AGENT, ...(range ? { range } : {}) },
         signal: AbortSignal.any([request.signal, timeout.signal]),
       });
     } finally { clearTimeout(timer); }
     if ([301,302,303,307,308].includes(response.status)) {
       const target = response.headers.get('location');
       await response.body?.cancel();
-      url = audioUrl(new URL(target || '', url).href, platform);
+      url = audioUrl(new URL(target || '', url).href, platform, source);
+      if (source.startsWith('op-') && url.pathname !== originalPath) throw new ChannelError(502, 'OP Music 音频任务不匹配');
       continue;
     }
     if (response.status === 416) {
@@ -57,11 +60,12 @@ async function streamAudio(request, info, platform, fetchImpl) {
       return new Response(null, { status: 416, headers: { 'content-range': response.headers.get('content-range') || 'bytes */0' } });
     }
     const type = response.headers.get('content-type') || '';
-    if (!response.ok || /(?:text|json|html|image)/i.test(type)) {
+    if (![200, 206].includes(response.status) || /(?:text|json|html|image)/i.test(type)) {
       await response.body?.cancel();
-      throw new ChannelError(502, '此歌曲音频暂时无法读取，请换一个渠道');
+      throw new ChannelError([401,402,403,429].includes(response.status) ? response.status : 502, '此歌曲音频暂时无法读取，请换一个渠道', response.headers.get('retry-after'));
     }
-    const headers = new Headers({ 'content-type': info.format === 'flac' ? 'audio/flac' : info.format === 'mp3' ? 'audio/mpeg' : 'audio/mp4', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
+    const contentType = { flac:'audio/flac', mp3:'audio/mpeg', m4a:'audio/mp4', aac:'audio/aac', ogg:'audio/ogg', opus:'audio/ogg', wav:'audio/wav' }[info.format] || 'application/octet-stream';
+    const headers = new Headers({ 'content-type': contentType, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
     for (const name of ['content-range', 'content-length', 'accept-ranges', 'etag', 'last-modified']) {
       const value = response.headers.get(name); if (value) headers.set(name, value);
     }
@@ -78,8 +82,8 @@ export async function handleMusicChannelRequest(request, env, url) {
   const cache = cacheFor(fetchImpl);
   const signal = AbortSignal.any([request.signal, AbortSignal.timeout(40_000)]);
   const client = createChannelClient(fetchImpl, signal);
-  const json = (payload, status = 200) => new Response(request.method === 'HEAD' ? null : JSON.stringify(payload), {
-    status, headers: { 'content-type':'application/json; charset=utf-8', 'cache-control':'no-store', 'x-content-type-options':'nosniff' },
+  const json = (payload, status = 200, retryAfter) => new Response(request.method === 'HEAD' ? null : JSON.stringify(payload), {
+    status, headers: { 'content-type':'application/json; charset=utf-8', 'cache-control':'no-store', 'x-content-type-options':'nosniff', ...(retryAfter ? { 'retry-after': retryAfter } : {}) },
   });
   try {
     if (!channel) throw new ChannelError(400, '不支持的音乐渠道');
@@ -103,21 +107,25 @@ export async function handleMusicChannelRequest(request, env, url) {
       const data = await cached(cache, `${source}:lyric:${id}`, 300_000, () => channelLyric(source, channel.platform, id, client));
       return json({ code:200, data });
     }
-    const requested = params.get('level') || 'lossless';
+    const requested = params.get('level') || channel.qualities.at(-1) || 'standard';
     if (!['standard','exhigh','lossless','hires','jymaster'].includes(requested)) throw new ChannelError(400, '音质参数无效');
-    const level = source === 'netease' ? (channel.qualities.includes(requested) ? requested : 'lossless') : 'standard';
+    const level = channel.qualities.includes(requested) ? requested : channel.qualities.at(-1) || 'standard';
     const info = await cached(cache, `${source}:song:${id}:${level}`, 60_000, async () => {
       const resolved = await resolveChannel(source, channel.platform, id, level, client);
-      const url = audioUrl(resolved.url, channel.platform);
-      const format = url.pathname.match(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i)[1].toLowerCase();
-      return { ...resolved, format, br: (Number(resolved.bitrate) || 0) * 1000, level: format === 'flac' ? 'lossless' : Number(resolved.bitrate) >= 300 ? 'exhigh' : 'standard' };
+      const url = audioUrl(resolved.url, channel.platform, source);
+      const format = source.startsWith('op-') ? resolved.format : url.pathname.match(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i)[1].toLowerCase();
+      return { ...resolved, format, br: (Number(resolved.bitrate) || 0) * 1000, level: source.startsWith('op-') ? resolved.level : format === 'flac' ? 'lossless' : Number(resolved.bitrate) >= 300 ? 'exhigh' : 'standard' };
     });
-    if (action === 'audio') return await streamAudio(request, info, channel.platform, fetchImpl);
+    if (action === 'audio') {
+      try { return await streamAudio(request, info, channel.platform, fetchImpl, source); }
+      catch (error) { cache.delete(`${source}:song:${id}:${level}`); throw error; }
+    }
     return json({ code:200, data: {
       id, url: `/api/v1/music/audio?${new URLSearchParams({ source, id, level })}`,
       format: info.format, level: info.level, br: info.br, cover: info.cover || '', downloadAllowed:false,
+      ...(source.startsWith('op-') ? { name:info.name, artist:info.artist, album:info.album, duration:info.duration, sampleRate:info.sampleRate, bitDepth:info.bitDepth } : {}),
     } });
   } catch (error) {
-    return json({ error: { code:'channel_error', message: error instanceof ChannelError ? error.message : '渠道连接失败或超时，请稍后重试或切换渠道' } }, error instanceof ChannelError ? error.status : 502);
+    return json({ error: { code:'channel_error', message: error instanceof ChannelError ? error.message : '渠道连接失败或超时，请稍后重试或切换渠道' } }, error instanceof ChannelError ? error.status : 502, error.retryAfter);
   }
 }
