@@ -1149,7 +1149,7 @@
 
         .top-btn,
         .control-buttons-row button:not(#playPauseBtn),
-        #mobileLayout button:not(#mobilePlayBtn) {
+        #mobileLayout button:not(#mobilePlayBtn):not(.experience-button) {
             background: rgba(255, 255, 255, 0.34) !important;
             border: 1px solid rgba(255, 255, 255, 0.62);
             box-shadow: 0 7px 18px rgba(57, 68, 129, 0.1);
@@ -1407,7 +1407,8 @@
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
     <link rel="stylesheet" href="./css/discovery.css?v=4">
-    <link rel="stylesheet" href="./css/discovery-home.css?v=1">
+    <link rel="stylesheet" href="./css/discovery-home.css?v=2">
+    <link rel="stylesheet" href="./css/player-experience.css?v=1">
     <link rel="stylesheet" href="./css/music-catalog.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
@@ -2119,7 +2120,7 @@
     </div>
 
     <!-- ★ Mobile Layout (Visible < md) -->
-    <div id="mobileLayout" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
+    <div id="mobileLayout" data-player-empty="true" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
         <div class="listening-ambient" aria-hidden="true"></div>
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
@@ -2166,16 +2167,16 @@
                 <!-- Song Info (In Cover Mode) -->
                 <div class="text-center w-full px-6 space-y-2 flex-shrink-0 mt-2">
                     <h2 id="mobileTitle" class="font-bold truncate drop-shadow-lg"
-                        style="font-size: clamp(1.3rem, 5vw, 1.8rem);">CPlayer 5</h2>
+                        style="font-size: clamp(1.3rem, 5vw, 1.8rem);">请选择歌曲</h2>
                     <p id="mobileArtist" class="opacity-70 truncate font-medium mt-0.5"
-                        style="font-size: clamp(0.9rem, 3.5vw, 1.15rem);">ChKSz</p>
+                        style="font-size: clamp(0.9rem, 3.5vw, 1.15rem);">从搜索或推荐中开始播放</p>
 
                     <!-- Metadata Badges (ID, Quality) -->
                     <div class="flex justify-center items-center gap-2 mt-1.5 flex-wrap" id="mobileMetaContainer">
                         <!-- Source Tag Removed as per request -->
                         <div id="mobileSongIdTag"
                             class="text-xs font-mono px-2 py-0.5 rounded opacity-50 border border-current cursor-pointer hover:opacity-100 transition-all select-none"
-                            title="长按复制ID">ID: 0413</div>
+                            title="长按复制ID">ID: —</div>
 
                         <button id="mobilePlaybackQualityBtn" type="button"
                             class="mobile-playback-quality min-w-11 min-h-11"
@@ -3013,7 +3014,8 @@
         import { isMusicChannel } from './js/music-channels.js?v=1';
         import { createMusicSourceTabs } from './js/music-source-tabs.js?v=4';
         import { createCatalogBrowser } from './js/catalog-browser.js?v=1';
-        import { createDiscoveryHome } from './js/discovery-home.js?v=1';
+        import { createDiscoveryHome } from './js/discovery-home.js?v=2';
+        import { createPlayerExperience } from './js/player-experience.js?v=1';
         import { createDiscoveryTable } from './js/discovery-table.js?v=2';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=3';
@@ -3202,6 +3204,7 @@
             },
         });
         const playback = createPlaybackController({ audio, preloadAudio, musicService, queueStore });
+        let playerExperience = null;
         let parsedLyrics = [], activeLyricIndex = -1;
 
 
@@ -3416,6 +3419,19 @@
                 onImmersiveChange: syncContinuousRendering,
             });
             restoreLastCover();
+            playerExperience = createPlayerExperience({ document, audio,
+                onSearch: () => openMusicSearch(),
+                onDiscover: () => setMobileExploreOpen(true, { view: 'discovery' }),
+                onImport: () => {
+                    document.getElementById('playlistFile').click();
+                    mobileUI?.switchSheetTab('playlist');
+                    mobileUI?.openSheet();
+                },
+                onNext: playNextSong,
+                onChooseSource: openSettings,
+                onResume: togglePlayPause,
+                onChange: () => mobileUI?.syncBrowsePlayer(),
+            });
             syncDesktopPlayerAvailability();
             const initialContentView = contentViewFromHash();
             if (initialContentView) {
@@ -4848,7 +4864,6 @@
         }
 
         function onPlayStart() {
-            dom.desktopPlayerBar?.classList.remove('is-buffering');
             setPlaybackTransitionPending(false);
             syncPlaybackControls(true);
             if (!audioContext) setupAudioContext();
@@ -4937,6 +4952,7 @@
         }
 
         async function togglePlayPause() {
+            if (playback.state.quality.songLoading) return;
             if (!playback.state.currentSong?.id) {
                 switchDesktopTab('playlist');
                 togglePlaylistPanel(true);
@@ -5020,8 +5036,8 @@
                         renderAllPlaylistItems();
                         playSongAtIndex(targetIndex);
 
-                        setSearchStatus(dom.searchResults, `已添加并播放: ${newSong.name}`);
-                        showToast(`已添加并播放: ${newSong.name}`);
+                        setSearchStatus(dom.searchResults, `已加入队列: ${newSong.name}`);
+                        showToast(`已加入队列: ${newSong.name}`);
                     } else {
                         throw new Error('无效的歌曲ID');
                     }
@@ -5138,7 +5154,7 @@
                             renderAllPlaylistItems();
                             playSongAtIndex(targetIndex);
 
-                            showToast(`已添加并播放: ${newSong.name}`);
+                            showToast(`已加入队列: ${newSong.name}`);
                         };
                         catalogBrowser.decorateRow(div,song);
                         dom.searchResults.appendChild(div);
@@ -5204,7 +5220,7 @@
             });
             for (const event of ['playing','pause','loadedmetadata','durationchange','emptied']) audio.addEventListener(event, () => discoveryTable.sync());
             audio.addEventListener('waiting', () => dom.desktopPlayerBar.classList.add('is-buffering'));
-            for (const event of ['playing','pause','error','canplay']) audio.addEventListener(event, () => dom.desktopPlayerBar.classList.remove('is-buffering'));
+            for (const event of ['playing','pause','error']) audio.addEventListener(event, () => dom.desktopPlayerBar.classList.remove('is-buffering'));
             document.getElementById('desktopLyricsBtn').addEventListener('click', () => desktopShell.navigate(document.documentElement.classList.contains('desktop-immersive-open') ? 'library' : 'now-playing', { trigger: document.getElementById('desktopLyricsBtn') }));
             document.getElementById('playerFullscreenBtn').addEventListener('click', () => dom.fullscreenBtn.click());
             const skin = document.getElementById('animeThumbSkin');
@@ -5252,8 +5268,8 @@
         function openMusicSearch(query = '') {
             if (isCompactLayout()) {
                 setMobileExploreOpen(false);
-                mobileUI?.openSheet();
                 mobileUI?.switchSheetTab('search');
+                mobileUI?.openSheet();
                 dom.mobileSearchInput.value = query;
                 dom.mobileSearchInput.focus();
                 if (query) mobileUI?.handleSearch(query);
@@ -5518,7 +5534,7 @@
             if (mobileUI) mobileUI.loadPlaylist();
             if (dom.playlistCount) dom.playlistCount.textContent = `(${queue.playlist.length}首)`;
             const pending = window.playSongAtIndex(targetIndex, options);
-            showToast(`已添加并播放: ${newSong.name}`);
+            showToast(`已加入队列: ${newSong.name}`);
             return pending;
         }
 
@@ -5555,7 +5571,7 @@
             if (playNow) {
                 window.playSongAtIndex(targetIndex);
                 if (isCompactLayout()) setMobileExploreOpen(false);
-                showToast(`已添加并播放: ${newSong.name}`);
+                showToast(`已加入队列: ${newSong.name}`);
             } else {
                 showToast(`已加入播放队列: ${newSong.name}`);
             }
@@ -6238,7 +6254,7 @@
 
             const targetIndex = queue.playlist.findIndex(song => String(song.id) === firstSongId);
             if (playNow && targetIndex >= 0) window.playSongAtIndex(targetIndex);
-            const action = playNow ? '开始播放' : '已加入队列';
+            const action = playNow ? '已加入队列，正在加载' : '已加入队列';
             const suffix = additions.length ? ` · ${additions.length}首` : ' · 已在队列中';
             showToast(`${action}：${label}${suffix}`);
         }
@@ -6277,6 +6293,7 @@
             discoveryHome?.beforePlay(songOverride);
             return playback.load(id, songOverride, {
                 onLoading() {
+                    playerExperience?.loading(songOverride || { id }, () => loadAndPlaySong(id, songOverride, { position }));
                     discoveryLoadingSong = songOverride;
                     setPlaybackTransitionPending(false);
             dom.playbackQualityDialog?.removeAttribute('aria-busy');
@@ -6297,15 +6314,16 @@
             syncPlaybackQualityDisplay(musicService.config.quality);
 
                 },
-                onResolved(data) {
+                onResolved(data, playbackData) {
+                    playerExperience?.resolved(playbackData);
                     discoveryLoadingSong = null;
                     discoveryTable?.sync();
-                    dom.desktopPlayerBar?.classList.remove('is-buffering');
                     syncDesktopPlayerAvailability();
                     dom.songTitle.textContent = data.name || '未知歌曲';
                     dom.artistName.textContent = data.artist || '未知艺术家';
                 },
                 onAutoplayBlocked() {
+                    playerExperience?.blocked();
                     dom.desktopPlayerBar?.classList.remove('is-buffering');
                     syncPlaybackControls(false);
                     showToast('歌曲已加载，请点击播放键继续');
@@ -6408,6 +6426,7 @@
                 },
                 onLyricsError() { setLyricsStatus('歌词加载失败，请稍后重试'); },
                 onError(e) {
+                playerExperience?.failed(requestErrorMessage(e));
                 discoveryHome?.playbackFailed(e);
                 console.error(e);
                 setPlaybackTransitionPending(false);
@@ -6742,6 +6761,7 @@
                         playlistSource = 'import-json';
                         playlistSourceName = file.name;
                         initPlaylistView();
+                        mobileUI?.loadPlaylist();
                         dom.uploadContainer.classList.add('hidden');
                         // dom.playlistInfo.classList.remove('hidden');
                     }
@@ -8301,8 +8321,8 @@
                             // 播放
                             window.playSongAtIndex(targetIndex);
 
-                            setSearchStatus(container, `已添加并播放: ${newSong.name}`);
-                            showToast(`已添加并播放: ${newSong.name}`);
+                            setSearchStatus(container, `已加入队列: ${newSong.name}`);
+                            showToast(`已加入队列: ${newSong.name}`);
                         } else {
                             container.innerHTML = '<div class="p-4 text-center opacity-50 text-xs text-red-400">无效的ID</div>';
                         }
@@ -8388,7 +8408,7 @@
                                 window.playSongAtIndex(targetIndex);
                             }
 
-                            showToast(`已添加并播放: ${song.name}`);
+                            showToast(`已加入队列: ${song.name}`);
                         };
                         if (bilibiliVideoUrl(song)) {
                             const download = document.createElement('button');
@@ -8521,14 +8541,14 @@
             syncBrowsePlayer() {
                 const bar = document.getElementById('mobileBrowsePlayer');
                 if (!bar) return;
-                const song = playback.state.currentSong;
+                const song = playerExperience?.song || playback.state.currentSong;
                 const container = this.dom.sheet.getAttribute('aria-hidden') === 'false' ? this.dom.sheet
                     : dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false' ? dom.mobileChartsSheet : null;
                 bar.hidden = !song?.id || !container;
                 if (bar.hidden) return;
                 if (bar.parentElement !== container) container.append(bar);
                 document.getElementById('mobileBrowseTitle').textContent = song.name || '未知歌曲';
-                document.getElementById('mobileBrowseArtist').textContent = song.artist || '未知歌手';
+                document.getElementById('mobileBrowseArtist').textContent = playerExperience?.statusText() || song.artist || '未知歌手';
                 const cover = document.getElementById('mobileBrowseCover');
                 const src = normalizeMediaUrl(song.cover, {baseUrl: window.location.href}) || './img/icon.svg';
                 if (cover.getAttribute('src') !== src) cover.src = src;

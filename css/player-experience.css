@@ -1,0 +1,25 @@
+.experience-button { min-width: 44px; min-height: 44px; padding: 10px 16px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-surface); color: var(--studio-ink); font: inherit; cursor: pointer; }
+.experience-button:hover { background: var(--studio-raised); }
+.experience-button:focus-visible { outline: 2px solid var(--studio-accent); outline-offset: 3px; }
+.experience-button.is-primary { background: var(--studio-accent); color: var(--studio-accent-ink); border-color: transparent; }
+#mobileWelcome[hidden], .playback-feedback[hidden], .playback-feedback [hidden], #mobileMetaContainer[hidden] { display: none !important; }
+.mobile-welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; overflow-y: auto; text-align: center; color: var(--studio-ink); }
+.welcome-mark { display: grid; place-items: center; width: 88px; height: 88px; margin-bottom: 8px; border-radius: 28px; color: var(--studio-accent); background: var(--studio-surface); border: 1px solid var(--studio-line); }
+.welcome-mark i { font-size: 40px; }
+.mobile-welcome h2 { margin: 0; font-size: 25px; font-weight: 650; line-height: 1.35; }
+.mobile-welcome p { margin: 0; max-width: 280px; color: var(--studio-muted); font-size: 14px; line-height: 1.6; }
+.welcome-actions { width: 100%; max-width: 320px; display: grid; gap: 12px; margin: 12px 0; }
+.welcome-actions .experience-button { min-height: 50px; }
+.mobile-welcome .welcome-note { font-size: 12px; }
+#mobileLayout[data-player-empty='true'] :is(#mobileCoverContainer, #mobileLyricsPage) { display: none; }
+#mobileLayout[data-player-empty='true'] .mobile-control-deck > :not(#mobilePlaylistSheet) { display: none; }
+#mobileLayout[data-player-empty='true'] .mobile-control-deck { display: contents; }
+.playback-feedback { padding: 10px 14px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-surface); color: var(--studio-ink); }
+.playback-feedback-message { margin: 0; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.playback-feedback-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.playback-feedback .experience-button { font-size: 12px; padding-inline: 12px; }
+#desktopPlayerBar > .playback-feedback { position: absolute; bottom: calc(100% + 10px); left: 24px; width: min(460px, calc(100vw - 48px)); box-shadow: 0 8px 28px #0002; }
+.mobile-control-deck > .playback-feedback { margin-bottom: 8px; }
+#mobileBrowsePlayer > .playback-feedback { position: absolute; bottom: calc(100% + 8px); left: 0; right: 0; box-shadow: 0 4px 24px #0002; }
+html:root #mobileLayout #mobileBrowsePlayer .playback-feedback .experience-button { width: auto; padding: 8px 12px; }
+@media (max-height: 650px) { .mobile-welcome { justify-content: flex-start; padding-top: 20px; gap: 10px; } .welcome-mark { width: 56px; height: 56px; border-radius: 18px; } .welcome-mark i { font-size: 28px; } }

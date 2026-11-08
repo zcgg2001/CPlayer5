@@ -28,37 +28,56 @@ export function createRecommendationService({ musicService, profileStore, storag
     if (saved?.at > Date.now() - 86400000 && Array.isArray(saved.pool)) pool = saved.pool.map(storedSong).filter(Boolean).slice(0, 300);
   } catch { /* A corrupt snapshot never blocks the page. */ }
   const rank = (options = {}) => rankRecommendations(pool, { profile: profileStore.profile, favorites: favorites(), context, ...options });
+  let homeGeneration = 0;
   async function loadHome(signal, onUpdate = () => {}) {
-    const errors = [];
-    const results = await Promise.allSettled(['3778678', '3779629'].map(id => playlist(id, signal)));
-    if (signal?.aborted) return;
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        const tracks = result.value.tracks;
-        if (index === 1) newSongs = tracks;
-        add(tracks, index ? '来自网易云新歌榜' : '来自网易云热歌榜');
-      } else errors.push(index ? '新歌榜暂时不可用' : '热歌榜暂时不可用');
-    });
-    onUpdate({ errors, stale: !results.some(result => result.status === 'fulfilled') });
+    const generation = ++homeGeneration;
+    const current = () => generation === homeGeneration && !signal?.aborted;
+    const sections = { hot: 'loading', news: 'loading' };
+    const errors = new Map();
+    const publish = (loading = true) => {
+      if (current()) onUpdate({ errors: [...errors.values()], sections: { ...sections }, loading,
+        stale: !loading && !Object.values(sections).includes('ready') });
+    };
+    add(profileStore.profile.library.filter(song => !song.name.startsWith('歌曲 ID:')));
+    publish();
+    const chartsPending = Promise.allSettled([['3778678', 'hot'], ['3779629', 'news']].map(async ([id, section]) => {
+      try {
+        const data = await playlist(id, signal);
+        if (!current()) return;
+        if (section === 'news') newSongs = data.tracks;
+        add(data.tracks, section === 'news' ? '来自网易云新歌榜' : '来自网易云热歌榜');
+        sections[section] = 'ready';
+      } catch {
+        if (!current()) return;
+        sections[section] = 'error';
+        errors.set(section, section === 'news' ? '新歌榜暂时不可用' : '热歌榜暂时不可用');
+      }
+      publish();
+    }));
     const profile = profileStore.profile;
     const seed = profile.history.find(h => h.listened >= 15)?.song || favorites()[0] || profile.library.find(s => artistNames(s).length);
     const tasks = [];
     if (seed) {
       const artist = artistNames(seed)[0];
-      if (artist) tasks.push(musicService.search(artist, { source: 'gd', limit: 10, signal }).then(songs => add(songs)));
+      if (artist) tasks.push(musicService.search(artist, { source: 'gd', limit: 10, signal }).then(songs => {
+        if (current()) { add(songs); publish(); }
+      }));
     }
     const rotation = hash(`${dayKey()}:${profile.seed}`) % Math.max(1,profile.tags.length);
     const todayTags = [...profile.tags.slice(rotation), ...profile.tags.slice(0,rotation)].slice(0,2);
     for (const tag of todayTags) tasks.push((async () => {
       const list = await playlists(categoryFor(tag), signal);
-      if (list.items[0]) { const data = await playlist(list.items[0].id, signal); add(data.tracks, `来自你偏好的「${tag}」主题歌单`); }
+      if (!current()) return;
+      if (list.items[0]) {
+        const data = await playlist(list.items[0].id, signal);
+        if (current()) { add(data.tracks, `来自你偏好的「${tag}」主题歌单`); publish(); }
+      }
     })());
-    await Promise.allSettled(tasks);
-    if (signal?.aborted) return;
-    add(profile.library.filter(song => !song.name.startsWith('歌曲 ID:')));
+    await Promise.allSettled([chartsPending, ...tasks]);
+    if (!current()) return;
     try { storage?.setItem(snapshotKey, JSON.stringify({ at: Date.now(), pool: pool.slice(-300).map(storedSong) })); } catch { /* optional */ }
-    onUpdate({ errors, stale: !results.some(result => result.status === 'fulfilled') });
-    return { errors };
+    publish(false);
+    return { errors: [...errors.values()] };
   }
   async function radioBatch({ mode, seed, page, signal }) {
     if (mode === 'personal' && page === 0) return rank({ limit: 100 });

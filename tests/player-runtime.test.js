@@ -82,7 +82,7 @@ function playbackHarness() {
   const playback = createPlaybackController({ audio, musicService: service, queueStore, setTimer: timer, clearTimer() {} });
   playback.state.quality.controller = new AbortController();
   const context = vm.createContext({
-    discoveryTable: null, discoveryLoadingSong: null, discoveryHome: null,
+    discoveryTable: null, discoveryLoadingSong: null, discoveryHome: null, playerExperience: null,
     dom, playlist: [], currentIndex: -1, currentPlaybackSong: null,
     playbackRequestVersion: 0,
     playbackQualityState: { version: 0, controller: new AbortController() },

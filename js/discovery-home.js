@@ -7,7 +7,7 @@ import { durationLabel } from './discovery-table.js';
 export function createDiscoveryHome({ document, root, musicService, storage, onPlay, onBatch, onDetails, getCurrentSong, getLibrary, notify = () => {} }) {
   const profileStore = createDiscoveryProfile({ storage }), { profile } = profileStore;
   const service = createRecommendationService({ musicService, profileStore, storage });
-  let controller, modalController, daily = [], modalEntries = [], filters = {}, dialogOpener, lastDismissed, lastDay = dayKey();
+  let controller, modalController, daily = [], modalEntries = [], filters = {}, dialogOpener, lastDismissed, lastDay = dayKey(), homeLoading = true;
   const el = (tag, className, text) => { const node = document.createElement(tag); node.className = className || ''; if (text != null) node.textContent = text; return node; };
   const icon = name => { const node = el('i'); node.dataset.lucide = name; node.setAttribute('aria-hidden', 'true'); return node; };
   const button = (label, action, { glyph, className = 'discover-button', title = label } = {}) => {
@@ -16,6 +16,14 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     node.addEventListener('click', action); return node;
   };
   const textStatus = (container, text) => { const node = el('p', 'discover-empty', text); node.setAttribute('role', 'status'); container.replaceChildren(node); };
+  const skeleton = container => {
+    container.setAttribute('aria-busy', 'true');
+    container.setAttribute('aria-label', '正在加载歌曲');
+    container.replaceChildren(...Array.from({ length: 4 }, () => {
+      const row = el('div', 'discover-skeleton'); row.setAttribute('aria-hidden', 'true');
+      row.append(el('span', 'discover-skeleton-cover'), el('span', 'discover-skeleton-copy')); return row;
+    }));
+  };
   const heading = (title, note) => { const node = el('header', 'discover-section-heading'); const copy = el('div'); copy.append(el('h2', '', title)); if (note) copy.append(el('p', '', note)); node.append(copy); return node; };
   const section = (title, note, action) => { const node = el('section', 'discover-section'), head = heading(title, note), content = el('div', 'discover-tracks'); if (action) head.append(action); node.append(head, content); root.append(node); return content; };
   const img = song => {
@@ -32,7 +40,8 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
   dailyCard.append(el('span', 'discover-eyebrow', 'DAILY MIX'), dailyCount, el('h2', '', '每日推荐'), dailyNote);
   const dailyActions = el('div', 'discover-actions');
   const dailyPlay = button('播放今日推荐', () => playBatch(daily, '每日推荐'), { glyph: 'Play', className: 'discover-button is-primary' }); dailyPlay.disabled = true;
-  dailyActions.append(dailyPlay, button('查看全部', () => showTracks('每日推荐', daily, '每天按偏好与听歌记录整理 · 最多 30 首'))); dailyCard.append(dailyActions);
+  const dailyView = button('查看全部', () => showTracks('每日推荐', daily, '每天按偏好与听歌记录整理 · 最多 30 首'));
+  dailyActions.append(dailyPlay, dailyView); dailyCard.append(dailyActions);
   const radioCard = el('section', 'discover-radio-card'); radioCard.append(icon('Radio'), el('span', 'discover-eyebrow', 'JUST FOR YOU'), el('h2', '', '私人电台'), el('p', '', '从喜欢的声音出发，让下一首自然发生。'));
   const radioStatus = el('p', 'discover-radio-status', '随时可以退出，保留原播放队列'); radioStatus.setAttribute('role', 'status');
   const radioActions = el('div', 'discover-actions');
@@ -96,15 +105,23 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     }
     return row;
   }
-  function paint(container, entries, limit = 6) { container.replaceChildren(...entries.slice(0, limit).map(entry => trackRow(entry))); if (!entries.length) textStatus(container, '暂时没有候选，选择偏好或导入歌单后再试试。'); }
+  function paint(container, entries, limit = 6) {
+    container.removeAttribute('aria-busy'); container.removeAttribute('aria-label');
+    container.replaceChildren(...entries.slice(0, limit).map(entry => trackRow(entry)));
+    if (!entries.length) textStatus(container, '暂时没有候选，选择偏好或导入歌单后再试试。');
+  }
   function renderHistory() {
     const entries = profile.history.filter(h => h.position > 0).slice(0, 4).map(h => ({ ...h, reason: `上次听到 ${durationLabel(h.position)}` }));
-    paint(historyList, entries, 4); if (!entries.length) textStatus(historyList, '播放一首歌曲后，这里会记住你听到的位置。');
+    historyList.parentElement.hidden = !entries.length;
+    if (entries.length) paint(historyList, entries, 4);
   }
   function renderRecommendations() {
-    daily = service.rank({ limit: 30 }); dailyCount.textContent = String(daily.length || 0); dailyPlay.disabled = !daily.length;
-    dailyNote.textContent = daily.length ? `${dayKey().slice(5).replace('-', ' 月 ')} 日 · 为你整理 ${daily.length} 首` : '还没有足够的歌曲，试试刷新或导入歌单';
-    paint(likesList, service.rank({ day: `${dayKey()}:${variation}`, limit: 6 }));
+    daily = service.rank({ limit: 30 }); dailyCount.textContent = homeLoading && !daily.length ? '—' : String(daily.length);
+    dailyPlay.disabled = dailyView.disabled = !daily.length;
+    dailyNote.textContent = daily.length ? `${dayKey().slice(5).replace('-', ' 月 ')} 日 · 为你整理 ${daily.length} 首`
+      : homeLoading ? '正在整理今日推荐…' : '还没有足够的歌曲，试试选择偏好或导入歌单';
+    const likes = service.rank({ day: `${dayKey()}:${variation}`, limit: 6 });
+    if (homeLoading && !likes.length) skeleton(likesList); else paint(likesList, likes);
   }
   function showHistory() { showTracks('继续播放', profile.history.map(h => ({ ...h, reason: `上次听到 ${durationLabel(h.position)}` })), '播放进度保存在当前浏览器'); }
   let modalList, modalCount;
@@ -209,15 +226,24 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
   }
   async function load() {
     controller?.abort(); controller = new AbortController(); const signal = controller.signal;
-    homeStatus.replaceChildren(el('span', '', '正在更新推荐…')); root.setAttribute('aria-busy', 'true');
+    homeLoading = true;
+    homeStatus.replaceChildren(el('span', '', '正在更新推荐…'));
     renderRecommendations(); renderHistory();
-    try { await service.loadHome(signal, ({ errors, stale }) => {
-      if (signal.aborted) return; renderRecommendations(); paint(newsList, service.newSongs().map(song => ({ song, reason: `新歌榜 · ${song.metadata?.releaseDate || '发行日期未提供'}` })), 6);
-      if (!service.newSongs().length) textStatus(newsList, '新歌榜暂时不可用，可稍后重试。');
-      homeStatus.replaceChildren(el('span', '', [...errors, ...(stale ? ['当前展示本地已保存的候选'] : []), ...(!profileStore.persistent() ? ['浏览器存储不可用，偏好仅在本次会话有效'] : [])].join(' · ')));
+    try { await service.loadHome(signal, ({ errors, stale, loading, sections }) => {
+      if (signal.aborted) return; homeLoading = loading; renderRecommendations();
+      const news = service.newSongs();
+      if (!news.length && sections.news === 'loading') skeleton(newsList);
+      else {
+        paint(newsList, news.map(song => ({ song, reason: `新歌榜 · ${song.metadata?.releaseDate || '发行日期未提供'}` })), 6);
+        if (!news.length) textStatus(newsList, sections.news === 'error' ? '新歌榜暂时不可用，可稍后重试。' : '新歌榜暂无歌曲。');
+      }
+      homeStatus.replaceChildren(el('span', '', [...(loading ? ['正在更新推荐…'] : []), ...errors,
+        ...(stale && service.pool().length ? ['当前展示本地已保存的候选'] : []),
+        ...(sections.news === 'error' && news.length ? ['新歌榜保留上次内容'] : []),
+        ...(!profileStore.persistent() ? ['浏览器存储不可用，偏好仅在本次会话有效'] : [])].join(' · ')));
       if (errors.length) homeStatus.append(button('重试', load));
     }); } catch (error) { if (!signal.aborted) { homeStatus.replaceChildren(el('span', '', error.message), button('重试', load)); } }
-    finally { if (!signal.aborted) root.setAttribute('aria-busy', 'false'); }
+    finally { if (!signal.aborted) { homeLoading = false; renderRecommendations(); } }
   }
   let observedKey = '', lastTick = 0, accumulated = 0, lastSave = 0;
   function savePlayback(audio, force = false) {

@@ -63,6 +63,8 @@ export function createPlaybackController({
         state.quality.controller = null;
         state.quality.version += 1;
         state.quality.songLoading = true;
+        // A failed new selection must not leave the previous song playing behind its error.
+        audio.pause?.();
         view.onLoading?.();
         try {
             const queuedSong = songOverride || queueStore.state.playlist.find(song => (

@@ -66,6 +66,58 @@ test('home has partial success without keys; each request stays on public discov
   assert.equal(service.rank().length,30);assert.equal(updates.at(-1).errors.length,1);assert.ok(requests.every(url=>url.startsWith('/api/v1/discovery/')));
   assert.ok(disk.getItem('cp_recommendation_pool_v1'));
 });
+
+test('home publishes each chart before a slower chart completes', async () => {
+  const requests = new Map(), updates = [];
+  const service = createRecommendationService({ musicService: {}, profileStore: profile(), storage: storage(),
+    fetchImpl: url => new Promise(resolve => requests.set(new URL(url, 'https://player.test').searchParams.get('id'), resolve)),
+  });
+  const pending = service.loadHome(new AbortController().signal, state => updates.push(state));
+  assert.equal(updates[0].loading, true);
+  requests.get('3779629')(Response.json({ tracks: [song(2)] }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(service.newSongs()[0].id, '2');
+  assert.equal(service.rank()[0].song.id, '2');
+  assert.equal(updates.at(-1).sections.hot, 'loading');
+  assert.equal(updates.at(-1).sections.news, 'ready');
+  requests.get('3778678')(Response.json({ error: {} }, { status: 502 }));
+  await pending;
+  assert.equal(updates.at(-1).loading, false);
+  assert.equal(updates.at(-1).stale, false);
+  assert.equal(updates.at(-1).errors.length, 1);
+});
+
+test('imported recommendations are available before any network result', async () => {
+  const store = profile(); store.import([song(77, { artist: '未知歌手' })]);
+  const requests = [], updates = [];
+  const service = createRecommendationService({ musicService: {}, profileStore: store, storage: storage(),
+    fetchImpl: () => new Promise(resolve => requests.push(resolve)),
+  });
+  const pending = service.loadHome(new AbortController().signal, state => updates.push(state));
+  assert.equal(service.rank()[0].song.id, '77');
+  assert.equal(updates[0].loading, true);
+  requests.forEach(resolve => resolve(Response.json({}, { status: 502 })));
+  await pending;
+  assert.equal(updates.at(-1).loading, false);
+  assert.equal(updates.at(-1).stale, true);
+});
+
+test('an obsolete home load cannot mutate the pool or publish late chart results', async () => {
+  const requests = [], oldUpdates = [], newUpdates = [];
+  const service = createRecommendationService({ musicService: {}, profileStore: profile(), storage: storage(),
+    fetchImpl: () => new Promise(resolve => requests.push(resolve)),
+  });
+  const first = service.loadHome(new AbortController().signal, state => oldUpdates.push(state));
+  const second = service.loadHome(new AbortController().signal, state => newUpdates.push(state));
+  requests[2](Response.json({ tracks: [song(20)] })); requests[3](Response.json({ tracks: [song(21)] }));
+  await second;
+  requests[0](Response.json({ tracks: [song(1)] })); requests[1](Response.json({ tracks: [song(2)] }));
+  await first;
+  assert.deepEqual(service.pool().map(track => track.id).sort(), ['20', '21']);
+  assert.equal(service.newSongs()[0].id, '21');
+  assert.equal(oldUpdates.length, 1);
+  assert.equal(newUpdates.at(-1).loading, false);
+});
 test('radio advances without duplicates, applies fresh dislikes, and never overlaps next requests',async()=>{
   const store=profile();let calls=0;
   const radio=createRadio({profile:store.profile,fetchBatch:async()=>{calls++;return candidates.slice(0,10).map(song=>({song,reason:'候选'}));}});

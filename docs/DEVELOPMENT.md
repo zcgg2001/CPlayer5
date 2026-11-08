@@ -1,5 +1,33 @@
 # CPlayer5 Development Workflow
 
+## Player experience browser regression
+
+`tests/browser-experience.js` is a program for the Tabbit browser-owned runtime
+(which supplies `page`, `expect`, `assert`, and `Buffer`), rather than a Node test
+module. It uses controlled API responses and a generated silent WAV to check the
+mobile welcome, search/import entry points, independent recommendation loading,
+playback buffering, retry, autoplay refusal, manual resume, and desktop/mobile
+overflow. It does not query real providers for the scenarios under test.
+
+On macOS with Tabbit installed, start a dedicated test server from the project root:
+
+```bash
+npm run build
+PORT=8808 npm start
+```
+
+In another terminal, run the browser program and release its browser task:
+
+```bash
+"$HOME/.local/bin/tabbit-cli" nodejs --task cplayer-experience --request-id experience-check < tests/browser-experience.js
+"$HOME/.local/bin/tabbit-cli" finish --task cplayer-experience
+```
+
+Use a new request ID when rerunning. Reserve port 8808 for this test: the program
+clears that origin's local storage and unregisters its service worker to isolate
+the scenarios. These checks do not replace the separate PWA/cache tests. Close
+the test tab after reviewing it, and stop the dedicated server when finished.
+
 This fork uses two Git remotes:
 
 - `origin`: `zcgg2001/CPlayer5`, the writable fork.

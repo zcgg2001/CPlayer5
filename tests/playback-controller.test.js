@@ -6,6 +6,16 @@ import { createQueueStore } from '../js/queue-store.js';
 const deferred = () => { let resolve, reject; const promise = new Promise((r, j) => { resolve = r; reject = j; }); return { promise, resolve, reject }; };
 const song = id => ({ id, name: id, artist: 'artist', url: `https://media.example/${id}.mp3`, cover: `https://img.example/${id}.jpg` });
 
+test('a new selection pauses old audio even when resolving the new song fails', async () => {
+    let paused = false;
+    const audio = { pause() { paused = true; } };
+    const controller = createPlaybackController({ audio, musicService: { async getSong() { throw Error('offline'); } }, queueStore: createQueueStore() });
+    let failed = false;
+    await controller.load('new', null, { onLoading() { assert.equal(paused, true); }, onError() { failed = true; } });
+    assert.equal(failed, true);
+    assert.equal(controller.state.quality.songLoading, false);
+});
+
 test('stale song resolution cannot replace the current audio session', async () => {
     const requests = new Map();
     const audio = { src: '', paused: true, ended: false, play: async () => {}, load() {}, addEventListener() {}, removeEventListener() {} };
