@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/icon.svg" alt="CPlayer 5 Logo" width="120" height="120">
+  <img src="img/icon.svg" alt="ZPlayer 5 Logo" width="120" height="120">
 </p>
 
 <h1 align="center">CPlayer 5</h1>
