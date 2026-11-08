@@ -6,7 +6,8 @@
 (which supplies `page`, `expect`, `assert`, and `Buffer`), rather than a Node test
 module. It uses controlled API responses and a generated silent WAV to check the
 mobile welcome, search/import entry points, independent recommendation loading,
-playback buffering, retry, autoplay refusal, manual resume, and desktop/mobile
+playback buffering, automatic source switching, quality downgrade, recovery with
+preserved position, autoplay refusal, manual resume, and desktop/mobile
 overflow. It does not query real providers for the scenarios under test.
 
 On macOS with Tabbit installed, start a dedicated test server from the project root:

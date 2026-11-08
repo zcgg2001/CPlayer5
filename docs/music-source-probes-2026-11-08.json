@@ -1,0 +1,1004 @@
+{
+  "baseline": {
+    "site": "https://music.505zc.tech",
+    "checkedAt": "2026-11-08T14:24:49.884Z",
+    "rounds": 1,
+    "method": "Sequential samples per provider; two providers at most in parallel. Search, highest-quality resolution, then first 4 KiB of real audio. Samples may hit caches; not a concurrency or endurance test.",
+    "sources": [
+      {
+        "provider": "chksz",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": 2668397359,
+            "searchMs": 2732,
+            "resolveMs": 665,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "jymaster",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m801.music.126.net"
+            },
+            "audioMs": 73,
+            "status": "passed",
+            "totalMs": 3470
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": 259138,
+            "searchMs": 663,
+            "resolveMs": 601,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "jymaster",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m801.music.126.net"
+            },
+            "audioMs": 51,
+            "status": "passed",
+            "totalMs": 1315
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": 3404293607,
+            "searchMs": 667,
+            "resolveMs": 631,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "m701.music.126.net"
+            },
+            "audioMs": 9,
+            "status": "passed",
+            "totalMs": 1307
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 1315
+      },
+      {
+        "provider": "gequke",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "326",
+            "searchMs": 479,
+            "resolveMs": 1144,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1124,
+            "status": "passed",
+            "totalMs": 2747
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "553",
+            "searchMs": 984,
+            "resolveMs": 364,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1278,
+            "status": "passed",
+            "totalMs": 2626
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "333",
+            "searchMs": 638,
+            "resolveMs": 601,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 396,
+            "status": "passed",
+            "totalMs": 1635
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 2626
+      },
+      {
+        "provider": "jianbin-kugou",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kg&id=B3A52A7A958BF0AED0EBFBA2E9A818B7&sign=17oZYJlo/0TfY&t=1794147946",
+            "searchMs": 4688,
+            "resolveMs": 3892,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1018,
+            "status": "passed",
+            "totalMs": 9598
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kg&id=37A8F50A9EC3B267C3CC6BEC633D9C4A&sign=99RtbND4E66V6&t=1794147952",
+            "searchMs": 1198,
+            "resolveMs": 1070,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1096,
+            "status": "passed",
+            "totalMs": 3364
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kg&id=8909E1809908CD8E3BF6CF85D98B93F0&sign=16YSjLYE60Gn6&t=1794147956",
+            "searchMs": 1333,
+            "resolveMs": 1248,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 896,
+            "status": "passed",
+            "totalMs": 3477
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 3477
+      },
+      {
+        "provider": "jianbin-netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=wy&id=2668397359&sign=7aOvUGTDKjPQk&t=1794147916",
+            "searchMs": 3661,
+            "resolveMs": 2373,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2502,
+            "status": "passed",
+            "totalMs": 8536
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=wy&id=259138&sign=b77g122MBHaXc&t=1794147923",
+            "searchMs": 1056,
+            "resolveMs": 1941,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 839,
+            "status": "passed",
+            "totalMs": 3836
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=wy&id=3404293607&sign=4c4.fdpNvw5g2&t=1794147928",
+            "searchMs": 1901,
+            "resolveMs": 1245,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 588,
+            "status": "passed",
+            "totalMs": 3734
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 3836
+      },
+      {
+        "provider": "jianbin-kuwo",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kw&id=228908&sign=65aKMr0j.dR02&t=1794147953",
+            "searchMs": 1187,
+            "resolveMs": 620,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 765,
+            "status": "passed",
+            "totalMs": 2572
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kw&id=324244&sign=7eJrhw134atTc&t=1794147956",
+            "searchMs": 1366,
+            "resolveMs": 1787,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1293,
+            "status": "passed",
+            "totalMs": 4446
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=kw&id=440613&sign=9d8hzUTrfG2s2&t=1794147961",
+            "searchMs": 3192,
+            "resolveMs": 755,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1200,
+            "status": "passed",
+            "totalMs": 5147
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 4446
+      },
+      {
+        "provider": "qq",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "0039MnYb0qxYhV",
+            "searchMs": 1428,
+            "resolveMs": 1752,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1384,
+            "status": "passed",
+            "totalMs": 4564
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "002qU5aY3Qu24y",
+            "searchMs": 2114,
+            "resolveMs": 1066,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1447,
+            "status": "passed",
+            "totalMs": 4627
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "003aAYrm3GE0Ac",
+            "searchMs": 589,
+            "resolveMs": 1131,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 965,
+            "status": "passed",
+            "totalMs": 2685
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 4564
+      },
+      {
+        "provider": "jianbin-qq",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=qq&id=0039MnYb0qxYhV&sign=37Q9rUxDwfqHk&t=1794147938",
+            "searchMs": 4483,
+            "resolveMs": 2571,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1775,
+            "status": "passed",
+            "totalMs": 8829
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=qq&id=002qU5aY3Qu24y&sign=3dX0CgGvclovM&t=1794147945",
+            "searchMs": 3417,
+            "resolveMs": 1112,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 554,
+            "status": "passed",
+            "totalMs": 5083
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "https://www.jbsou.cn/api.php?get=url&type=qq&id=003aAYrm3GE0Ac&sign=c8NgazMUtKoHc&t=1794147949",
+            "searchMs": 1836,
+            "resolveMs": 2115,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 664,
+            "status": "passed",
+            "totalMs": 4615
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 5083
+      },
+      {
+        "provider": "at38-qq",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天",
+            "id": "0039MnYb0qxYhV",
+            "searchMs": 1804,
+            "resolveMs": 1296,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 3013,
+            "status": "passed",
+            "totalMs": 6113
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "002qU5aY3Qu24y",
+            "searchMs": 1860,
+            "resolveMs": 2010,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2168,
+            "status": "passed",
+            "totalMs": 6038
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "003aAYrm3GE0Ac",
+            "searchMs": 746,
+            "resolveMs": 1282,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330300000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 586,
+            "status": "passed",
+            "totalMs": 2614
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 6038
+      },
+      {
+        "provider": "at38-netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "2668397359",
+            "searchMs": 1944,
+            "resolveMs": 5290,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1366,
+            "status": "passed",
+            "totalMs": 8600
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 2702,
+            "resolveMs": 1917,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1497,
+            "status": "passed",
+            "totalMs": 6116
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 1354,
+            "resolveMs": 1371,
+            "requestedLevel": "standard",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1064,
+            "status": "passed",
+            "totalMs": 3789
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 6116
+      },
+      {
+        "provider": "netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "2668397359",
+            "searchMs": 1146,
+            "resolveMs": 2614,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2460,
+            "status": "passed",
+            "totalMs": 6220
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 2805,
+            "resolveMs": 2542,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1152,
+            "status": "passed",
+            "totalMs": 6499
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 1057,
+            "resolveMs": 2444,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2021,
+            "status": "passed",
+            "totalMs": 5522
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 6220
+      },
+      {
+        "provider": "gd",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "status": "failed",
+            "failedStage": "search",
+            "error": {
+              "status": 503,
+              "code": "gd_error",
+              "message": "GD 音乐台暂时不可用，请稍后重试"
+            },
+            "totalMs": 1844
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 2519,
+            "resolveMs": 1517,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m701.music.126.net"
+            },
+            "audioMs": 61,
+            "status": "passed",
+            "totalMs": 4097
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 2600,
+            "resolveMs": 2201,
+            "requestedLevel": "hires",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "m801.music.126.net"
+            },
+            "audioMs": 30,
+            "status": "passed",
+            "totalMs": 4831
+          }
+        ],
+        "passed": 2,
+        "tested": 3,
+        "medianMs": 4831
+      },
+      {
+        "provider": "bilibili",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "status": "failed",
+            "failedStage": "search",
+            "error": {
+              "status": 429,
+              "code": "provider_rate_limited",
+              "message": "Bilibili 暂时限制了请求，请稍后重试"
+            },
+            "totalMs": 703
+          }
+        ],
+        "stoppedOnRefusal": true,
+        "passed": 0,
+        "tested": 1,
+        "medianMs": null
+      }
+    ],
+    "completedAt": "2026-11-08T14:26:05.693Z"
+  },
+  "repeat": {
+    "site": "https://music.505zc.tech",
+    "checkedAt": "2026-11-08T14:28:55.265Z",
+    "rounds": 1,
+    "method": "Sequential samples per provider; two providers at most in parallel. Search, highest-quality resolution, then first 4 KiB of real audio. Samples may hit caches; not a concurrency or endurance test.",
+    "sources": [
+      {
+        "provider": "chksz",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": 2668397359,
+            "searchMs": 4039,
+            "resolveMs": 1385,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "jymaster",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m701.music.126.net"
+            },
+            "audioMs": 37,
+            "status": "passed",
+            "totalMs": 5461
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": 259138,
+            "searchMs": 2331,
+            "resolveMs": 626,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "jymaster",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m701.music.126.net"
+            },
+            "audioMs": 8,
+            "status": "passed",
+            "totalMs": 2965
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": 3404293607,
+            "searchMs": 1591,
+            "resolveMs": 1018,
+            "requestedLevel": "jymaster",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "m801.music.126.net"
+            },
+            "audioMs": 32,
+            "status": "passed",
+            "totalMs": 2641
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 2965
+      },
+      {
+        "provider": "netease",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "name": "晴天 (原唱 周杰伦)",
+            "id": "2668397359",
+            "searchMs": 6749,
+            "resolveMs": 2623,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 1188,
+            "status": "passed",
+            "totalMs": 10560
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 4966,
+            "resolveMs": 3746,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/flac",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 2430,
+            "status": "passed",
+            "totalMs": 11142
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 5075,
+            "resolveMs": 598,
+            "requestedLevel": "lossless",
+            "resolvedLevel": "standard",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "music.505zc.tech"
+            },
+            "audioMs": 3367,
+            "status": "passed",
+            "totalMs": 9040
+          }
+        ],
+        "passed": 3,
+        "tested": 3,
+        "medianMs": 10560
+      },
+      {
+        "provider": "gd",
+        "samples": [
+          {
+            "round": 1,
+            "keyword": "晴天",
+            "status": "failed",
+            "failedStage": "search",
+            "error": {
+              "status": 503,
+              "code": "gd_error",
+              "message": "GD 音乐台暂时不可用，请稍后重试"
+            },
+            "totalMs": 831
+          },
+          {
+            "round": 1,
+            "keyword": "青花瓷",
+            "name": "青花瓷",
+            "id": "259138",
+            "searchMs": 2540,
+            "resolveMs": 1511,
+            "requestedLevel": "hires",
+            "resolvedLevel": "lossless",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "664c614300000022",
+              "host": "m701.music.126.net"
+            },
+            "audioMs": 26,
+            "status": "passed",
+            "totalMs": 4077
+          },
+          {
+            "round": 1,
+            "keyword": "稻香",
+            "name": "稻香",
+            "id": "3404293607",
+            "searchMs": 1979,
+            "resolveMs": 7762,
+            "requestedLevel": "hires",
+            "resolvedLevel": "exhigh",
+            "audio": {
+              "status": 206,
+              "contentType": "audio/mpeg",
+              "bytes": 4096,
+              "signature": "4944330400000000",
+              "host": "m801.music.126.net"
+            },
+            "audioMs": 32,
+            "status": "passed",
+            "totalMs": 9773
+          }
+        ],
+        "passed": 2,
+        "tested": 3,
+        "medianMs": 9773
+      }
+    ],
+    "completedAt": "2026-11-08T14:29:26.009Z"
+  },
+  "streamInfoVerification": {
+    "trackId": "259138",
+    "method": "first 4 KiB, fLaC magic and STREAMINFO sample rate / bit depth fields",
+    "sources": [
+      {
+        "provider": "chksz",
+        "requestedLevel": "jymaster",
+        "format": "flac",
+        "sampleRate": 192000,
+        "bitDepth": 24
+      },
+      {
+        "provider": "netease",
+        "requestedLevel": "lossless",
+        "format": "flac",
+        "sampleRate": 44100,
+        "bitDepth": 16
+      },
+      {
+        "provider": "gd",
+        "requestedLevel": "hires",
+        "format": "flac",
+        "sampleRate": 44100,
+        "bitDepth": 16
+      }
+    ]
+  }
+}

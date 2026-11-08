@@ -116,3 +116,16 @@ test('switching NetEase providers reuses queue metadata and keeps an in-flight r
   } });
   assert.equal(service.sourceForSong(song).provider, 'chksz');
 });
+
+test('GD exact-quality requests do not spend quota on hidden lower-tier retries', async () => {
+  const qualities=[];
+  const env={GD_FETCH:async url=>{qualities.push(new URL(url).searchParams.get('br'));return Response.json({url:''});}};
+  assert.equal((await call('song?source=gd&id=123&level=hires&exact=1',env)).status,404);
+  assert.deepEqual(qualities,['999']);
+});
+test('GD legacy highest-quality fallback includes lossless before lossy tiers', async () => {
+  const qualities=[];
+  const env={GD_FETCH:async url=>{const br=new URL(url).searchParams.get('br');qualities.push(br);return Response.json(br==='740'?{url:'https://media.example/song.flac',br:740}:{url:''});}};
+  const body=await (await call('song?source=gd&id=123&level=hires',env)).json();
+  assert.deepEqual(qualities,['999','740']);assert.equal(body.data.level,'lossless');
+});

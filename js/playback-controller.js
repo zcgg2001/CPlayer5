@@ -7,7 +7,7 @@ export function createPlaybackController({
     audio, preloadAudio, musicService, queueStore,
     baseUrl = globalThis.location?.href,
     setTimer = setTimeout, clearTimer = clearTimeout,
-    replaceSource,
+    replaceSource, mediaTimeoutMs = 8000, stallTimeoutMs = 8000,
 } = {}) {
     const state = {
         currentSong: null, transitionPending: false,
@@ -17,6 +17,7 @@ export function createPlaybackController({
     let commandVersion = 0;
     let preloadController = null;
     let preloadedSong = null;
+    let activeLoad = null;
     const mediaUrl = url => normalizeMediaUrl(url, { baseUrl });
     const songId = song => song?.id ?? song;
 
@@ -53,7 +54,7 @@ export function createPlaybackController({
         finally { if (preloadController === controller) preloadController = null; }
     }
 
-    async function load(id, songOverride = null, view = {}) {
+    async function load(id, songOverride = null, view = {}, options = {}) {
         const session = sessions.start();
         const isCurrent = () => sessions.isCurrent(session);
         commandVersion += 1;
@@ -63,58 +64,132 @@ export function createPlaybackController({
         state.quality.controller = null;
         state.quality.version += 1;
         state.quality.songLoading = true;
-        // A failed new selection must not leave the previous song playing behind its error.
         audio.pause?.();
         view.onLoading?.();
-        try {
-            const queuedSong = songOverride || queueStore.state.playlist.find(song => (
-                typeof song === 'object' && String(song.id) === String(id)
-            )) || null;
-            const data = await musicService.getSong(id, { song: queuedSong, signal: session.signal });
-            if (!isCurrent()) return;
-            const url = mediaUrl(data?.url);
-            if (!url) throw new Error('Invalid media URL');
-            const coverOptions = { baseUrl, allowDataImage: true };
-            const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
-                || normalizeMediaUrl(data.cover, coverOptions) || '';
-            const playbackData = {
-                ...data, ...queuedSong, url, cover,
-                sourceId: data.sourceId || queuedSong?.sourceId,
-                provider: data.provider || queuedSong?.provider,
-                source: data.source || queuedSong?.source,
-                br: data.br || data.bitrate || 0,
-                downloadAllowed: data.downloadAllowed,
-                album: queuedSong?.album || data.album || '',
+        const queuedSong = songOverride || queueStore.state.playlist.find(song => (
+            typeof song === 'object' && String(song.id) === String(id)
+        )) || null;
+        const automatic = typeof musicService.playbackCandidates === 'function';
+        const routeOptions = { song: queuedSong, signal: session.signal, level: options.level,
+            onAttempt: info => { if (isCurrent()) view.onAttempt?.(info); } };
+        const iterator = automatic ? musicService.playbackCandidates(id, routeOptions)
+            : (async function* () { yield await musicService.getSong(id, routeOptions); })();
+        const active = { id, original: queuedSong, view, session, attempting: false, recovering: false,
+            wantsPlay: options.shouldPlay !== false, position: options.resumeAt || 0 };
+        activeLoad = active;
+        let stallTimer = null, lastTime = 0, mediaGeneration = 0;
+        const stopStall = () => { if (stallTimer !== null) clearTimer(stallTimer); stallTimer = null; };
+        const mediaError = () => Object.assign(new Error('音频无法播放'), { mediaCode: audio.error?.code });
+        const startAudio = (url, position, shouldPlay) => new Promise((resolve, reject) => {
+            let settled = false, timer;
+            const finish = error => {
+                if (settled) return;
+                settled = true; clearTimer(timer);
+                audio.removeEventListener?.('loadedmetadata', loaded);
+                audio.removeEventListener?.('error', failed);
+                session.signal.removeEventListener('abort', aborted);
+                error ? reject(error) : resolve();
             };
-            state.currentSong = playbackData;
-            audio.src = url;
-            view.onResolved?.(data, playbackData);
-            try { await audio.play(); }
-            catch (error) {
+            const loaded = () => {
                 if (!isCurrent()) return;
-                if (error?.name !== 'NotAllowedError') throw error;
-                view.onAutoplayBlocked?.(error);
-            }
-            if (!isCurrent()) return;
-            view.onStarted?.(data, playbackData, { signal: session.signal, isCurrent });
-            // Lyrics are non-critical; failed or stale lyrics must never fail audio playback.
-            Promise.resolve().then(() => {
-                if (!isCurrent()) return null;
-                return musicService.getLyric(id, { song: playbackData, signal: session.signal });
-            }).then(lyrics => {
-                if (isCurrent()) view.onLyrics?.(lyrics, data, playbackData);
-            }).catch(error => {
-                if (isCurrent()) view.onLyricsError?.(error);
-            });
-            setTimer(() => { if (isCurrent()) (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
-        } catch (error) {
-            if (isCurrent()) view.onError?.(error);
-        } finally {
-            if (isCurrent()) {
-                state.quality.songLoading = false;
-                view.onSettled?.();
+                if (position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(position, Math.max(0, audio.duration - 0.25));
+                if (!shouldPlay) finish();
+            };
+            const failed = () => finish(mediaError());
+            const aborted = () => finish(new DOMException('Playback superseded', 'AbortError'));
+            timer = setTimer(() => finish(Object.assign(new Error('音频加载超时'), { mediaCode: 2 })), mediaTimeoutMs);
+            audio.addEventListener?.('loadedmetadata', loaded);
+            audio.addEventListener?.('error', failed);
+            session.signal.addEventListener('abort', aborted, { once: true });
+            if (!isCurrent()) return aborted();
+            try {
+                audio.src = url;
+                if (shouldPlay) Promise.resolve(audio.play()).then(() => { loaded(); finish(); }, finish);
+                else audio.load?.();
+            } catch (error) { finish(error); }
+        });
+        async function advance(feedback, position = 0) {
+            active.attempting = true;
+            state.quality.songLoading = true;
+            stopStall();
+            try {
+                while (isCurrent()) {
+                    const next = await iterator.next(feedback); feedback = undefined;
+                    if (!isCurrent()) return;
+                    if (next.done) throw Object.assign(new Error('当前歌曲的可用音源已尝试完毕'), { code: 'playback_exhausted' });
+                    const data = next.value, url = mediaUrl(data?.url);
+                    const generation = ++mediaGeneration;
+                    const isMediaCurrent = () => isCurrent() && generation === mediaGeneration;
+                    if (!url) throw new Error('Invalid media URL');
+                    const coverOptions = { baseUrl, allowDataImage: true };
+                    const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
+                        || normalizeMediaUrl(data.cover, coverOptions) || '';
+                    const playbackData = { ...queuedSong, ...data, id: queuedSong?.id || id, url, cover,
+                        name: queuedSong?.name || data.name, artist: queuedSong?.artist || data.artist,
+                        album: queuedSong?.album || data.album || '' };
+                    state.currentSong = playbackData;
+                    view.onResolved?.(data, playbackData);
+                    let blocked = false;
+                    const began = Date.now();
+                    try { await startAudio(url, position, active.wantsPlay); }
+                    catch (error) {
+                        if (!isCurrent()) return;
+                        if (error?.name === 'NotAllowedError') { blocked = true; active.wantsPlay = false; view.onAutoplayBlocked?.(error); }
+                        else if (automatic) {
+                            musicService.recordPlaybackFailure?.(data, error);
+                            feedback = { error, skipProvider: error.mediaCode === 2 };
+                            view.onRecovering?.({ reason: '当前资源无法播放，正在尝试其他音质或音源…' });
+                            audio.pause?.();
+                            continue;
+                        } else throw error;
+                    }
+                    if (!isCurrent()) return;
+                    if (!blocked && active.wantsPlay) musicService.recordPlaybackSuccess?.(data, Date.now()-began+(data.routing?.resolveMs||0));
+                    view.onStarted?.(data, playbackData, { signal: session.signal, isCurrent:isMediaCurrent, recovering: active.recovering });
+                    Promise.resolve().then(() => isMediaCurrent() ? musicService.getLyric(id, { song: playbackData, signal: session.signal }) : null)
+                        .then(lyrics => { if (isMediaCurrent()) view.onLyrics?.(lyrics, data, playbackData); })
+                        .catch(error => { if (isMediaCurrent()) view.onLyricsError?.(error); });
+                    if (!automatic) setTimer(() => { if (isCurrent()) (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
+                    return;
+                }
+            } catch (error) {
+                if (isCurrent()) { active.wantsPlay = false; view.onError?.(error); }
+            } finally {
+                active.attempting = false;
+                if (isCurrent()) { state.quality.songLoading = false; view.onSettled?.(); }
             }
         }
+        async function recover(error) {
+            if (!automatic || !isCurrent() || active.attempting || !active.wantsPlay) return;
+            active.recovering = true;
+            mediaGeneration += 1;
+            const position = audio.currentTime || 0;
+            musicService.recordPlaybackFailure?.(state.currentSong, error);
+            view.onRecovering?.({ reason: '播放连接中断，正在自动切换音源…' });
+            // Set before pause: recovery must retain the user's playback intent.
+            active.attempting = true;
+            audio.pause?.();
+            await advance({ error, skipProvider: error.mediaCode === 2 }, position);
+        }
+        const onError = () => { void recover(mediaError()); };
+        const onWaiting = () => {
+            if (!automatic || active.attempting || !active.wantsPlay || audio.paused || stallTimer !== null) return;
+            const position = audio.currentTime;
+            stallTimer = setTimer(() => {
+                stallTimer = null;
+                if (!audio.paused && audio.currentTime <= position + 0.1) void recover(Object.assign(new Error('缓冲超时'), { mediaCode: 2 }));
+            }, stallTimeoutMs);
+        };
+        const onPlaying = () => { stopStall(); active.wantsPlay = true; };
+        const onProgress = () => { if (audio.currentTime > lastTime + 0.1) stopStall(); lastTime = audio.currentTime; };
+        const onPause = () => { stopStall(); if (!active.attempting && !audio.error) active.wantsPlay = false; };
+        const listeners = { error:onError, waiting:onWaiting, stalled:onWaiting, playing:onPlaying, timeupdate:onProgress, pause:onPause };
+        for (const [event, handler] of Object.entries(listeners)) audio.addEventListener?.(event, handler);
+        session.signal.addEventListener('abort', () => {
+            stopStall();
+            for (const [event, handler] of Object.entries(listeners)) audio.removeEventListener?.(event, handler);
+        }, { once:true });
+        await advance(undefined, active.position);
     }
 
     async function toggle(view = {}) {
@@ -172,6 +247,16 @@ export function createPlaybackController({
 
     async function changeQuality(level, view = {}) {
         if (state.quality.songLoading || !state.currentSong?.id || state.currentSong.provider === 'bilibili') return;
+        if (activeLoad && typeof musicService.playbackCandidates === 'function') {
+            const previous = activeLoad, position = audio.currentTime || 0, shouldPlay = !audio.paused;
+            view.onStart?.();
+            return load(previous.id, previous.original, {
+                ...previous.view,
+                onStarted(data, song, session) { previous.view.onStarted?.(data, song, { ...session, recovering:true }); view.onSuccess?.(data); },
+                onError(error) { previous.view.onError?.(error); view.onError?.(error); },
+                onSettled() { previous.view.onSettled?.(); view.onSettled?.(); },
+            }, { level, resumeAt:position, shouldPlay });
+        }
         state.quality.controller?.abort();
         cancelPreload();
         const controller = new AbortController();

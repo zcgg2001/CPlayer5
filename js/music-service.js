@@ -15,10 +15,11 @@ import {
   normalizeSongPayload,
 } from './music-data.js?v=41';
 import { downloadFallbackLevels } from './music-download.js';
+import { createPlaybackRouter } from './playback-router.js';
 
 export const MUSIC_API_BASE_URL = '/api/v1/music';
 export const NEW_SONGS_PLAYLIST_ID = '3779629';
-export const DEFAULT_QUALITY = 'lossless';
+export const DEFAULT_QUALITY = 'jymaster';
 export const DEFAULT_MUSIC_SOURCE = 'gd';
 
 export const MUSIC_SOURCE_OPTIONS = Object.freeze({
@@ -79,6 +80,7 @@ export class MusicService {
     this.location = location;
     this.loadSettings();
     this.baseUrl = MUSIC_API_BASE_URL;
+    this.playbackRouter = createPlaybackRouter(this, { storage });
   }
 
   loadSettings() {
@@ -106,6 +108,7 @@ export class MusicService {
   }
 
   sourceForSong(song = null) {
+    if (song?.routing?.automatic && MUSIC_SOURCE_OPTIONS[song.provider]) return musicSourceOption(song.provider);
     if (song?.provider === 'bilibili' || bilibiliVideoUrl(song)) {
       return musicSourceOption('bilibili');
     }
@@ -127,10 +130,10 @@ export class MusicService {
     return `source=${musicSourceOption(source).provider}`;
   }
 
-  async search(query, { signal, source = this.config.source, fetchImpl, offset = 0, limit } = {}) {
+  async search(query, { signal, source = this.config.source, fetchImpl, offset = 0, limit, timeoutMs } = {}) {
     const selectedSource = supportedMusicSource(source);
     const url = `${this.baseUrl}/search?${this.sourceQuery(selectedSource)}&keyword=${encodeURIComponent(query)}&limit=${limit || (selectedSource === 'gd' ? 10 : 30)}${offset ? `&offset=${offset}` : ''}`;
-    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: isMusicChannel(selectedSource) ? 45_000 : selectedSource === 'gd' ? 30_000 : 10_000 });
+    const json = await requestJson(url, { signal, fetchImpl, timeoutMs: timeoutMs ?? (isMusicChannel(selectedSource) ? 45_000 : selectedSource === 'gd' ? 30_000 : 10_000) });
     const option = musicSourceOption(selectedSource);
     if (isMusicChannel(selectedSource)) return normalizeChannelSongs(json, selectedSource);
     return option.provider === 'bilibili'
@@ -172,14 +175,15 @@ export class MusicService {
     };
   }
 
-  async getSongAtLevel(id, level, { signal, song = null, fetchImpl, source } = {}) {
+  async getSongAtLevel(id, level, { signal, song = null, fetchImpl, source, timeoutMs, exactQuality = false } = {}) {
     const option = source ? musicSourceOption(source) : this.sourceForSong(song);
     const params = new URLSearchParams({
       source: option.provider,
       id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : String(song?.sourceId || id),
       level: String(level),
     });
-    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 50_000 : 10_000 });
+    if (exactQuality) params.set('exact', '1');
+    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: timeoutMs ?? (isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 50_000 : 10_000) });
     if (option.provider === 'bilibili') return normalizeBilibiliPayload(json)[0] || null;
     const normalized = normalizeSongPayload(json, level);
     if (!normalized) return null;
@@ -194,6 +198,10 @@ export class MusicService {
       ...(option.provider === 'gd' || isMusicChannel(option.provider) ? { downloadAllowed: false } : {}),
     };
   }
+
+  playbackCandidates(id, options) { return this.playbackRouter.candidates(id, options); }
+  recordPlaybackSuccess(data, elapsedMs) { this.playbackRouter.success(data, elapsedMs); }
+  recordPlaybackFailure(data, error) { this.playbackRouter.failure(data, error); }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     if (queueSong?.sources?.length) {

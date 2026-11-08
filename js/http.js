@@ -97,6 +97,7 @@ export async function requestJson(
 }
 
 export function requestErrorMessage(error) {
+  if (error?.code === 'playback_exhausted') return '已尝试可用音源，暂时没有能播放的同一版本歌曲，请稍后重试';
   if (error instanceof RequestTimeoutError) return '请求超时，请稍后重试';
   if (error instanceof ResponseFormatError) return '服务返回了无法识别的数据';
   if (error instanceof NetworkRequestError) return '网络连接失败，请检查网络';

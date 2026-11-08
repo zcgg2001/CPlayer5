@@ -145,7 +145,9 @@ export async function handleGdRequest(request, env, url) {
     const quality = params.get('level') || 'lossless';
     if (!Object.hasOwn(QUALITY, quality)) throw new GdError(400, '不支持的音质参数');
     let payload;
-    for (const br of [...new Set([QUALITY[quality], 320, 128])].filter(br => br <= QUALITY[quality])) {
+    const bitrates = params.get('exact') === '1' ? [QUALITY[quality]]
+      : [...new Set([QUALITY[quality], 740, 320, 128])].filter(br => br <= QUALITY[quality]);
+    for (const br of bitrates) {
       payload = await get({ types: 'url', id, br });
       if (payload.url) break;
     }

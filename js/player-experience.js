@@ -1,6 +1,6 @@
 // UI feedback follows media events; resolving a URL does not mean audio is playing.
 export function createPlayerExperience({ document, audio, onSearch, onDiscover, onImport, onNext, onChooseSource, onResume, onChange = () => {} }) {
-  let phase = 'idle', song = null, retry = null, errorMessage = '', hasResolved = false, hasStarted = false;
+  let phase = 'idle', song = null, retry = null, errorMessage = '', resolvingMessage = '', hasResolved = false, hasStarted = false;
   const node = (tag, className, text) => {
     const element = document.createElement(tag); element.className = className;
     if (text) element.textContent = text;
@@ -33,7 +33,7 @@ export function createPlayerExperience({ document, audio, onSearch, onDiscover, 
   });
 
   const statusText = () => ({
-    resolving: '正在解析播放地址…', buffering: '正在缓冲音频…', blocked: '歌曲已就绪，点击开始播放',
+    resolving: resolvingMessage || '正在匹配最高可用音质…', buffering: '正在缓冲音频…', blocked: '歌曲已就绪，点击开始播放',
     error: errorMessage || '播放失败，请重试或选择其他音源',
   })[phase] || '';
   function render() {
@@ -74,7 +74,7 @@ export function createPlayerExperience({ document, audio, onSearch, onDiscover, 
   return {
     statusText, get phase() { return phase; }, get song() { return song; },
     loading(selected, retryAction) {
-      song = selected; retry = retryAction; errorMessage = ''; hasResolved = false; hasStarted = false; set('resolving');
+      song = selected; retry = retryAction; errorMessage = ''; resolvingMessage = ''; hasResolved = false; hasStarted = false; set('resolving');
       document.getElementById('mobileTitle').textContent = selected?.name || '正在加载歌曲';
       document.getElementById('mobileArtist').textContent = selected?.artist || '请稍候';
     },
@@ -84,6 +84,7 @@ export function createPlayerExperience({ document, audio, onSearch, onDiscover, 
       set('buffering');
     },
     blocked() { set('blocked'); },
+    recovering(message) { resolvingMessage = message; set('resolving'); },
     failed(message) { errorMessage = message; set('error'); },
   };
 }

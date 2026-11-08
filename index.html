@@ -3007,7 +3007,7 @@
             saveAudioBlob
         } from './js/music-download.js?v=39';
         import { createDownloadSession } from './js/download-session.js?v=22';
-        import { createPlaybackController } from './js/playback-controller.js?v=4';
+        import { createPlaybackController } from './js/playback-controller.js?v=5';
         import { createQueueStore } from './js/queue-store.js?v=1';
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
@@ -3015,7 +3015,7 @@
         import { createMusicSourceTabs } from './js/music-source-tabs.js?v=4';
         import { createCatalogBrowser } from './js/catalog-browser.js?v=1';
         import { createDiscoveryHome } from './js/discovery-home.js?v=2';
-        import { createPlayerExperience } from './js/player-experience.js?v=1';
+        import { createPlayerExperience } from './js/player-experience.js?v=2';
         import { createDiscoveryTable } from './js/discovery-table.js?v=2';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=3';
@@ -3031,7 +3031,7 @@
             qualityDetails,
             supportedMusicSource,
             supportedQuality
-        } from './js/music-service.js?v=10';
+        } from './js/music-service.js?v=11';
 
         const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
         const isCompactLayout = () => !desktopShellMedia.matches;
@@ -3879,8 +3879,8 @@
             dom.playbackQualityList.querySelectorAll('[data-quality]').forEach(option => { option.hidden = !levels.includes(option.dataset.quality); });
             playbackQualitySelector.setValue(levels.includes(musicService.config.quality) ? musicService.config.quality : levels.at(-1));
             dom.playbackQualityStatus.textContent = playback.state.currentSong?.id
-                ? '选择后将保留当前进度并切换音源。'
-                : '当前未播放歌曲，选择会保存为默认音质。';
+                ? '默认自动换源并尝试最高可用音质；本次选择将保留进度，下一首恢复最高音质。'
+                : '每首歌默认尝试最高可用音质，失败后自动降级或换源。';
             if (isGd) dom.playbackQualityStatus.textContent += ' GD 最高为 Hi-Res，实际音质以返回结果为准。';
             if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
             requestAnimationFrame(() => playbackQualitySelector.focusSelected());
@@ -6314,6 +6314,11 @@
             syncPlaybackQualityDisplay(musicService.config.quality);
 
                 },
+                onAttempt(info) {
+                    const label = musicSourceOption(info.provider).label;
+                    playerExperience?.recovering(info.stage === 'matching' ? `正在查找同一版本 · ${label}` : `正在尝试 ${label} · ${qualityDetails(info.level).name}`);
+                },
+                onRecovering(info) { playerExperience?.recovering(info.reason); },
                 onResolved(data, playbackData) {
                     playerExperience?.resolved(playbackData);
                     discoveryLoadingSong = null;
@@ -6331,7 +6336,7 @@
                 onStarted(data, playbackData, session) {
                     const picUrl = playbackData.cover;
                     const { isCurrent } = session;
-                    if (position > 0) {
+                    if (position > 0 && !session.recovering) {
                         const resume = () => {
                             if (isCurrent() && Number.isFinite(audio.duration)) audio.currentTime = position >= audio.duration - 2 ? 0 : Math.min(position, Math.max(0,audio.duration - 1));
                         };
@@ -6395,8 +6400,7 @@
                 // ★ Mobile UI Updates
                 if (mobileUI) {
                     mobileUI.updateInfo(data.name, data.artist, picUrl, { signal: session.signal });
-                    mobileUI.resetView();
-                    mobileUI.closeSheet();
+                    if (!session.recovering) { mobileUI.resetView(); mobileUI.closeSheet(); }
                 }
 
 

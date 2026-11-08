@@ -10,6 +10,7 @@ const newsGate = new Promise(resolve => { resolveNews = resolve; });
 let songGate = new Promise(resolve => { resolveSong = resolve; });
 let audioGate = new Promise(resolve => { resolveAudio = resolve; });
 let rejectSong = true;
+const attempts = [];
 const track = { id: '771', sourceId: '771', name: '回归测试曲', artist: '测试艺人', album: '本地测试', provider: 'gd', duration: 30, cover: '', downloadAllowed: false };
 const wav = Buffer.alloc(44 + 8000 * 2 * 30);
 wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
@@ -19,14 +20,19 @@ wav.write('data', 36); wav.writeUInt32LE(wav.length - 44, 40);
 
 try {
 await page.unrouteAll({ behavior: 'ignoreErrors' });
-await page.goto(origin, { waitUntil: 'domcontentloaded' });
+await page.goto(`${origin}/offline.html`, { waitUntil: 'domcontentloaded' });
 await page.evaluate(async () => {
   for (const registration of await navigator.serviceWorker.getRegistrations()) await registration.unregister();
   localStorage.clear();
 });
 await page.goto('about:blank');
 await page.addInitScript(() => {
-  if (location.search.includes('experience-test=1')) localStorage.clear();
+  if (location.search.includes('experience-test=1')) {
+    localStorage.clear();
+    navigator.serviceWorker.register = () => Promise.reject(new Error('Service worker disabled for fixture'));
+    const NativeAudio = window.__NativeAudio || window.Audio; window.__NativeAudio = NativeAudio; window.__testAudio = [];
+    window.Audio = class extends NativeAudio { constructor(...args) { super(...args); window.__testAudio.push(this); } };
+  }
 });
 await page.route(`${origin}/sw.js`, route => route.fulfill({ contentType: 'text/javascript', body: '' }));
 await page.route(`${origin}/api/**`, async route => {
@@ -37,15 +43,22 @@ await page.route(`${origin}/api/**`, async route => {
   }
   if (url.pathname.endsWith('/song')) {
     await songGate;
-    return rejectSong ? route.fulfill({ status: 502, json: { error: { code: 'gd_error', message: '测试音源暂时不可用' } } })
-      : route.fulfill({ json: { code: 200, data: { ...track, url: `${origin}/experience-fixture.wav`, br: 128000, level: 'standard' } } });
+    const source = url.searchParams.get('source'), level = url.searchParams.get('level');
+    attempts.push({source,level});
+    if (rejectSong && source === 'chksz') return route.fulfill({status:503,json:{error:{code:'channel_error',message:'测试音源暂时不可用'}}});
+    if (rejectSong && source === 'netease' && level === 'exhigh') return route.fulfill({json:{code:200,data:{id:track.id}}});
+    const broken = rejectSong && source === 'netease' && level === 'lossless';
+    return route.fulfill({json:{code:200,data:{...track, url:`${origin}/${broken?'broken':'experience'}-fixture.wav?source=${source}`,level,br:128000}}});
   }
   if (url.pathname.endsWith('/lyric')) return route.fulfill({ json: { code: 200, data: { lrc: '[00:00.00]本地测试音频' } } });
   return route.fulfill({ json: { code: 200, data: [], items: [], editable: false, configured: false } });
 });
-await page.route(`${origin}/experience-fixture.wav`, async route => {
+await page.route(`${origin}/broken-fixture.wav*`, route => route.fulfill({contentType:'audio/wav',body:Buffer.from('invalid audio data')}));
+await page.route(`${origin}/experience-fixture.wav*`, async route => {
   await audioGate;
-  await route.fulfill({ contentType: 'audio/wav', body: wav });
+  const range=route.request().headers()['range']?.match(/^bytes=(\d+)-(\d*)$/);
+  const start=range?Number(range[1]):0, end=range?.[2]?Math.min(Number(range[2]),wav.length-1):wav.length-1;
+  await route.fulfill({ status:range?206:200,contentType:'audio/wav',headers:{'accept-ranges':'bytes',...(range?{'content-range':`bytes ${start}-${end}/${wav.length}`}:{})},body:wav.subarray(start,end+1) });
 });
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(`${origin}/?experience-test=1`, { waitUntil: 'domcontentloaded' });
@@ -74,19 +87,26 @@ resolveHot();
 await expect(page.locator('.discover-home-status')).not.toContainText('正在更新推荐');
 await page.getByRole('button', { name: '播放 回归测试曲 · 测试艺人', exact: true }).first().click();
 const feedback = page.locator('#mobileBrowsePlayer [data-player-feedback]');
-await expect(feedback).toContainText('正在解析播放地址');
+await expect(feedback).toContainText('正在尝试');
 await expect(page.getByRole('status').filter({ hasText: '已添加并播放' })).toHaveCount(0);
 resolveSong();
-await expect(feedback).toContainText('测试音源暂时不可用');
-await expect(feedback.getByRole('button', { name: '重试', exact: true })).toBeVisible();
-rejectSong = false;
-songGate = Promise.resolve();
-await feedback.getByRole('button', { name: '重试', exact: true }).click();
+await expect.poll(() => attempts.length).toBeGreaterThanOrEqual(4);
+assert.deepEqual(attempts.slice(0,4),[{source:'chksz',level:'jymaster'},{source:'netease',level:'lossless'},{source:'netease',level:'exhigh'},{source:'netease',level:'standard'}]);
 await expect(feedback).toContainText('正在缓冲音频');
 await expect(page.locator('#mobileBrowsePlay')).toBeDisabled();
 resolveAudio();
 await expect(feedback).toBeHidden({ timeout: 15000 });
 await expect(page.locator('#mobileBrowsePlay')).toHaveAttribute('aria-label', '暂停');
+// A real audio element has started. Simulate a dropped connection after seeking.
+await page.evaluate(() => {
+  const audio=window.__testAudio[0]; audio.currentTime=10;
+  Object.defineProperty(audio,'error',{configurable:true,value:{code:2}});
+  audio.dispatchEvent(new Event('error')); delete audio.error;
+});
+await expect.poll(() => attempts.some(x=>x.source==='gd')).toBe(true);
+await expect(feedback).toBeHidden({timeout:15000});
+await expect.poll(() => page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThanOrEqual(10);
+rejectSong=false;
 await page.locator('#mobileBrowsePlay').click();
 await expect(page.locator('#mobileBrowsePlay')).toHaveAttribute('aria-label', '播放');
 // Simulate a browser declining autoplay once, then exercise the explicit resume action.
@@ -112,9 +132,11 @@ await expect(page.locator('#desktopPlayerBar')).toBeVisible();
 assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 assert.deepEqual(errors, []);
 await page.unrouteAll({ behavior: 'wait' });
-return { passed: true, checks: ['mobile entry, search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', 'failure and retry', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow'], errors };
+return { passed: true, checks: ['mobile entry, search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', '503 automatic source switch', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow'], errors };
 } finally {
   resolveHot(); resolveNews(); resolveSong(); resolveAudio();
+  await page.evaluate(()=>{ for(const audio of window.__testAudio||[]) { audio.pause();audio.removeAttribute('src');audio.load(); } }).catch(()=>{});
+  await page.goto('about:blank');
   await page.unrouteAll({ behavior: 'ignoreErrors' });
   page.off('pageerror', recordError);
 }
