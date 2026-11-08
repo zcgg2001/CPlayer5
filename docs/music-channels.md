@@ -43,7 +43,7 @@ HTML 使用 `cheerio/slim` 解析。网易云 eapi 使用 Node crypto，Workers 
 
 依据 [OP Music API 文档](https://music.op.wiki/docs/api/) 的公开匿名接口实现 `sites/op-music.js`。实时 `/api/v1/platforms` 列出 Apple Music、网易云、QQ、YouTube Music 和 Bilibili；本次接入前三个音乐曲库。文档中列出的酷狗和汽水未出现在实时列表中，不添加无效入口。视频平台继续保持现有独立行为。
 
-- 搜索不创建播放任务；上游只支持最多 20 条、没有分页，后续页不重复返回第一页。
+- 搜索不创建播放任务；上游只支持最多 20 条、没有分页，后续页不重复返回第一页。OP QQ 大批量首页为空时，用同一关键词请求 3 条重试一次（线上曾出现 10/20 条为空而 3 条成功的情况）。
 - 每次解析只 POST 一次，始终传精确 `selected_id`、非空 `query`，前端 `exhigh` 对应上游 `high`；默认从 `hires` 开始。
 - queued / processing / streaming 均串行每秒查状态，最多 7 次查询、整个解析最多 10 秒；只有 completed 才读取最新 `audio_url`，保留 `rev` 参数。不会将专用 WASM ALAC 分包流交给普通 audio 元素。
 - 音质准备失败可以降档；准备超时、网络和认证/限流错误换源。404 不无限重建，Retry-After 传递给既有冷却策略。

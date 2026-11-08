@@ -51,6 +51,7 @@ await page.route(`${origin}/api/**`, async route => {
     return route.fulfill({json:{code:200,data:{...track, url:`${origin}/${broken?'broken':'experience'}-fixture.wav?source=${source}`,level,br:128000}}});
   }
   if (url.pathname.endsWith('/lyric')) return route.fulfill({ json: { code: 200, data: { lrc: '[00:00.00]本地测试音频' } } });
+  if (url.pathname.endsWith('/search') && url.searchParams.get('keyword') === '选定音源测试') return route.fulfill({json:{code:200,data:[{...track,id:'772',name:'选定音源测试'}]}});
   return route.fulfill({ json: { code: 200, data: [], items: [], editable: false, configured: false } });
 });
 await page.route(`${origin}/broken-fixture.wav*`, route => route.fulfill({contentType:'audio/wav',body:Buffer.from('invalid audio data')}));
@@ -130,9 +131,33 @@ assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= i
 await page.setViewportSize({ width: 1440, height: 1000 });
 await expect(page.locator('#desktopPlayerBar')).toBeVisible();
 assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+// Search selections must survive the click-to-queue path on both layouts.
+await page.getByRole('button',{name:'搜索音乐',exact:true}).click();
+await page.getByRole('radio',{name:'QQ 音乐',exact:true}).filter({visible:true}).click();
+await page.getByRole('radio',{name:'OP Music · QQ 音乐',exact:true}).filter({visible:true}).click();
+await page.locator('#searchInput').fill('选定音源测试');await page.locator('#searchInput').press('Enter');
+await expect(page.getByRole('button',{name:'加入并播放 选定音源测试',exact:true})).toBeVisible();
+const desktopAttempt=attempts.length;
+await page.getByRole('button',{name:'加入并播放 选定音源测试',exact:true}).click();
+await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentSrc)).toContain('source=op-qq');
+assert.deepEqual(attempts.slice(desktopAttempt),[{source:'op-qq',level:'hires'}]);
+await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
+await page.evaluate(()=>window.__testAudio[0].pause());
+await page.setViewportSize({width:390,height:844});
+await page.getByRole('button',{name:'打开播放列表',exact:true}).click();
+await page.getByRole('tab',{name:'搜索添加',exact:true}).click();
+await page.getByRole('radio',{name:'网易云',exact:true}).filter({visible:true}).click();
+await page.getByRole('radio',{name:'OP Music · 网易云',exact:true}).filter({visible:true}).click();
+await page.locator('#mobileSearchInput').fill('选定音源测试');await page.locator('#mobileSearchInput').press('Enter');
+await expect(page.locator('#mobileSearchResults')).toContainText('选定音源测试');
+const mobileAttempt=attempts.length;
+await page.locator('#mobileSearchResults').getByRole('button',{name:'添加并播放歌曲',exact:true}).click();
+await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentSrc)).toContain('source=op-netease');
+assert.deepEqual(attempts.slice(mobileAttempt),[{source:'op-netease',level:'hires'}]);
+await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
 assert.deepEqual(errors, []);
 await page.unrouteAll({ behavior: 'wait' });
-return { passed: true, checks: ['mobile entry, search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', '503 automatic source switch', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow'], errors };
+return { passed: true, checks: ['mobile entry, search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', '503 automatic source switch', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow', 'desktop search plays selected OP QQ', 'mobile search plays selected OP NetEase'], errors };
 } finally {
   resolveHot(); resolveNews(); resolveSong(); resolveAudio();
   await page.evaluate(()=>{ for(const audio of window.__testAudio||[]) { audio.pause();audio.removeAttribute('src');audio.load(); } }).catch(()=>{});

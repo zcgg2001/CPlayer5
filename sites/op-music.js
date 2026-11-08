@@ -55,7 +55,12 @@ function wait(signal) {
 export async function searchOp(source, keyword, limit, offset, client) {
   // The API has no pagination: never replay the first page as a later page.
   if (offset >= 20) return [];
-  const data = await json(client, `/api/v1/search?${new URLSearchParams({ platform: platforms[source], q: keyword, limit: Math.min(20, limit + offset) })}`);
+  const count = Math.min(20, limit + offset);
+  const search = size => json(client, `/api/v1/search?${new URLSearchParams({ platform: platforms[source], q: keyword, limit: size })}`);
+  let data = await search(count);
+  // The live QQ catalog can return [] for limit=10/20 while the same query
+  // succeeds at limit=3. Retry an empty first page once, without changing IDs.
+  if (source === 'op-qq' && offset === 0 && count > 3 && Array.isArray(data) && !data.length) data = await search(3);
   if (!Array.isArray(data)) throw new ChannelError(502, 'OP Music 搜索响应无效');
   return data.filter(item => {
     try { validateId(source, String(item?.id || '')); return item.platform === platforms[source] && item.song; } catch { return false; }

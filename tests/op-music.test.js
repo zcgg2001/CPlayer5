@@ -35,6 +35,17 @@ test('OP no-match search is empty, while other 400 errors remain explicit failur
     if(expected===200)assert.deepEqual((await response.json()).data,[]);
   }
 });
+test('OP QQ retries an empty large first page once with three results and preserves mids',async()=>{
+  const limits=[];
+  const response=await worker.fetch(request('search',{source:'op-qq',keyword:'晴天 周杰伦',limit:30}),{CHANNEL_FETCH:async input=>{
+    const url=new URL(input);limits.push(url.searchParams.get('limit'));assert.equal(url.searchParams.get('q'),'晴天 周杰伦');
+    return Response.json(limits.length===1?[]:[{platform:'tencent',id:'mid123',song:'晴天',singer:'周杰伦'}]);
+  }});
+  assert.deepEqual(limits,['20','3']);assert.equal((await response.json()).data[0].id,'mid123');
+  let calls=0;
+  const empty=await worker.fetch(request('search',{source:'op-qq',keyword:'absent',limit:30}),{CHANNEL_FETCH:async()=>{calls++;return Response.json([]);}});
+  assert.equal(calls,2);assert.deepEqual((await empty.json()).data,[]);
+});
 
 test('OP polls once per second, uses latest completed URL and detects actual FLAC quality',async()=>{
   const calls=[];let statuses=0;

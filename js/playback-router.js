@@ -2,8 +2,8 @@ import { MUSIC_CHANNELS, channelSourceId, channelTrackId } from './music-channel
 import { aggregateSongs, neteaseMetadataId, sourceBlocked } from './music-catalog.js';
 import { RequestCancelledError } from './http.js';
 
-// ChKSz returned the fastest successful samples and 24-bit / 192 kHz FLAC;
-// Meting is the first fallback. Real playback evidence overrides this initial order.
+// Default order for automatic choices and fallbacks. An explicitly selected
+// search/catalog channel takes precedence over this order and latency scores.
 export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
 const QUALITY_ORDER = ['jymaster', 'hires', 'lossless', 'exhigh', 'standard'];
 const HEALTH_KEY = 'cp_playback_health_v1';
@@ -86,7 +86,9 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     const video = sources.some(item=>item.provider==='bilibili');
     const primaryPlatform=platform(sources[0]?.provider || service.sourceForSong(original).provider);
     const available=video?['bilibili']:order(PLAYBACK_SOURCE_ORDER);
-    const providers=[...available.filter(p=>direct.has(p)),...available.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...available.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
+    const preferred = available.includes(original.preferredProvider) && direct.has(original.preferredProvider) ? original.preferredProvider : null;
+    const remaining = available.filter(provider => provider !== preferred);
+    const providers=[...(preferred ? [preferred] : []),...remaining.filter(p=>direct.has(p)),...remaining.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...remaining.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
     let attempts=0, searches=0, spent=0, lastError;
     const bounded = async (fn, timeout) => { const start=now();try{return await fn(Math.max(1,Math.min(timeout,60000-spent)));}finally{spent+=Math.max(0,now()-start);} };
     for (const provider of providers) {

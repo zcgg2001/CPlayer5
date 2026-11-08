@@ -22,6 +22,39 @@ test('legacy numeric IDs can use exact NetEase IDs without search and start loss
  const {router,calls}=harness((id,level,{source})=>playable(source,level));
  const next=await router.candidates('123').next();assert.equal(next.value.provider,'chksz');assert.equal(calls[0].id,'123');assert.equal(calls[0].level,'jymaster');
 });
+test('a selected search provider wins over global priority and latency for every channel',async()=>{
+ for(const provider of ['gd','netease','chksz','op-netease','op-qq','op-applemusic','at38-qq','at38-netease','jianbin-netease','jianbin-qq','jianbin-kugou','jianbin-kuwo','gequke','bilibili']){
+  const {router,calls}=harness((id,level,{source})=>playable(source,level));
+  router.success({provider},29000);router.success({provider:'chksz'},10);
+  const song={...track,provider,id:`${provider}:123`,sourceId:'123',preferredProvider:provider};
+  const result=(await router.candidates(song.id,{song}).next()).value;
+  assert.equal(result.provider,provider);assert.equal(result.requestedLevel,playbackLevels(provider)[0]);assert.equal(calls.length,1);
+ }
+});
+test('selected source downgrades before falling back and preserves exact source IDs',async()=>{
+ const {router,calls}=harness((id,level,{source})=>source==='op-netease'&&level==='hires'?null:playable(source,level));
+ const song={...track,id:'op-netease:123',sourceId:'123',provider:'op-netease',preferredProvider:'op-netease'};
+ const iterator=router.candidates(song.id,{song});
+ const result=(await iterator.next()).value;assert.equal(result.provider,'op-netease');assert.equal(result.level,'lossless');
+ assert.deepEqual(calls.map(x=>[x.source,x.level]),[['op-netease','hires'],['op-netease','lossless']]);
+ assert.equal((await iterator.next({skipProvider:true})).value.provider,'chksz');
+ assert.equal(calls[0].id,song.id);assert.equal(calls[2].id,'123');
+});
+test('a queued choice survives search-filter changes and is validated against its own candidates',async()=>{
+ const {router,service}=harness((id,level,{source})=>playable(source,level));
+ const queue=createQueueStore();const song={...track,provider:'op-qq',id:'op-qq:mid123',sourceId:'mid123',preferredProvider:'op-qq'};
+ queue.insert(song);const saved=JSON.parse(JSON.stringify(queue.snapshot()));queue.clear();queue.restore(saved);
+ service.sourceForSong=()=>({provider:'gd'});
+ assert.equal((await router.candidates(song.id,{song:queue.state.playlist[0]}).next()).value.provider,'op-qq');
+ assert.equal((await router.candidates(track.id,{song:{...track,preferredProvider:'op-qq'}}).next()).value.provider,'chksz');
+});
+test('selected sources still honor Retry-After and do not bypass a known provider refusal',async()=>{
+ const {router,calls}=harness((id,level,{source})=>{if(source==='op-netease')throw new HttpStatusError(429,null,'600');return playable(source,level);});
+ const song={...track,provider:'op-netease',id:'op-netease:123',sourceId:'123',preferredProvider:'op-netease'};
+ assert.equal((await router.candidates(song.id,{song}).next()).value.provider,'chksz');
+ assert.equal((await router.candidates(song.id,{song}).next()).value.provider,'chksz');
+ assert.equal(calls.filter(x=>x.source==='op-netease').length,1);
+});
 test('unavailable quality downgrades on the same provider',async()=>{
  const {router,calls}=harness((id,level,{source})=>level==='jymaster'?null:playable(source,level));
  const {value}=await router.candidates(track.id,{song:track}).next();assert.equal(value.level,'hires');assert.deepEqual(calls.map(x=>x.level),['jymaster','hires']);

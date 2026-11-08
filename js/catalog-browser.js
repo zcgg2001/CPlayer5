@@ -57,7 +57,7 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue}) 
     if (focused) [...list.querySelectorAll('[data-catalog-action]')].find(node=>node.dataset.catalogAction===focused)?.focus({preventScroll:true});
   }
   function playRecord(song,source=null) {
-    const chosen=source?{...song,...source,sources:[source],catalogId:song.catalogId}:song;
+    const chosen=source?{...song,...source,sources:[source],catalogId:song.catalogId,preferredProvider:source.provider}:song;
     dialog.close(); onPlay(chosen);
   }
   function updateProgress(snapshot) {

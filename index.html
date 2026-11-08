@@ -5029,6 +5029,7 @@
                             album: songData.album || '',
                             source: 'id_search',
                             provider: songData.provider,
+                            preferredProvider: requestSource,
                         };
 
                         // 插入到当前播放位置之后
@@ -5149,6 +5150,7 @@
                                 album: song.album || '',
                                 source: song.source || 'Search',
                                 provider: song.provider,
+                                preferredProvider: requestSource,
                             };
                             const targetIndex = window.insertSongToPlaylist(newSong);
                             renderAllPlaylistItems();
@@ -8312,6 +8314,7 @@
                                 album: songData.album || '',
                                 source: 'id_search',
                                 provider: songData.provider,
+                                preferredProvider: requestSource,
                             };
 
                             // 插入到播放列表
@@ -8400,6 +8403,7 @@
                                 album: song.album,
                                 source: song.source || 'Search',
                                 provider: song.provider,
+                                preferredProvider: requestSource,
                             };
                             const targetIndex = window.insertSongToPlaylist(newSong);
 
