@@ -7,7 +7,7 @@ export function createPlaybackController({
     audio, preloadAudio, musicService, queueStore,
     baseUrl = globalThis.location?.href,
     setTimer = setTimeout, clearTimer = clearTimeout,
-    replaceSource, mediaTimeoutMs = 8000, stallTimeoutMs = 8000,
+    replaceSource, mediaTimeoutMs = 15000, stallTimeoutMs = 8000,
 } = {}) {
     const state = {
         currentSong: null, transitionPending: false,
@@ -81,7 +81,7 @@ export function createPlaybackController({
         const stopStall = () => { if (stallTimer !== null) clearTimer(stallTimer); stallTimer = null; };
         const mediaError = () => Object.assign(new Error('音频无法播放'), { mediaCode: audio.error?.code });
         const startAudio = (url, position, shouldPlay) => new Promise((resolve, reject) => {
-            let settled = false, timer;
+            let settled = false, timer, restoredPosition = false;
             const finish = error => {
                 if (settled) return;
                 settled = true; clearTimer(timer);
@@ -92,7 +92,10 @@ export function createPlaybackController({
             };
             const loaded = () => {
                 if (!isCurrent()) return;
-                if (position > 0 && Number.isFinite(audio.duration)) audio.currentTime = Math.min(position, Math.max(0, audio.duration - 0.25));
+                if (!restoredPosition && position > 0 && Number.isFinite(audio.duration)) {
+                    restoredPosition = true;
+                    audio.currentTime = Math.min(position, Math.max(0, audio.duration - 0.25));
+                }
                 if (!shouldPlay) finish();
             };
             const failed = () => finish(mediaError());
@@ -137,7 +140,7 @@ export function createPlaybackController({
                         if (error?.name === 'NotAllowedError') { blocked = true; active.wantsPlay = false; view.onAutoplayBlocked?.(error); }
                         else if (automatic) {
                             musicService.recordPlaybackFailure?.(data, error);
-                            feedback = { error, skipProvider: error.mediaCode === 2 };
+                            feedback = { error, skipProvider: error.mediaCode === 2, waitMs:Date.now()-began };
                             view.onRecovering?.({ reason: '当前资源无法播放，正在尝试其他音质或音源…' });
                             audio.pause?.();
                             continue;

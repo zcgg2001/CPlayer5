@@ -88,17 +88,17 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     const available=video?['bilibili']:order(PLAYBACK_SOURCE_ORDER);
     const providers=[...available.filter(p=>direct.has(p)),...available.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...available.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
     let attempts=0, searches=0, spent=0, lastError;
-    const bounded = async (fn, timeout) => { const start=now();try{return await fn(Math.max(1,Math.min(timeout,45000-spent)));}finally{spent+=Math.max(0,now()-start);} };
+    const bounded = async (fn, timeout) => { const start=now();try{return await fn(Math.max(1,Math.min(timeout,60000-spent)));}finally{spent+=Math.max(0,now()-start);} };
     for (const provider of providers) {
       signal?.throwIfAborted();
-      if (attempts>=16 || spent>=45000) break;
+      if (attempts>=16 || spent>=60000) break;
       if (cooling(provider)) continue;
       let tracks=direct.get(provider);
       if (!tracks && !video && searches<5 && original.name && original.artist && !/未知|^unknown$/i.test(original.artist)) {
         searches++;
         try {
           onAttempt({provider,stage:'matching'});
-          const found=await bounded(timeoutMs=>service.search(`${original.name} ${original.artist}`.slice(0,100),{source:provider,signal,fetchImpl,limit:10,timeoutMs}),4500);
+          const found=await bounded(timeoutMs=>service.search(`${original.name} ${original.artist}`.slice(0,100),{source:provider,signal,fetchImpl,limit:10,timeoutMs}),8000);
           tracks=found.filter(candidate=>samePlaybackRecording(original,candidate)).slice(0,1);
         } catch(error) { if(cancelled(error,signal))throw error;lastError=error;if(providerFailure(error))failure({provider},error);continue; }
       }
@@ -109,20 +109,21 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
         let lastResolvedRank=-1;
         for(const requestedLevel of playbackLevels(provider,level)) {
           signal?.throwIfAborted();
-          if(skipProvider || attempts>=16 || spent>=45000)break;
+          if(skipProvider || attempts>=16 || spent>=60000)break;
           if(sourceBlocked(track,requestedLevel))continue;
           if(QUALITY_ORDER.indexOf(requestedLevel)<=lastResolvedRank)continue;
           attempts++;
           onAttempt({provider,level:requestedLevel,stage:'resolving',attempt:attempts});
           const began=now();
           try {
-            const resolved=await bounded(timeoutMs=>service.getSongAtLevel(track.id,requestedLevel,{song:track,source:provider,signal,fetchImpl,timeoutMs,exactQuality:true}),6500);
+            const resolved=await bounded(timeoutMs=>service.getSongAtLevel(track.id,requestedLevel,{song:track,source:provider,signal,fetchImpl,timeoutMs,exactQuality:true}),12000);
             if(!resolved?.url || seenUrls.has(resolved.url))continue;
             const data=actualPlaybackQuality(resolved);
             seenUrls.add(data.url);
             const result={...data,id:original.id||id,catalogId:original.catalogId,sources:original.sources,requestedLevel,
               routing:{automatic:true,attempt:attempts,resolveMs:Math.max(0,now()-began)}};
             const feedback=yield result;
+            spent += Math.max(0, Number(feedback?.waitMs) || 0);
             // A dead transport should move to another provider immediately;
             // unsupported media or unavailable high quality can try a lower tier.
             if(feedback?.skipProvider)skipProvider=true;

@@ -116,3 +116,12 @@ test('all providers failing terminates with a useful error and bounded attempts'
  const {router,calls}=harness(()=>{throw new HttpStatusError(404);});
  await assert.rejects(router.candidates(track.id,{song:track}).next(),e=>e.code==='playback_exhausted');assert.ok(calls.length<=16);
 });
+
+test('recovery restores position only once across metadata and play completion',async()=>{
+ const h=controllerHarness([playable('chksz'),playable('netease')]);
+ let time=0,writes=0;Object.defineProperty(h.audio,'currentTime',{get:()=>time,set:v=>{time=v;writes++;}});
+ h.audio.behavior=async()=>{h.audio.dispatchEvent(new Event('loadedmetadata'));};
+ await h.controller.load(track.id,track,h.view);h.audio.currentTime=42;writes=0;
+ h.audio.error={code:2};h.audio.dispatchEvent(new Event('error'));await tick();
+ assert.equal(writes,1);assert.equal(time,42);
+});
