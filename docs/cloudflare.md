@@ -41,6 +41,8 @@ npm exec --yes --package=node@26.12.0 -- npm run cf:deploy
 
 GitHub Actions 运行原有检查、Cloudflare 部署预检查和 workerd 回归测试，不会在每次推送时自动部署。
 
+账号注册与云同步使用 `ACCOUNTS_DB` 绑定的 `cplayer5-accounts` D1 数据库。main 分支配置保留正式数据库 ID，重发版本时不要移除绑定或更换已有 `AUTH_SECRET`。首次配置及增量迁移见 [账号与多端](accounts-and-devices.md)；独立部署必须覆盖数据库 ID 和站点地址，不能复用本站资源。v1.6.0 标签源码构建时需设置 `CPLAYER_ACCOUNTS_D1_ID`。
+
 GD 启动时仅恢复已保存歌单的本地缓存，不自动读取在线歌单详情或后台更新。ChKSz 精选分批展示，后续请求失败不会清空已加载的部分。GD 发现列表保留一天内的成功结果，网络失败时显示缓存时间。
 
 ## ChKSz Secret

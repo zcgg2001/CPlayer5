@@ -59,7 +59,7 @@ PORT=8796 AUTH_URL=http://127.0.0.1:8796 node server.js
 
 ### 1. 数据库与 Worker
 
-现有部署用 `cf`，不要再加入第二份 Wrangler 配置。先登录 Cloudflare、创建 D1，再应用仓库迁移：
+现有部署用 `cf`，不要再加入第二份 Wrangler 配置。正式账号库为 `cplayer5-accounts`（APAC），已应用两个迁移。重新部署本站复用此库；以下创建步骤仅供部署到新账号或独立环境时使用：
 
 ```sh
 npx cf auth login
@@ -70,7 +70,7 @@ npx cf d1 migrations apply "$CPLAYER_ACCOUNTS_D1_ID" --dir migrations --dry-run
 npx cf d1 migrations apply "$CPLAYER_ACCOUNTS_D1_ID" --dir migrations
 ```
 
-`cloudflare.config.ts` 只有在构建时提供 `CPLAYER_ACCOUNTS_D1_ID` 才绑定账号库；每次部署都必须保留此变量，也应将它加入 CI 配置。`AUTH_URL` 默认绑定 `https://music.505zc.tech`。如果更换域名，需同时修改该值和所有 OAuth 回调；备用 workers.dev 域名可继续浏览音乐，但账号请求要求使用正式域名。
+`cloudflare.config.ts` 默认保留本站的正式 D1 ID（公开资源标识，不是密钥），避免重新部署时漏绑数据库；也将该 ID 保存为 GitHub 仓库变量 `CPLAYER_ACCOUNTS_D1_ID`。独立环境可在构建时用同名变量覆盖，必须指向自己的数据库。`AUTH_URL` 默认绑定 `https://music.505zc.tech`。如果更换域名，需同时修改该值和所有 OAuth 回调；备用 workers.dev 域名可继续浏览音乐，但账号请求要求使用正式域名。v1.6.0 标签中的旧配置仍需显式传入该变量，main 分支已保留默认绑定。
 
 在本机受限权限文件 `.local/account-secrets.json` 填写 `AUTH_SECRET`，使用 `openssl rand -base64 48` 生成并保持稳定；它用于会话签名与 OAuth 令牌加密。不要每次部署更换它。文件格式为名称到字符串的 JSON 对象，使用 `chmod 600 .local/account-secrets.json`。无需填写邮件或短信供应商密钥即可启用用户名注册。
 
@@ -80,7 +80,7 @@ npx cf deploy --prebuilt --mode production --secrets-file .local/account-secrets
 npx cf deploy --prebuilt --mode production --secrets-file .local/account-secrets.json
 ```
 
-这是部署操作说明，本次开发没有为你创建收费供应商账号、上传真实供应商密钥或启用生产登录。缺少库、正式地址或长度至少 32 字符的 secret 时，`/api/account/config` 返回 `enabled:false`，其余账号接口返回 503。配置齐全后先在独立预览域名和测试 D1 验证，再部署正式站点。预览的 `AUTH_URL` 和 OAuth 回调需与预览域名完全一致。
+用户名登录只需数据库、正式地址和稳定的会话密钥，无需收费邮件或短信供应商。缺少库、正式地址或长度至少 32 字符的 secret 时，`/api/account/config` 返回 `enabled:false`，其余账号接口返回 503。独立预览环境应使用测试 D1，`AUTH_URL` 和 OAuth 回调需与预览域名完全一致。
 
 ### 2. 邮箱
 
