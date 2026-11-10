@@ -12,12 +12,18 @@ const { compatibilityDate, compatibilityFlags } = JSON.parse(await readFile(new 
 const modules = Object.fromEntries(await Promise.all((await readdir(new URL('bundle/', output), { recursive: true })).filter(name => name.endsWith('.js')).map(async name => [name, { type: 'esm', contents: await readFile(new URL(`bundle/${name}`, output), 'utf8') }])));
 const video = { bvid: 'BV1C9b76cEks', title: 'Runtime fixture', owner: { name: 'Test' }, rights: {}, pages: [{ cid: 123 }] };
 
-function runtime(t, handler = upstream, extraEnv = {}) {
+function runtime(t, handler = upstream, extraEnv = {}, fixedNow) {
+  // A test-only entrypoint injects the existing clock seam into the real bundle.
+  // Fixed-window quota assertions must not depend on crossing a wall-clock minute.
+  const manifest = fixedNow === undefined ? { mainModule: 'index.js', modules } : {
+    mainModule: 'test-clock.js',
+    modules: { ...modules, 'test-clock.js': { type: 'esm', contents: `import worker from './index.js'; export default { fetch(request, env, ctx) { return worker.fetch(request, { ...env, OPS_NOW: () => ${fixedNow} }, ctx); } };` } },
+  };
   const mf = new Miniflare({ workers: [{
     config: {
       name: 'cplayer-runtime-test', compatibilityDate, compatibilityFlags,
       env: { CHKSZ_API_KEY: { type: 'json', value: 'fixture-key' }, ...extraEnv },
-      manifest: { mainModule: 'index.js', modules },
+      manifest,
     },
     dev: { outboundService: { type: 'fetcher', handler } },
   }] });
@@ -204,7 +210,7 @@ test('workerd: username/password registration and login persist in D1 without ma
 
 test('workerd: shared D1 circuits, telemetry isolation and global rate limits', { timeout: 20000 }, async t => {
   let calls=0;
-  const mf=runtime(t,async()=>{calls++;return new Response('unavailable',{status:503});},{ACCOUNTS_DB:{type:'d1',name:'ops-runtime-test'}});
+  const mf=runtime(t,async()=>{calls++;return new Response('unavailable',{status:503});},{ACCOUNTS_DB:{type:'d1',name:'ops-runtime-test'}}, 1735689600000);
   const db=await mf.getD1Database('ACCOUNTS_DB');
   const sql=await readFile(new URL('../migrations/0003_operations.sql',import.meta.url),'utf8');
   await db.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
