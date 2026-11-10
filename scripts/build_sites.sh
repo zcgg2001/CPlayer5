@@ -14,6 +14,7 @@ rm -rf "$static_dir" "$server_dir"
 mkdir -p "$static_dir" "$server_dir"
 
 cp "$project_dir/index.html" "$static_dir/index.html"
+cp "$project_dir/admin.html" "$static_dir/admin.html"
 cp "$project_dir/offline.html" "$static_dir/offline.html"
 cp "$project_dir/playlist-downloader.html" "$static_dir/playlist-downloader.html"
 cp "$project_dir/manifest.json" "$static_dir/manifest.json"
@@ -45,3 +46,7 @@ cp "$project_dir/js/music-catalog.js" "$dist_dir/js/music-catalog.js"
 cp "$project_dir/sites/accounts.js" "$server_dir/accounts.js"
 cp "$project_dir/sites/account-auth.js" "$server_dir/account-auth.js"
 cp "$project_dir/js/account-data.js" "$dist_dir/js/account-data.js"
+
+for module in operations-store reliability operations-api cover-cache public-pages response-cache admin-bootstrap; do
+  cp "$project_dir/sites/$module.js" "$server_dir/$module.js"
+done

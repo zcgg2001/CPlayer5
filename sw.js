@@ -1,9 +1,12 @@
-const SHELL_CACHE = 'cplayer5-shell-v80';
+const SHELL_CACHE = 'cplayer5-shell-v82';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
 
 const CORE_ASSETS = [
+  './js/i18n.js',
+  './js/runtime-policy.js',
+  './js/request-budget.js',
   './css/account.css',
   './js/account-data.js',
   './js/account-sync.js',

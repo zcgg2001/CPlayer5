@@ -90,3 +90,5 @@
 @media (prefers-reduced-motion: reduce) { .discovery-home *, .discovery-dialog * { transition: none !important; scroll-behavior: auto !important; } }
 #mobileExploreDiscoveryPane .discovery-home { padding: 12px 6px 24px; }
 #mobileExploreDiscoveryPane .discover-home-toolbar { margin-bottom: 12px; }
+
+.discover-module-host{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}.discover-module-host>*{grid-column:1 / -1;min-width:0}.discover-module-host>.discover-daily-card,.discover-module-host>.discover-radio-card{grid-column:auto}@media(max-width:600px){.discover-module-host{grid-template-columns:minmax(0,1fr)}}

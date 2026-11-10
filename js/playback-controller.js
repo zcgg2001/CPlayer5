@@ -1,3 +1,4 @@
+import { coverUrl, reportEvent } from './runtime-policy.js';
 import { createPlaybackSession } from './playback-session.js';
 import { normalizeMediaUrl } from './security.js';
 import { bilibiliVideoUrl } from './music-data.js';
@@ -32,12 +33,14 @@ export function createPlaybackController({
     }
 
     async function preloadNext() {
-        if (musicService.config?.source !== 'chksz') return;
+        if (globalThis.navigator?.connection?.saveData || /(^|-)2g$/.test(globalThis.navigator?.connection?.effectiveType || '')) return;
+        if (!musicService.getSong) return;
         if (!preloadAudio || !queueStore.state.playlist.length) return;
         const next = queueStore.state.playlist[queueStore.next()];
-        if (next == null || bilibiliVideoUrl(next) || preloadedSong === next) return;
+        if (next == null || bilibiliVideoUrl(next) || preloadedSong === next || String(next.provider || '').startsWith('op-')) return;
         preloadController?.abort();
         const controller = new AbortController();
+        const timeout = setTimer(() => { controller.abort(); if (preloadController === controller) cancelPreload(); }, 8000);
         preloadController = controller;
         try {
             const data = await musicService.getSong(songId(next), {
@@ -46,12 +49,17 @@ export function createPlaybackController({
             if (controller.signal.aborted || queueStore.state.playlist[queueStore.next()] !== next) return;
             const url = mediaUrl(data?.url);
             if (url) {
+                preloadAudio.preload = 'metadata';
                 preloadAudio.src = url;
                 preloadAudio.load();
                 preloadedSong = next;
+                const release = () => { if (preloadController === controller) { preloadAudio.removeAttribute('src'); preloadAudio.load(); preloadController = null; } };
+                preloadAudio.addEventListener?.('loadedmetadata', release, { once: true, signal: controller.signal });
+                const mediaTimer = setTimer(release, 8000);
+                controller.signal.addEventListener('abort', () => clearTimer(mediaTimer), { once: true });
             }
         } catch { /* Preloading is optional. */ }
-        finally { if (preloadController === controller) preloadController = null; }
+        finally { clearTimer(timeout); if (preloadController === controller && controller.signal.aborted) cancelPreload(); }
     }
 
     async function load(id, songOverride = null, view = {}, options = {}) {
@@ -69,9 +77,10 @@ export function createPlaybackController({
         const queuedSong = songOverride || queueStore.state.playlist.find(song => (
             typeof song === 'object' && String(song.id) === String(id)
         )) || null;
+        let previousProvider = null, firstProvider = null, switched = false;
         const automatic = typeof musicService.playbackCandidates === 'function';
         const routeOptions = { song: queuedSong, signal: session.signal, level: options.level,
-            onAttempt: info => { if (isCurrent()) view.onAttempt?.(info); } };
+            onAttempt: info => { if (info.stage === 'resolving') firstProvider ||= info.provider; if (isCurrent()) view.onAttempt?.(info); } };
         const iterator = automatic ? musicService.playbackCandidates(id, routeOptions)
             : (async function* () { yield await musicService.getSong(id, routeOptions); })();
         const active = { id, original: queuedSong, view, session, attempting: false, recovering: false,
@@ -124,10 +133,11 @@ export function createPlaybackController({
                     const generation = ++mediaGeneration;
                     const isMediaCurrent = () => isCurrent() && generation === mediaGeneration;
                     if (!url) throw new Error('Invalid media URL');
+                    firstProvider ||= data.provider;
                     const coverOptions = { baseUrl, allowDataImage: true };
                     const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
                         || normalizeMediaUrl(data.cover, coverOptions) || '';
-                    const playbackData = { ...queuedSong, ...data, id: queuedSong?.id || id, url, cover,
+                    const playbackData = { ...queuedSong, ...data, id: queuedSong?.id || id, url, cover: coverUrl(cover),
                         name: queuedSong?.name || data.name, artist: queuedSong?.artist || data.artist,
                         album: queuedSong?.album || data.album || '' };
                     state.currentSong = playbackData;
@@ -148,15 +158,25 @@ export function createPlaybackController({
                     }
                     if (!isCurrent()) return;
                     if (!blocked && active.wantsPlay) musicService.recordPlaybackSuccess?.(data, Date.now()-began+(data.routing?.resolveMs||0));
+                    const fromProvider = previousProvider || firstProvider;
+                    switched = Boolean(fromProvider && data.provider && fromProvider !== data.provider);
+                    const notifyStarted = () => {
+                        if (!isMediaCurrent()) return;
+                        reportEvent('playback_started', data.provider);
+                        if (switched) { view.onSourceSwitched?.({ from: fromProvider, to: data.provider }); reportEvent('source_switched', data.provider); }
+                        previousProvider = data.provider;
+                    };
+                    if (!blocked && active.wantsPlay) notifyStarted();
+                    else audio.addEventListener?.('playing', notifyStarted, { once: true, signal: session.signal });
                     view.onStarted?.(data, playbackData, { signal: session.signal, isCurrent:isMediaCurrent, recovering: active.recovering });
                     Promise.resolve().then(() => isMediaCurrent() ? musicService.getLyric(id, { song: playbackData, signal: session.signal }) : null)
                         .then(lyrics => { if (isMediaCurrent()) view.onLyrics?.(lyrics, data, playbackData); })
                         .catch(error => { if (isMediaCurrent()) view.onLyricsError?.(error); });
-                    if (!automatic) setTimer(() => { if (isCurrent()) (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
+                    if (preloadAudio || view.onPreload) setTimer(() => { if (isCurrent() && active.wantsPlay && !blocked) (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
                     return;
                 }
             } catch (error) {
-                if (isCurrent()) { active.wantsPlay = false; view.onError?.(error); }
+                if (isCurrent()) { active.wantsPlay = false; reportEvent('playback_failed', state.currentSong?.provider); view.onError?.(error); }
             } finally {
                 active.attempting = false;
                 if (isCurrent()) { state.quality.songLoading = false; view.onSettled?.(); }

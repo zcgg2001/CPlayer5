@@ -1,3 +1,4 @@
+import { runtimePolicy } from './runtime-policy.js';
 import { sourceBlocked, availability } from './music-catalog.js?v=1';
 import { MUSIC_CHANNELS, isMusicChannel, channelTrackId, channelSourceId } from './music-channels.js';
 import {
@@ -198,6 +199,8 @@ export class MusicService {
       ...(option.provider === 'gd' || isMusicChannel(option.provider) ? { downloadAllowed: false } : {}),
     };
   }
+
+  async getRuntimePolicy() { return globalThis.document ? runtimePolicy() : null; }
 
   playbackCandidates(id, options) { return this.playbackRouter.candidates(id, options); }
   recordPlaybackSuccess(data, elapsedMs) { this.playbackRouter.success(data, elapsedMs); }

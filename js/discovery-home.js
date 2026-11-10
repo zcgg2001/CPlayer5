@@ -1,3 +1,5 @@
+import { runtimePolicy, coverUrl } from './runtime-policy.js';
+import { requestJson } from './http.js';
 import { requestErrorMessage } from './http.js';
 import { createDiscoveryProfile, PREFERENCE_GROUPS, SCENES, analyzeLibrary, artistNames, canRecommend, dayKey, matchesFilters, parseLibraryJson, parsePlaylistInput, recordingKey } from './recommendation-model.js';
 import { createRecommendationService, createRadio } from './recommendation-service.js';
@@ -29,7 +31,7 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
   const img = song => {
     const cover = el('span', 'discover-cover'); cover.append(icon('Music2'));
     try { const url = new URL(song.cover, document.baseURI); if (song.cover && ['http:', 'https:'].includes(url.protocol)) {
-      const image = el('img'); image.src = url.href.replace(/^http:/, 'https:'); image.alt = ''; image.width = image.height = 48; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; image.addEventListener('error', () => image.remove()); cover.append(image);
+      const image = el('img'); image.src = coverUrl(url.href.replace(/^http:/, 'https:')); image.alt = ''; image.width = image.height = 48; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; image.addEventListener('error', () => image.remove()); cover.append(image);
     } } catch { /* Keep the note fallback. */ }
     return cover;
   };
@@ -59,6 +61,17 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
   const sceneList = section('此刻，想听什么', '按场景挑选公开歌单'); sceneList.className = 'discover-scenes';
   SCENES.forEach(scene => { const card = button('', () => showCollections(scene.category, `${scene.name}歌单`), { className: 'discover-scene', title: `${scene.name}歌单` }); card.append(icon(scene.icon), el('strong', '', scene.name), el('span', '', scene.note)); sceneList.append(card); });
   const browse = el('div', 'discover-browse'); browse.append(button('全部榜单', () => showCharts(), { glyph: 'TrendingUp' }), button('按标签发现', () => showTags(), { glyph: 'Tags' }), button('导入歌单 / 本地库', openPreferences, { glyph: 'Library' })); root.append(browse);
+  // Operators control module order; data and personalization remain local.
+  const moduleHost = el('div', 'discover-module-host');
+  const moduleNodes = { daily: dailyCard, radio: radioCard, history: historyList.parentElement, recommendations: likesList.parentElement, news: newsList.parentElement, scenes: sceneList.parentElement };
+  const applyModules = settings => {
+    if (!settings?.modules) return;
+    if (!moduleHost.isConnected) root.insertBefore(moduleHost, hero);
+    for (const [id, node] of Object.entries(moduleNodes)) { node.style.display = settings.modules.includes(id) ? '' : 'none'; moduleHost.append(node); }
+    for (const id of settings.modules) moduleHost.append(moduleNodes[id]);
+    hero.remove();
+  };
+  if (globalThis.location) void runtimePolicy().then(applyModules);
   let variation = 0;
   const dialog = el('dialog', 'discovery-dialog'); dialog.setAttribute('aria-labelledby', 'discoveryDialogTitle');
   const dialogHead = el('header', 'discover-dialog-head'), dialogTitle = el('h2', '', '发现音乐'); dialogTitle.id = 'discoveryDialogTitle';
@@ -156,6 +169,15 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
       service.add(data.tracks, `来自歌单《${data.collection.name}》`);
       showTracks(data.collection.name, data.tracks, `${data.collection.source} · 已取得 ${data.tracks.length} / ${data.collection.trackCount} 首${data.partial ? '，上游仅提供部分内容' : ''}`);
     } catch (error) { if (!signal.aborted) { textStatus(dialogBody, requestErrorMessage(error)); dialogBody.append(button('重试', () => openPlaylist(id))); } }
+  }
+  async function openCollection(type, id) {
+    if (type === 'playlist') return openPlaylist(id);
+    if (!['artist', 'album'].includes(type) || !/^\d{1,20}$/.test(id)) return;
+    const signal = openDialog('正在读取音乐资料'); textStatus(dialogBody, '正在读取音乐资料…');
+    try {
+      const data = await requestJson(`/api/v1/discovery/${type}?id=${id}`, { signal });
+      if (!signal.aborted) showTracks(data.collection.name, data.tracks, data.collection.description || data.collection.source);
+    } catch (error) { if (!signal.aborted) textStatus(dialogBody, requestErrorMessage(error)); }
   }
   function collectionCards(items) {
     const grid = el('div', 'discover-collections');
@@ -259,7 +281,7 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') savePlayback(audio, true); else if (lastDay !== dayKey()) { lastDay = dayKey(); load(); } });
   }
   load();
-  return { load, connectAudio, showCharts, startRadio, radio, advanceRadio,
+  return { load, connectAudio, openCollection, showCharts, startRadio, radio, advanceRadio,
     playbackFailed(error) { if (radio.active()) radioStatus.textContent = `这首暂时无法播放，点击下一首继续 · ${requestErrorMessage(error)}`; },
     beforePlay(song) { if (!radio.owns(song)) radio.stop(); },
     record: (song, position, delta) => profileStore.record(song, position, delta),

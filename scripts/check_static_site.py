@@ -38,7 +38,7 @@ def _local_path(reference):
     parsed = urlsplit(reference)
     if parsed.scheme or parsed.netloc or reference.startswith(("#", "//")):
         return None
-    return parsed.path.removeprefix("./")
+    return parsed.path.removeprefix("./").lstrip("/")
 
 
 def validate_site(root):

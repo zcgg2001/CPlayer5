@@ -52,3 +52,5 @@
 #entryGuestQuota, .entry-footnote { color: #a19aa9; text-align: center; font-size: 11px; line-height: 1.6; margin-top: 10px; }.entry-footnote { margin-top: 24px; color: #827b8b; }
 @media (max-width: 680px) { .account-entry { padding: 20px 14px; } .entry-layout { max-width: 440px; grid-template-columns: 1fr; border-radius: 22px; } .entry-intro { padding: 22px 26px 0; background: transparent; } .entry-record, .entry-intro h1, .entry-kicker, .entry-intro > p:last-child { display: none; } .entry-card { padding: 24px 26px; } .entry-card h2 { margin-top: 23px; } .entry-card input { font-size: 16px; } }
 @media (prefers-reduced-motion: reduce) { .entry-card button { transition: none; } }
+
+.entry-language{display:flex;align-items:center;justify-content:flex-end;gap:10px;font-size:12px;margin-bottom:18px}.entry-language select{font:inherit;color:inherit;background:rgba(128,128,128,.14);border:1px solid rgba(128,128,128,.35);border-radius:8px;min-height:44px;padding:8px 12px}.entry-language select:focus-visible{outline:2px solid #e7b1c3;outline-offset:3px}

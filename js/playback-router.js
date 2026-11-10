@@ -28,6 +28,7 @@ export function samePlaybackRecording(left, right) {
   return Boolean(left?.name && right?.name && aggregateSongs([left, right]).length === 1);
 }
 const cancelled = (error, signal) => signal?.aborted || error instanceof RequestCancelledError || error?.name === 'AbortError';
+const siteLimited = error => error?.code === 'site_rate_limited';
 const refusal = error => [401,402,403,429].includes(error?.status);
 const providerFailure = error => refusal(error) || ['RequestTimeoutError','NetworkRequestError','TimeoutError'].includes(error?.name)
   || (error?.status >= 500 && !/音质|播放链接|此歌曲|未返回|未提供/.test(error?.payload?.error?.message || ''));
@@ -53,7 +54,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     health.set(data.provider, { at:now(), failures:0, until:0, latency:previous?.latency ? previous.latency*0.7+ms*0.3 : ms }); persist();
   }
   function failure(data, error) {
-    if (!data?.provider || cancelled(error)) return;
+    if (!data?.provider || cancelled(error) || siteLimited(error)) return;
     const previous = health.get(data.provider) || {}, failures = Math.min(10,(previous.failures||0)+1);
     const retry = Number(error?.retryAfter) * 1000 || Math.max(0, Date.parse(error?.retryAfter) - now()) || 0;
     const cooldown = [401,402,403].includes(error?.status) ? 900000 : error?.status === 429 ? Math.max(300000,retry) : Math.min(300000,30000*failures);
@@ -64,6 +65,8 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     return [...providers].sort((a,b)=>score(a)-score(b));
   }
   async function* candidates(id, { song, signal, fetchImpl, level = 'jymaster', onAttempt = () => {} } = {}) {
+    const policy = await service.getRuntimePolicy?.();
+    signal?.throwIfAborted();
     const input = song || { id };
     const original = { ...input, provider:input.provider || service.sourceForSong(input).provider };
     const sources = original.sources?.length ? original.sources : [original];
@@ -85,7 +88,8 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     }
     const video = sources.some(item=>item.provider==='bilibili');
     const primaryPlatform=platform(sources[0]?.provider || service.sourceForSong(original).provider);
-    const available=video?['bilibili']:order(PLAYBACK_SOURCE_ORDER);
+    const available=(video?['bilibili']:order(PLAYBACK_SOURCE_ORDER)).filter(p => policy?.sources?.[p]?.enabled !== false && !(policy?.sources?.[p]?.coolingUntil > now()));
+    if (policy?.sources) available.sort((a,b) => (policy.sources[a]?.priority ?? 100) - (policy.sources[b]?.priority ?? 100));
     const preferred = available.includes(original.preferredProvider) && direct.has(original.preferredProvider) ? original.preferredProvider : null;
     const remaining = available.filter(provider => provider !== preferred);
     const providers=[...(preferred ? [preferred] : []),...remaining.filter(p=>direct.has(p)),...remaining.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...remaining.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
@@ -102,7 +106,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
           onAttempt({provider,stage:'matching'});
           const found=await bounded(timeoutMs=>service.search(`${original.name} ${original.artist}`.slice(0,100),{source:provider,signal,fetchImpl,limit:10,timeoutMs}),8000);
           tracks=found.filter(candidate=>samePlaybackRecording(original,candidate)).slice(0,1);
-        } catch(error) { if(cancelled(error,signal))throw error;lastError=error;if(providerFailure(error))failure({provider},error);continue; }
+        } catch(error) { if(cancelled(error,signal)||siteLimited(error))throw error;lastError=error;if(providerFailure(error))failure({provider},error);continue; }
       }
       if(!tracks?.length)continue;
       let skipProvider=false;
@@ -136,7 +140,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
             // Do not re-request qualities the server already downgraded past.
             lastResolvedRank=Math.max(QUALITY_ORDER.indexOf(requestedLevel),QUALITY_ORDER.indexOf(data.level));
           } catch(error) {
-            if(cancelled(error,signal))throw error;
+            if(cancelled(error,signal)||siteLimited(error))throw error;
             lastError=error;
             if(providerFailure(error)||!(Number.isInteger(error?.status))) {failure({provider},error);skipProvider=true;}
           }

@@ -1,4 +1,4 @@
-import { bindings, defineConfig } from 'cf/config';
+import { bindings, defineConfig, triggers } from 'cf/config';
 
 // Resource IDs are public configuration. Keep the production binding across
 // deploys; forks and separate environments can override it at build time.
@@ -12,9 +12,11 @@ export default defineConfig({
     compatibilityFlags: ['nodejs_compat'],
     workersDev: true,
     previewUrls: true,
+    triggers: [triggers.scheduled({ schedule: '*/15 * * * *' })],
     domains: ['music.505zc.tech'],
     env: {
       ASSETS: bindings.assets(),
+      API_RATE_LIMIT: bindings.rateLimit({ namespace: '1001', simple: { limit: 360, period: 60 } }),
       ACCOUNTS_DB: bindings.d1({ id: accountsDatabaseId }),
       AUTH_URL: bindings.json('https://music.505zc.tech'),
     },
@@ -23,7 +25,7 @@ export default defineConfig({
     assets: {
       htmlHandling: 'none',
       notFoundHandling: 'none',
-      runWorkerFirst: ['/', '/index.html', '/api/*'],
+      runWorkerFirst: ['/', '/index.html', '/api/*', '/admin', '/library', '/artist/*', '/album/*', '/playlist/*', '/robots.txt', '/sitemap.xml'],
     },
     observability: {
       enabled: true,

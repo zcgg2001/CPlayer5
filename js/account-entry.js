@@ -14,6 +14,7 @@ export function createAccountEntry() {
     $('entryTitle').textContent = mode === 'register' ? '创建你的账号' : '欢迎回来';
     $('entrySubtitle').textContent = mode === 'register' ? '一个用户名和密码，就能保存你的音乐。' : '登录账号，在不同设备间继续聆听。';
     $('entryConfirmLabel').hidden = mode !== 'register'; $('entryConfirm').required = mode === 'register';
+    $('entryPassword').minLength = mode === 'register' ? 8 : 1;
     $('entryPassword').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
     $('entrySubmit').textContent = mode === 'register' ? '注册并进入播放器' : '登录';
     $('entryPassword').value = ''; $('entryConfirm').value = ''; message('');

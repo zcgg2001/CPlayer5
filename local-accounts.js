@@ -4,7 +4,21 @@ import { resolve, dirname } from 'node:path';
 import { randomBytes } from 'node:crypto';
 
 export function sqliteSQL(db) {
-  return { prepare(sql) { return { bind(...args) { return { async first() { return db.prepare(sql).get(...args) || null; }, async run() { return db.prepare(sql).run(...args); } }; } }; } };
+  return {
+    prepare(sql) {
+      const statement = { sql, args: [], bind(...args) { return { ...statement, args,
+        async first() { return db.prepare(sql).get(...args) || null; },
+        async run() { return db.prepare(sql).run(...args); },
+        async all() { return { results: db.prepare(sql).all(...args) }; },
+      }; } };
+      return statement;
+    },
+    async batch(statements) {
+      db.exec('BEGIN');
+      try { const results = statements.map(s => ({ results: db.prepare(s.sql).all(...s.args) })); db.exec('COMMIT'); return results; }
+      catch (error) { db.exec('ROLLBACK'); throw error; }
+    },
+  };
 }
 export function applyLocalAccountMigrations(db) {
   db.exec('CREATE TABLE IF NOT EXISTS cplayer_migrations (name TEXT PRIMARY KEY)');
@@ -30,6 +44,6 @@ export function localAccountsEnv(config = process.env) {
   mkdirSync(dirname(dbPath), { recursive: true, mode: 0o700 });
   const db = new DatabaseSync(dbPath); chmodSync(dbPath, 0o600); db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;');
   applyLocalAccountMigrations(db);
-  const names = ['AUTH_SECRET', 'RESEND_API_KEY', 'AUTH_EMAIL_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'WECHAT_APP_ID', 'WECHAT_APP_SECRET'];
+  const names = ['OPS_ADMIN_USER_IDS', 'OPS_ALERT_WEBHOOK', 'AUTH_SECRET', 'RESEND_API_KEY', 'AUTH_EMAIL_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'WECHAT_APP_ID', 'WECHAT_APP_SECRET'];
   return { ...Object.fromEntries(names.map(key => [key, config[key]])), AUTH_URL: origin.origin, AUTH_SECRET: config.AUTH_SECRET || (local ? readFileSync(secretPath, 'utf8') : ''), ACCOUNTS_DB: db, ACCOUNT_SQL: sqliteSQL(db), ...(dev ? { ACCOUNT_DELIVER_EMAIL: async data => { writeFileSync(resolve(folder, 'last-email.json'), JSON.stringify({ ...data, expiresAt: new Date(Date.now() + 300000).toISOString() }, null, 2), { mode: 0o600 }); } } : {}) };
 }

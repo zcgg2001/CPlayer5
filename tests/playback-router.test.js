@@ -180,3 +180,21 @@ test('recovery restores position only once across metadata and play completion',
  h.audio.error={code:2};h.audio.dispatchEvent(new Event('error'));await tick();
  assert.equal(writes,1);assert.equal(time,42);
 });
+
+test('source switch notice fires once after playback succeeds, not on resolution or same-source downgrade', async () => {
+ const h=controllerHarness([playable('netease','lossless'),playable('netease','standard'),playable('chksz')], audio=>{if(audio.src.includes('netease'))throw new DOMException('decode','NotSupportedError');});
+ const switches=[];await h.controller.load(track.id,track,{...h.view,onSourceSwitched:info=>switches.push(info)});
+ assert.deepEqual(switches,[{from:'netease',to:'chksz'}]);
+ const blocked=controllerHarness([playable('netease')],()=>{throw new DOMException('blocked','NotAllowedError');});
+ await blocked.controller.load(track.id,track,{onSourceSwitched:()=>assert.fail('Autoplay blocking is not a source switch')});
+});
+test('site-wide throttling stops the router without cooling every provider', async () => {
+ const {router,calls}=harness(()=>{throw new HttpStatusError(429,{error:{code:'site_rate_limited'}},'30');});
+ await assert.rejects(router.candidates(track.id,{song:track}).next(),error=>error.code==='site_rate_limited');
+ assert.equal(calls.length,1);assert.deepEqual(router.health(),{});
+});
+test('server policy skips disabled sources and honors operator ordering', async () => {
+ const {router,service,calls}=harness((id,level,{source})=>playable(source,level));
+ service.getRuntimePolicy=async()=>({sources:{chksz:{enabled:false},netease:{enabled:true,priority:9},gd:{enabled:true,priority:0}}});
+ assert.equal((await router.candidates(track.id,{song:track}).next()).value.provider,'gd');assert.equal(calls.length,1);
+});

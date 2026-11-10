@@ -27,12 +27,12 @@ export async function handleDiscoveryContent(request, env, url) {
   const action = url.pathname.slice('/api/v1/discovery/'.length), id = url.searchParams.get('id');
   const category = url.searchParams.get('category') || '全部';
   const offset = Number(url.searchParams.get('offset') || 0);
-  if (!['charts', 'playlist', 'playlists', 'artist'].includes(action) || (['playlist', 'artist'].includes(action) && !validId(id))
+  if (!['charts', 'playlist', 'playlists', 'artist', 'album'].includes(action) || (['playlist', 'artist', 'album'].includes(action) && !validId(id))
     || category.length > 40 || /[\u0000-\u001f]/.test(category) || !Number.isInteger(offset) || offset < 0 || offset > 1000) {
     return json({ error: { message: '发现音乐查询参数无效' } }, 400);
   }
   const searchCategory = ['City Pop','后摇','80年代','90年代','00年代'].includes(category);
-  const path = action === 'charts' ? '/api/toplist' : action === 'artist' ? `/api/artist/${id}`
+  const path = action === 'charts' ? '/api/toplist' : action === 'artist' ? `/api/artist/${id}` : action === 'album' ? `/api/album/${id}`
     : action === 'playlist' ? `/api/playlist/detail?${new URLSearchParams({ id, n: '200', s: '0' })}`
       : searchCategory ? `/api/search/get?${new URLSearchParams({s:category,type:'1000',limit:'6',offset:String(offset)})}`
       : `/api/playlist/list?${new URLSearchParams({ cat: category, order: 'hot', limit: '6', offset: String(offset) })}`;
@@ -52,13 +52,13 @@ export async function handleDiscoveryContent(request, env, url) {
       if (!Array.isArray(rows)) throw new Error('shape');
       body = { code: 200, items: rows.filter(row => validId(row?.id)).slice(0, action === 'charts' ? 80 : 6).map(collection), fetchedAt: Date.now() };
     } else {
-      const root = action === 'playlist' ? data.result || data.playlist : data.artist;
+      const root = action === 'playlist' ? data.result || data.playlist : action === 'album' ? data.album : data.artist;
       if (!root || String(root.id) !== id) throw new Error('identity');
-      const raw = action === 'playlist' ? root.tracks : data.hotSongs;
+      const raw = action === 'playlist' ? root.tracks : action === 'album' ? data.songs || root.songs : data.hotSongs;
       if (!Array.isArray(raw)) throw new Error('shape');
       const tracks = raw.slice(0, 200).map(discoveryTrack).filter(Boolean);
       const total = action === 'playlist' ? Number(root.trackCount) || raw.length : raw.length;
-      body = { code: 200, collection: { ...collection(root), cover: image(root.coverImgUrl || root.picUrl), trackCount: total }, tracks,
+      body = { code: 200, collection: { ...collection(root), description: text(root.description || root.briefDesc, 1200), cover: image(root.coverImgUrl || root.picUrl), trackCount: total }, tracks,
         partial: tracks.length < total || (action === 'artist' && Boolean(data.more)), fetchedAt: Date.now() };
     }
     // Public, completed JSON only; never retain streams, credentials or promises across requests.

@@ -6,6 +6,8 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import worker from './sites/worker.js';
+import { createResponseCache } from './sites/response-cache.js';
+import { maintainOperations } from './sites/reliability.js';
 import { createMusicKeySettings, MUSIC_KEY_PATH } from './local-music-key.js';
 import { localAccountsEnv } from './local-accounts.js';
 
@@ -131,12 +133,14 @@ function runtimeEnv() {
 
 export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker, trustProxy = process.env.AUTH_TRUST_PROXY === '1' } = {}) {
   // Each running server has its own key; never mutate process.env or write it to disk.
-  env = { ...env };
+  env = { ...env, OPS_CACHE: env.OPS_CACHE || createResponseCache() };
   const musicKeySettings = createMusicKeySettings(env);
+  let nextCleanup = 0;
   return createServer(async (incoming, outgoing) => {
     const controller = new AbortController();
     outgoing.once('close', () => controller.abort());
     try {
+      if (Date.now() >= nextCleanup) { nextCleanup = Date.now() + 900000; await maintainOperations(env); }
       const request = toFetchRequest(incoming, controller.signal, trustProxy);
       const url = new URL(request.url);
       let response;

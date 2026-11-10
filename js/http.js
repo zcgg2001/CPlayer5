@@ -1,3 +1,5 @@
+import { createRequestBudget } from './request-budget.js';
+const requestBudget = createRequestBudget();
 export class RequestTimeoutError extends Error {
   constructor() {
     super('Request timed out');
@@ -49,6 +51,10 @@ export async function requestJson(
   } = {},
 ) {
   if (signal?.aborted) throw new RequestCancelledError();
+  if (globalThis.document && fetchImpl === globalThis.fetch) {
+    const wait = requestBudget.take(url);
+    if (wait) throw new HttpStatusError(429, { error: { code: 'site_rate_limited' } }, String(wait));
+  }
 
   const controller = new AbortController();
   let timedOut = false;
@@ -75,6 +81,7 @@ export async function requestJson(
       } catch {
         // A non-JSON upstream error still maps to a stable local message.
       }
+      if (response.status === 429 && globalThis.document && fetchImpl === globalThis.fetch) requestBudget.retry(url, response.headers?.get('retry-after'), payload?.error?.code === 'site_rate_limited');
       throw new HttpStatusError(response.status, payload, response.headers?.get('retry-after') || null);
     }
 

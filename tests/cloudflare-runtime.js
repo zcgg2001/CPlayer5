@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { createCipheriv } from 'node:crypto';
+import { hashPassword } from 'better-auth/crypto';
 import { Miniflare, Response } from 'miniflare';
 
 // Exercise the actual deploy bundle in workerd, not Node's fetch implementation.
@@ -166,7 +167,7 @@ test('workerd: D1 account OTP, authenticated CAS sync and deletion', { timeout: 
     return upstream(request);
   }, { ACCOUNTS_DB: { type: 'd1', name: 'accounts-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-test-secret-thirty-two-characters' }, RESEND_API_KEY: { type: 'json', value: 'test' }, AUTH_EMAIL_FROM: { type: 'json', value: 'CPlayer <login@example.com>' } });
   const db = await mf.getD1Database('ACCOUNTS_DB');
-  const migration = (await Promise.all(['0001_accounts.sql', '0002_username.sql'].map(name => readFile(new URL('../migrations/' + name, import.meta.url), 'utf8')))).join('\n');
+  const migration = (await Promise.all(['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql'].map(name => readFile(new URL('../migrations/' + name, import.meta.url), 'utf8')))).join('\n');
   await db.batch(migration.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
   const call = async (path, body, cookie, method = 'POST') => {
     const response = await mf.dispatchFetch('https://player.example' + path, { method, headers: { origin: 'https://player.example', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -185,7 +186,7 @@ test('workerd: D1 account OTP, authenticated CAS sync and deletion', { timeout: 
 test('workerd: username/password registration and login persist in D1 without mail services', { timeout: 20000 }, async t => {
   const mf = runtime(t, upstream, { ACCOUNTS_DB: { type: 'd1', name: 'password-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-password-secret-thirty-two-characters' } });
   const db = await mf.getD1Database('ACCOUNTS_DB');
-  for (const file of ['0001_accounts.sql', '0002_username.sql']) {
+  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql']) {
     const sql = await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8');
     await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
   }
@@ -199,4 +200,60 @@ test('workerd: username/password registration and login persist in D1 without ma
   assert.equal(response.status, 200, await response.text());
   response = await call('/api/auth/sign-in/username', { username: 'worker_user', password: 'wrong-password' });
   assert.equal(response.status, 401);
+});
+
+test('workerd: shared D1 circuits, telemetry isolation and global rate limits', { timeout: 20000 }, async t => {
+  let calls=0;
+  const mf=runtime(t,async()=>{calls++;return new Response('unavailable',{status:503});},{ACCOUNTS_DB:{type:'d1',name:'ops-runtime-test'}});
+  const db=await mf.getD1Database('ACCOUNTS_DB');
+  const sql=await readFile(new URL('../migrations/0003_operations.sql',import.meta.url),'utf8');
+  await db.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+  for(let i=0;i<3;i++) assert.equal((await mf.dispatchFetch(`https://player.example/api/v1/music/search?source=gd&keyword=fixture${i}`)).status,503);
+  const held=await mf.dispatchFetch('https://player.example/api/v1/music/search?source=gd&keyword=held');
+  assert.equal(held.status,503);assert.equal((await held.json()).error.code,'source_cooling');assert.equal(calls,3);
+  assert.equal((await db.prepare('SELECT SUM(requests) n FROM cplayer_source_metrics').first()).n,3);
+  const emit=()=>mf.dispatchFetch('https://player.example/api/telemetry',{method:'POST',headers:{origin:'https://player.example','content-type':'application/json','cf-connecting-ip':'127.0.0.8'},body:JSON.stringify({kind:'source_switched',source:'gd'})});
+  for(let i=0;i<30;i++)assert.equal((await emit()).status,202);
+  const limited=await emit();assert.equal(limited.status,429);assert.ok(limited.headers.get('retry-after'));
+  assert.equal((await db.prepare("SELECT count FROM cplayer_events WHERE kind='client'").first()).count,30);
+  const publicConfig=await mf.dispatchFetch('https://player.example/api/runtime');assert.equal(publicConfig.status,200);assert.doesNotMatch(await publicConfig.text(),/secret|cookie|sensitiveWords/);
+});
+
+test('workerd: bootstrap admin must rotate password and old D1 sessions are revoked', { timeout: 20000 }, async t => {
+  const userId = crypto.randomUUID(), now = Date.now();
+  const mf = runtime(t, upstream, {
+    ACCOUNTS_DB: { type: 'd1', name: 'bootstrap-admin-test' },
+    AUTH_URL: { type: 'json', value: 'https://player.example' },
+    AUTH_SECRET: { type: 'json', value: 'workerd-admin-secret-thirty-two-characters' },
+    OPS_ADMIN_USER_IDS: { type: 'json', value: userId },
+  });
+  const db = await mf.getD1Database('ACCOUNTS_DB');
+  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql']) {
+    const sql = await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8');
+    await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
+  }
+  await db.batch([
+    db.prepare('INSERT INTO user(id,name,email,emailVerified,createdAt,updatedAt,username) VALUES(?,?,?,?,?,?,?)').bind(userId, 'admin', 'u-admin@password.users.invalid', 0, now, now, 'admin'),
+    db.prepare('INSERT INTO account(id,accountId,providerId,userId,password,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?)').bind(crypto.randomUUID(), userId, 'credential', userId, await hashPassword('admin'), now, now),
+    db.prepare('INSERT INTO cplayer_admin_bootstrap(userId) VALUES(?)').bind(userId),
+  ]);
+  const call = (path, body, cookie) => mf.dispatchFetch('https://player.example' + path, {
+    method: body ? 'POST' : 'GET', headers: { origin: 'https://player.example', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const login = await call('/api/auth/sign-in/username', { username: 'admin', password: 'admin' });
+  assert.equal(login.status, 200, await login.clone().text());
+  const cookie = login.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+  const blocked = await call('/api/admin/dashboard', null, cookie);
+  assert.equal(blocked.status, 403); assert.equal((await blocked.json()).error.code, 'password_change_required');
+  const password = 'runtime-new-admin-password-123';
+  const changed = await call('/api/admin/password', { currentPassword: 'admin', newPassword: password, confirmPassword: password }, cookie);
+  assert.equal(changed.status, 200, await changed.clone().text());
+  assert.equal((await call('/api/admin/dashboard', null, cookie)).status, 401);
+  assert.equal((await call('/api/auth/sign-in/username', { username: 'admin', password: 'admin' })).status, 401);
+  const relogin = await call('/api/auth/sign-in/username', { username: 'admin', password });
+  assert.equal(relogin.status, 200, await relogin.clone().text());
+  const freshCookie = relogin.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+  assert.equal((await call('/api/admin/dashboard', null, freshCookie)).status, 200);
+  assert.equal((await db.prepare('SELECT mustChange FROM cplayer_admin_bootstrap WHERE userId=?').bind(userId).first()).mustChange, 0);
 });

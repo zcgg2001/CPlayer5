@@ -1,3 +1,4 @@
+import { bootstrapRequired } from './admin-bootstrap.js';
 import { accountCapabilities, createAccountAuth } from './account-auth.js';
 import { cleanRecords, MAX_SYNC_BYTES } from '../js/account-data.js';
 
@@ -41,6 +42,7 @@ export async function handleAccounts(original, env) {
       if (path === '/api/auth/sign-up/username') {
         if (request.method !== 'POST') return json({ message: '请使用 POST' }, 405);
         const username = typeof body?.username === 'string' ? body.username.trim().toLowerCase() : '';
+        if (username === 'admin') return json({ message: '该用户名为系统管理员保留' }, 400);
         if (!/^[a-z0-9_]{3,24}$/.test(username)) return json({ message: '用户名需为 3–24 位字母、数字或下划线' }, 400);
         // Adapt the library's required email field on the server; users only supply
         // a username and password. Never accept client-supplied email/identity fields.
@@ -51,6 +53,10 @@ export async function handleAccounts(original, env) {
       if (path.endsWith('/send-verification-otp') && (body?.type !== 'sign-in' || !caps.email)) return json({ message: '邮箱登录尚未开通' }, 400);
       if (path.includes('/phone-number/') && !caps.phone) return json({ message: '手机登录尚未开通' }, 400);
       if (body?.updatePhoneNumber) return json({ message: '不支持在登录时修改绑定手机号' }, 400);
+      if (path.startsWith('/api/auth/device')) {
+        const current = await auth.api.getSession({ headers: request.headers });
+        if (current && await bootstrapRequired(env, current.user.id)) return json({ message: '请先在后台修改初始管理员密码' }, 403);
+      }
       const response = await auth.handler(request);
       response.headers.set('cache-control', 'no-store');
       response.headers.delete('set-auth-token');
@@ -59,6 +65,7 @@ export async function handleAccounts(original, env) {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) return json({ message: '请先登录' }, 401);
     const userId = session.user.id;
+    if (path !== '/api/account/me' && await bootstrapRequired(env, userId)) return json({ message: '请先在后台修改初始管理员密码' }, 403);
     if (path === '/api/account/me' && request.method === 'GET') return json({ user: { id: userId, name: session.user.name, username: session.user.username || null, email: session.user.email.endsWith('.invalid') ? null : session.user.email }, fresh: Date.now() - new Date(session.session.createdAt).getTime() < 300000 });
     if (path === '/api/sync' && request.method === 'GET') return json(await readCloud(env, userId));
     if (path === '/api/sync' && request.method === 'PUT') {

@@ -1,3 +1,8 @@
+import { rateLimit, reliableRequest, maintainOperations } from './reliability.js';
+import { handleOperations } from './operations-api.js';
+import { handleCover } from './cover-cache.js';
+import { handlePublicPages } from './public-pages.js';
+import { opsError, blockedText } from './operations-store.js';
 import { handleDiscoveryContent } from './discovery-content.js';
 import { handleAccounts } from './accounts.js';
 import { handleMusicMetadata } from './music-metadata.js';
@@ -24,6 +29,7 @@ const HTML_ROUTES = new Map([
   ['/index.html', '/index.html'],
   ['/playlist-downloader', '/playlist-downloader.html'],
   ['/offline', '/offline.html'],
+  ['/admin', '/admin.html'],
 ]);
 
 function assetRequest(request, pathname) {
@@ -129,7 +135,7 @@ async function handleMusicProxyRequest(request, env, requestUrl, route) {
   }
 }
 
-const worker = {
+const core = {
   async fetch(request, env) {
     const accountPath = new URL(request.url).pathname;
     if (accountPath.startsWith('/api/auth/') || accountPath.startsWith('/api/account/') || accountPath === '/api/sync') return handleAccounts(request, env);
@@ -205,4 +211,54 @@ const worker = {
   },
 };
 
+async function filteredCore(request, env, settings) {
+  const url = new URL(request.url);
+  if (blockedText(url.searchParams.get('keyword') || '', settings)) return opsError(400, 'content_restricted', '此内容暂不提供');
+  const response = await core.fetch(request, env);
+  if (request.method === 'HEAD' || !response.ok || !response.headers.get('content-type')?.includes('application/json') || (!settings.sensitiveWords.length && !settings.charts.length)) return response;
+  const body = await response.json();
+  if (body.collection && blockedText(`${body.collection.name} ${body.collection.description}`, settings)) return opsError(404, 'content_restricted', '此内容暂不提供');
+  for (const field of ['data', 'items', 'tracks']) if (Array.isArray(body[field])) body[field] = body[field].filter(item => !blockedText(`${item?.name || ''} ${item?.artist || ''} ${item?.description || ''}`, settings));
+  if (url.pathname === '/api/v1/discovery/charts' && settings.charts.length && body.items) {
+    body.items = settings.charts.map(id => body.items.find(item => item.id === id)).filter(Boolean);
+  }
+  const headers = new Headers(response.headers); headers.delete('content-length');
+  return new Response(JSON.stringify(body), { status: response.status, headers });
+}
+const managedWorker = {
+  async fetch(request, env) {
+    const url = new URL(request.url), api = url.pathname.startsWith('/api/');
+    try {
+      if (api) {
+        if (url.href.length > 8192) return opsError(414, 'url_too_long', '请求地址过长');
+        const limited = await rateLimit(request, env); if (limited) return limited;
+        const operations = await handleOperations(request, env); if (operations) return operations;
+        if (url.pathname === '/api/cover') return handleCover(request, env);
+        if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/api/account/') || url.pathname === '/api/sync') return core.fetch(request, env);
+        return await reliableRequest(request, env, filteredCore);
+      }
+      if (/^\/(artist|album|playlist)\//.test(url.pathname)) { const limited = await rateLimit(request, env); if (limited) return limited; }
+      const publicPage = await handlePublicPages(request, env); if (publicPage) return publicPage;
+      return core.fetch(request, env);
+    } catch (error) {
+      if (request.signal.aborted) return new Response(null, { status: 499 });
+      if (error.status === 413 || error.status === 415) return opsError(error.status, 'invalid_request', error.message);
+      if (['JSON 格式无效', '版本号无效', '音源不在允许列表中', '音源开关或优先级无效', '首页模块无效', '榜单需为数字 ID，最多 40 个', '敏感词最多 200 个，每个 1–40 字', '公开页面最多 200 个', '页面类型、ID 或审核状态无效', '公开页面不能重复'].includes(error.message)) return opsError(400, 'invalid_config', error.message);
+      console.error(JSON.stringify({ event: 'request_failed', area: api ? 'api' : 'page' }));
+      return opsError(503, 'service_unavailable', '服务暂时不可用，请稍后重试');
+    }
+  },
+  async scheduled(_event, env) { await maintainOperations(env); },
+};
+const worker = {
+  ...managedWorker,
+  async fetch(request, env) {
+    const response = await managedWorker.fetch(request, env);
+    if (!new URL(request.url).pathname.startsWith('/api/')) return response;
+    const headers = new Headers(response.headers), requestId = crypto.randomUUID();
+    headers.set('x-request-id', requestId);
+    if (response.status >= 500) console.error(JSON.stringify({ event: 'api_failed', requestId, status: response.status }));
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  },
+};
 export default worker;
