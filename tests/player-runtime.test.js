@@ -11,6 +11,7 @@ import { isMusicChannel } from '../js/music-channels.js';
 import { createQueueStore } from '../js/queue-store.js';
 import { createPlaybackController } from '../js/playback-controller.js';
 import { createCacheStore } from '../js/cache-store.js';
+import { createArtworkPresenter } from '../js/artwork.js';
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 
@@ -37,7 +38,7 @@ function deferred() {
 function element() {
   const classes = new Set();
   return {
-    style: {}, textContent: '', innerHTML: '',
+    style: {}, dataset: {}, textContent: '', innerHTML: '', crossOrigin: null,
     classList: {
       add: (...names) => names.forEach(name => classes.add(name)),
       remove: (...names) => names.forEach(name => classes.delete(name)),
@@ -80,6 +81,11 @@ function playbackHarness() {
   };
   const queueStore = createQueueStore();
   const playback = createPlaybackController({ audio, musicService: service, queueStore, setTimer: timer, clearTimer() {} });
+  const artworkPresenter = createArtworkPresenter({
+    images: () => [dom.albumArt, dom.desktopMiniCover],
+    resolver: { resolve(track) { return new Promise(resolve => images.push({ onload: () => resolve({url:track.cover,status:'ready'}) })); } },
+    onChange: (_, track) => metadata.push(track.id),
+  });
   playback.state.quality.controller = new AbortController();
   const context = vm.createContext({
     discoveryTable: null, discoveryLoadingSong: null, discoveryHome: null, playerExperience: null,
@@ -88,7 +94,7 @@ function playbackHarness() {
     playbackRequestVersion: 0,
     playbackQualityState: { version: 0, controller: new AbortController() },
     playbackSession: createPlaybackSession(),
-    audio, musicService: service, playback, queueStore, queue: queueStore.state,
+    audio, musicService: service, playback, queueStore, queue: queueStore.state, artworkPresenter,
     LyricService: {
       fetchLyrics(id, song, options) {
         const request = { ...deferred(), options };
@@ -155,9 +161,10 @@ test('lyrics, artwork and deferred preload remain owned by the current song', as
   await Promise.resolve();
   await Promise.resolve();
   images[0].onload();
+  await Promise.resolve();
   timers.forEach(callback => callback());
   assert.deepEqual(parsed, ['B lyrics']);
-  assert.deepEqual(metadata, ['A', 'B']);
+  assert.deepEqual(metadata, ['A', 'A', 'B', 'B']);
   assert.equal(context.preloads, 1);
 });
 

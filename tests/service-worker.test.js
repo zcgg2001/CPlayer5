@@ -45,6 +45,13 @@ test('classifies covers before generic NetEase media', () => {
   }), 'audio');
 });
 
+test('same-origin artwork is cached for offline use while metadata stays network-only',()=>{
+  const {classifyRequest}=loadServiceWorker();
+  assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/cover?url=https%3A%2F%2Fp1.music.126.net%2Fcover.jpg'}),'cover');
+  assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/v1/music/cover?source=gd&id=123'}),'cover');
+  assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/v1/music/metadata?source=netease&id=1&artwork=1'}),'api');
+});
+
 test('classifies API, navigation and local asset requests', () => {
   const { classifyRequest } = loadServiceWorker();
 

@@ -1,0 +1,5 @@
+.cplayer-artwork { object-fit: cover; background-size: cover; background-position: center; }
+.cplayer-artwork[data-artwork-state="ready"] { animation: artwork-reveal 320ms ease-out; }
+.cplayer-artwork[data-artwork-state="fallback"] { object-fit: cover; }
+@keyframes artwork-reveal { from { opacity: .45; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cplayer-artwork { animation: none !important; } }

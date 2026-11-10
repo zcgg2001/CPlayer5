@@ -49,7 +49,7 @@ export function artworkVariants(cover) {
       return [150, 300, 800].map(size => ({ size, label: `${size} px`, url: url.href.replace(/T002R\d+x\d+M000/, `T002R${size}x${size}M000`).replace(/^http:/,'https:') }));
     }
     return [original];
-  } catch { return cover.startsWith('/api/v1/music/cover?') ? [original] : []; }
+  } catch { return /^\/api\/(?:v1\/music\/)?cover\?/.test(cover) ? [original] : []; }
 }
 
 // Preserve only known metadata fields, never an arbitrary upstream object or signed audio URL.
@@ -76,7 +76,7 @@ export function extractMetadata(item) {
   if (!/^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(metadata.isrc)) metadata.isrc = '';
   const result = { metadata };
   if (Array.isArray(artistItems)) result.artistEntities = artistItems.map(artist => typeof artist === 'string' ? {name:artist} : { id: artist?.id ?? artist?.mid, name: clean(artist?.name), avatar: clean(artist?.avatar || artist?.picUrl), description: clean(artist?.description || artist?.briefDesc) }).filter(artist => artist.name);
-  if (album) result.albumEntity = { id: album.id ?? album.mid, name: clean(album.name || album.title), description: clean(album.description || album.briefDesc), cover: clean(album.cover || album.picUrl) };
+  if (album) result.albumEntity = { id: album.id ?? album.mid, ...(album.mid ? {mid:clean(album.mid)} : {}), name: clean(album.name || album.title), description: clean(album.description || album.briefDesc), cover: clean(album.cover || album.picUrl) };
   if (restrictions.has(item.availability?.status)) result.availability = { status: item.availability.status, reason: clean(item.availability.reason), evidence: 'source' };
   return result;
 }

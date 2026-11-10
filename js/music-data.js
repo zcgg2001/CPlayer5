@@ -1,4 +1,4 @@
-import { extractMetadata } from './music-catalog.js?v=1';
+import { extractMetadata } from './music-catalog.js?v=2';
 
 function metadataFields(item) {
   const info = extractMetadata(item);

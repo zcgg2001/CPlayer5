@@ -1411,6 +1411,7 @@
     <link rel="stylesheet" href="./css/discovery-home.css?v=2">
     <link rel="stylesheet" href="./css/player-experience.css?v=1">
     <link rel="stylesheet" href="./css/music-catalog.css?v=1">
+    <link rel="stylesheet" href="./css/artwork.css?v=1">
     <script defer src="./js/lucide.min.js?v=23"></script>
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
@@ -2821,7 +2822,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 text-center text-xs opacity-40 font-mono tracking-wider">
-                CPlayer 5 · v1.8.0 • 2026.11.11
+                CPlayer 5 · v1.8.1 • 2026.11.11
             </div>
         </div>
     </div>
@@ -3046,7 +3047,8 @@
             saveAudioBlob
         } from './js/music-download.js?v=39';
         import { createDownloadSession } from './js/download-session.js?v=22';
-        import { createPlaybackController } from './js/playback-controller.js?v=5';
+        import { createPlaybackController } from './js/playback-controller.js?v=6';
+        import { artworkUrl, bindArtwork, fallbackArtwork, createArtworkResolver, createArtworkPresenter } from './js/artwork.js?v=1';
         import { createQueueStore } from './js/queue-store.js?v=1';
         import { initAccountPanel } from './js/account-panel.js?v=3';
         import { createGuestTrial } from './js/guest-trial.js?v=1';
@@ -3058,10 +3060,10 @@
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import { isMusicChannel } from './js/music-channels.js?v=1';
         import { createMusicSourceTabs } from './js/music-source-tabs.js?v=5';
-        import { createCatalogBrowser } from './js/catalog-browser.js?v=1';
+        import { createCatalogBrowser } from './js/catalog-browser.js?v=2';
         import { createDiscoveryHome } from './js/discovery-home.js?v=2';
         import { createPlayerExperience } from './js/player-experience.js?v=2';
-        import { createDiscoveryTable } from './js/discovery-table.js?v=2';
+        import { createDiscoveryTable } from './js/discovery-table.js?v=3';
         import { createListeningRoom } from './js/listening-room.js?v=2';
         import { createLyricEffects } from './js/lyric-effects.js?v=4';
         import {
@@ -3109,48 +3111,8 @@
             }
         }
 
-        function coverVariantUrl(value, width = 720, height = width) {
-            const safeCover = normalizeMediaUrl(value, {
-                allowDataImage: true,
-                baseUrl: window.location.href,
-            });
-            if (!safeCover) return '';
-
-            try {
-                const url = new URL(safeCover);
-                const hostname = url.hostname.toLowerCase();
-                if (hostname === 'music.126.net' || hostname.endsWith('.music.126.net')) {
-                    const safeWidth = Math.max(80, Math.min(1200, Math.round(Number(width) || 720)));
-                    const safeHeight = Math.max(80, Math.min(1200, Math.round(Number(height) || safeWidth)));
-                    url.searchParams.set('param', `${safeWidth}y${safeHeight}`);
-                }
-                return url.href;
-            } catch (error) {
-                return safeCover;
-            }
-        }
-
-        function cachedCoverSource(value, size = 80) {
-            const safeCover = normalizeMediaUrl(value, {
-                allowDataImage: true,
-                baseUrl: window.location.href,
-            });
-            if (!safeCover) return Promise.resolve('');
-            if (safeCover.startsWith('data:') || safeCover.startsWith('blob:')) {
-                return Promise.resolve(safeCover);
-            }
-
-            try {
-                const url = new URL(safeCover);
-                const hostname = url.hostname.toLowerCase();
-                if (hostname === 'music.126.net' || hostname.endsWith('.music.126.net')) {
-                    const safeSize = Math.max(80, Math.min(192, Math.round(Number(size) || 80)));
-                    url.searchParams.set('param', `${safeSize}y${safeSize}`);
-                }
-                return window.getCachedImage(url.href);
-            } catch {
-                return Promise.resolve(safeCover);
-            }
+        function coverVariantUrl(value, width = 720) {
+            return artworkUrl(value, width);
         }
 
         function saveLastCover(value) {
@@ -3185,14 +3147,32 @@
                 return;
             }
 
-            [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover].filter(Boolean).forEach(image => {
-                image.referrerPolicy = 'no-referrer';
-                image.crossOrigin = new URL(savedCover).hostname.endsWith('.hdslb.com') ? null : 'anonymous';
-            });
-            if (dom.albumArt) dom.albumArt.src = savedCover;
-            if (dom.mobileCoverImg) dom.mobileCoverImg.src = savedCover;
-            if (dom.desktopMiniCover) dom.desktopMiniCover.src = savedCover;
+            // Startup restoration uses the same validation and failure path as playback.
+            void artworkPresenter.show({ cover: savedCover, name: '上次播放', artworkRestore: true });
         }
+
+        const artworkResolver = createArtworkResolver();
+        let playbackArtworkUrl = '';
+        let artworkColorController = null;
+        const artworkPresenter = createArtworkPresenter({
+            resolver: artworkResolver,
+            images: () => [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover, document.getElementById('mobileBrowseCover')],
+            onChange(result, song) {
+                playbackArtworkUrl = result.url;
+                artworkColorController?.abort();
+                artworkColorController = new AbortController();
+                lyricEffects?.refreshArtwork();
+                if (result.status === 'ready') {
+                    const picUrl = result.url;
+                    saveLastCover(picUrl);
+                    void fluidBg?.extractColorsFromImage(picUrl, { signal: artworkColorController.signal });
+                } else if (fluidBg) {
+                    fluidBg.setColors(result.colors);
+                    fluidBg.render();
+                }
+                if (!song.artworkRestore) updateMediaSessionMetadata({ ...song, cover: result.status === 'ready' ? result.url : './img/artwork-fallback.svg' });
+            },
+        });
 
         let nativeIntegrationInitialized = false;
 
@@ -5169,21 +5149,9 @@
 
                         const coverDiv = document.createElement('div');
                         coverDiv.className = 'w-10 h-10 rounded-lg bg-surface-container-color flex-shrink-0 overflow-hidden';
-                        if (song.cover) {
-                            const img = document.createElement('img');
-                            img.className = 'w-full h-full object-cover';
-                            img.referrerPolicy = 'no-referrer';
-                            img.loading = 'lazy';
-                            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                            cachedCoverSource(song.cover, 80).then(cachedSrc => {
-                                img.src = cachedSrc;
-                            });
-                            img.alt = song.name;
-                            img.onerror = () => { img.style.display = 'none'; };
-                            coverDiv.appendChild(img);
-                        } else {
-                            coverDiv.innerHTML = '<i class="fas fa-music text-xs opacity-30 flex items-center justify-center w-full h-full"></i>';
-                        }
+                        const img = document.createElement('img');
+                        img.className = 'w-full h-full object-cover'; img.loading = 'lazy'; img.alt = '';
+                        bindArtwork(img, song, { size: 80 }); coverDiv.appendChild(img);
 
                         const infoDiv = document.createElement('button');
                         infoDiv.type = 'button';
@@ -5322,7 +5290,6 @@
             const applySkin = () => { document.documentElement.classList.toggle('anime-thumb-enabled', skin.checked); };
             skin.addEventListener('change', () => { localStorage.setItem('cp_anime_thumb', skin.checked ? 'on' : 'off'); applySkin(); });
             applySkin();
-            document.getElementById('desktopMiniCover').addEventListener('error', event => { event.currentTarget.src = './img/icon.svg'; });
 
             document.querySelectorAll('.app-sidebar .app-nav-item, .app-topbar button, #desktopPlayerBar button').forEach(button => {
                 if (!button.title) button.title = button.getAttribute('aria-label') || button.textContent.trim();
@@ -5726,32 +5693,10 @@
         function createCollectionArtwork(cover, title, { scene = false } = {}) {
             const media = document.createElement('span');
             media.className = scene ? 'scene-artwork' : 'collection-artwork';
-            const coverUrl = coverVariantUrl(cover, scene ? 960 : 720, scene ? 540 : 720);
-
-            if (!coverUrl) {
-                const icon = document.createElement('i');
-                icon.className = 'fas fa-music';
-                icon.setAttribute('aria-hidden', 'true');
-                media.appendChild(icon);
-                return media;
-            }
-
             const image = document.createElement('img');
-            image.alt = '';
-            image.width = scene ? 960 : 720;
-            image.height = scene ? 540 : 720;
+            image.alt = ''; image.width = scene ? 960 : 720; image.height = scene ? 540 : 720;
             image.loading = 'lazy';
-            image.decoding = 'async';
-            image.src = coverUrl;
-            image.addEventListener('error', () => {
-                image.remove();
-                if (!media.querySelector('i')) {
-                    const icon = document.createElement('i');
-                    icon.className = 'fas fa-music';
-                    icon.setAttribute('aria-hidden', 'true');
-                    media.appendChild(icon);
-                }
-            }, { once: true });
+            bindArtwork(image, { cover, name: title }, { size: scene ? 960 : 720 });
             media.setAttribute('title', `${title}封面`);
             media.appendChild(image);
             return media;
@@ -6166,22 +6111,10 @@
 
                 const cover = document.createElement('span');
                 cover.className = 'collection-track-cover';
-                const coverUrl = coverVariantUrl(song.cover || fallbackCover, 192, 192);
-                if (coverUrl) {
-                    const image = document.createElement('img');
-                    image.src = coverUrl;
-                    image.alt = '';
-                    image.width = 48;
-                    image.height = 48;
-                    image.loading = 'lazy';
-                    image.decoding = 'async';
-                    cover.appendChild(image);
-                } else {
-                    const icon = document.createElement('i');
-                    icon.className = 'fas fa-music';
-                    icon.setAttribute('aria-hidden', 'true');
-                    cover.appendChild(icon);
-                }
+                const image = document.createElement('img');
+                image.alt = ''; image.width = image.height = 48; image.loading = 'lazy';
+                bindArtwork(image, song, { url: song.cover || fallbackCover, size: 192 });
+                cover.appendChild(image);
 
                 const copy = document.createElement('span');
                 copy.className = 'collection-track-copy';
@@ -6248,6 +6181,15 @@
                 if (version !== collectionDialogState.version || !dom.collectionDialog.open) return;
                 const tracks = normalizedCollectionTracks(rawTracks || [], source);
                 collectionDialogState.tracks = tracks;
+                if (type === 'album' && tracks.length) {
+                    const seed = { ...tracks[0], cover: collection.cover || tracks[0].cover, album: collection.name };
+                    void artworkResolver.resolve(seed, { size: 720 }).then(result => {
+                        if (version !== collectionDialogState.version || !dom.collectionDialog.open) return;
+                        dom.collectionDialogCover.onerror = null;
+                        dom.collectionDialogCover.dataset.artworkState = result.status;
+                        dom.collectionDialogCover.src = result.url;
+                    }).catch(() => {});
+                }
                 if (!tracks.length) {
                     setCollectionDialogStatus(`这个${type === 'album' ? '专辑' : '歌单'}暂时没有可播放曲目`);
                     return;
@@ -6282,7 +6224,7 @@
             document.querySelector('.collection-library-actions')?.append(savePersonal);
             dom.collectionDialogTitle.textContent = collection.name || `${typeLabel}音乐库`;
             dom.collectionDialogMeta.textContent = `${typeLabel} · ${owner} · ${declaredCount}首`;
-            dom.collectionDialogCover.src = coverVariantUrl(collection.cover, 720, 720) || './img/icon.png';
+            bindArtwork(dom.collectionDialogCover, collection, { size: 720 });
             dom.collectionDialogCover.alt = `${collection.name || typeLabel}封面`;
             dom.collectionDialog.returnValue = '';
             if (!dom.collectionDialog.open) dom.collectionDialog.showModal();
@@ -6363,20 +6305,8 @@
 
             const artwork = [];
             if (data.cover) {
-                const sizes = ['96x96', '128x128', '192x192', '256x256', '384x384', '512x512'];
-                const src = normalizeMediaUrl(data.cover, {
-                    allowDataImage: true,
-                    baseUrl: window.location.href,
-                });
-                if (src) {
-                    sizes.forEach(size => {
-                        artwork.push({
-                            src,
-                            sizes: size,
-                            type: 'image/jpeg'
-                        });
-                    });
-                }
+                const src = normalizeMediaUrl(data.cover, { allowDataImage: true, baseUrl: window.location.href });
+                if (src) artwork.push({ src, sizes: 'any' });
             }
 
             navigator.mediaSession.metadata = new MediaMetadata({
@@ -6399,6 +6329,7 @@
             discoveryHome?.beforePlay(songOverride);
             return playback.load(id, songOverride, {
                 onLoading() {
+                    artworkPresenter.reset(songOverride || { id });
                     playerExperience?.loading(songOverride || { id }, () => loadAndPlaySong(id, songOverride, { position }));
                     discoveryLoadingSong = songOverride;
                     setPlaybackTransitionPending(false);
@@ -6443,7 +6374,6 @@
                 onStarted(data, playbackData, session) {
                     const recordTrial = () => { if (session.isCurrent() && !localPlayback && !accountPanel?.isSignedIn()) { guestTrial.record(trialSong); accountPanel?.updateGuest(); } };
                     if (!audio.paused) recordTrial(); else audio.addEventListener('playing', recordTrial, { once: true, signal: session.signal });
-                    const picUrl = playbackData.cover;
                     const { isCurrent } = session;
                     if (position > 0 && !session.recovering) {
                         const resume = () => {
@@ -6467,39 +6397,8 @@
                 }
                 dom.sourceTag.textContent = playbackDetailText(playbackData, qualityInfo?.level || data.level);
 
-                // ★ 立即更新 MediaSession (确保锁屏有文字信息)
-                // 即使封面还在加载，也先显示歌名和歌手
-                updateMediaSessionMetadata(playbackData);
-
-
-                // 封面 - 直接使用 URL，不再转 base64 以加速显示
-                if (picUrl) {
-                    saveLastCover(picUrl);
-                    [dom.albumArt, dom.desktopMiniCover, dom.mobileCoverImg].filter(Boolean).forEach(image => {
-                        image.referrerPolicy = 'no-referrer';
-                        image.crossOrigin = playbackData.provider === 'bilibili' ? null : 'anonymous';
-                    });
-                    // 直接设置封面 URL
-                    dom.albumArt.src = picUrl;
-                    if (dom.desktopMiniCover) dom.desktopMiniCover.src = picUrl;
-
-                    // 提取背景色（extractColorsFromImage 本身支持 URL）
-                    if (playbackData.provider !== 'bilibili' && fluidBg && typeof fluidBg.extractColorsFromImage === 'function') {
-                        fluidBg.extractColorsFromImage(picUrl, { signal: session.signal });
-                    }
-
-                    // 封面加载完成后更新 MediaSession（确保锁屏封面正确）
-                    const coverImg = new Image();
-                    coverImg.crossOrigin = playbackData.provider === 'bilibili' ? null : 'anonymous';
-                    coverImg.referrerPolicy = 'no-referrer';
-                    coverImg.onload = () => {
-                        if (isCurrent()) updateMediaSessionMetadata(playbackData);
-                    };
-                    coverImg.src = picUrl;
-                } else {
-                    dom.albumArt.src = './img/icon.png';
-                    if (dom.desktopMiniCover) dom.desktopMiniCover.src = './img/icon.png';
-                }
+                // Artwork resolves asynchronously; audio and lyrics never wait for it.
+                void artworkPresenter.show(playbackData, session);
 
                 if (queue.playlist.some(p => String(p.id || p) === String(id))) {
                     queue.currentIndex = queue.playlist.findIndex(p => String(p.id || p) === String(id));
@@ -6508,7 +6407,7 @@
 
                 // ★ Mobile UI Updates
                 if (mobileUI) {
-                    mobileUI.updateInfo(data.name, data.artist, picUrl, { signal: session.signal });
+                    mobileUI.updateInfo(playbackData.name, playbackData.artist, null, { signal: session.signal });
                     if (!session.recovering) { mobileUI.resetView(); mobileUI.closeSheet(); }
                 }
 
@@ -8044,7 +7943,6 @@
                 document.getElementById('mobileBrowseOpen').addEventListener('click', () => { this.closeSheet(); setMobileExploreOpen(false); });
                 document.getElementById('mobileBrowsePlay').addEventListener('click', event => { event.stopPropagation(); togglePlayPause(); });
                 document.getElementById('mobileBrowseNext').addEventListener('click', event => { event.stopPropagation(); playNextSong(); });
-                document.getElementById('mobileBrowseCover').addEventListener('error', event => { event.currentTarget.src = './img/icon.svg'; });
 
                 // Swipe Logic
                 let touchStartX = 0;
@@ -8494,11 +8392,8 @@
                         div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
                         div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
 
-                        if (song.cover) {
-                            cachedCoverSource(song.cover, 80).then(cachedSrc => {
-                                if (targetImg.isConnected && cachedSrc) targetImg.src = cachedSrc;
-                            });
-                        }
+                        targetImg.removeAttribute('crossorigin');
+                        bindArtwork(targetImg, song, { size: 80 });
 
                         // Click entire item to add and play? Or button to add?
                         // NetEase: Click item to play (and add to list)
@@ -8599,11 +8494,8 @@
             // Updates - 带过渡动画
             updateInfo(title, artist, cover, { signal } = {}) {
                 clearTimeout(this.infoTransitionTimer);
-                const elements = [this.dom.title, this.dom.artist, this.dom.coverImg].filter(Boolean);
-                const safeCover = normalizeMediaUrl(cover, {
-                    allowDataImage: true,
-                    baseUrl: window.location.href
-                });
+                const elements = [this.dom.title, this.dom.artist].filter(Boolean);
+
 
                 // 淡出
                 elements.forEach(el => el.style.transition = 'opacity 0.2s ease');
@@ -8617,7 +8509,6 @@
                     // 更新内容
                     if (this.dom.title) this.dom.title.textContent = title || '未知歌曲';
                     if (this.dom.artist) this.dom.artist.textContent = artist || '未知艺术家';
-                    if (this.dom.coverImg) this.dom.coverImg.src = safeCover || './img/icon.png';
 
                     // Sync metadata badges from desktop DOM
                     const desktopSource = document.getElementById('sourceTag');
@@ -8668,7 +8559,7 @@
                 document.getElementById('mobileBrowseTitle').textContent = song.name || '未知歌曲';
                 document.getElementById('mobileBrowseArtist').textContent = playerExperience?.statusText() || song.artist || '未知歌手';
                 const cover = document.getElementById('mobileBrowseCover');
-                const src = normalizeMediaUrl(song.cover, {baseUrl: window.location.href}) || './img/icon.svg';
+                const src = playbackArtworkUrl || fallbackArtwork(song).url;
                 if (cover.getAttribute('src') !== src) cover.src = src;
                 const playing = !audio.paused && !audio.ended;
                 const button = document.getElementById('mobileBrowsePlay');

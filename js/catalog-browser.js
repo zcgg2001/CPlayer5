@@ -1,17 +1,18 @@
-import { relatedMusic, availability, groupAvailability, sourceBlocked, AVAILABILITY_LABELS, CATALOG_SOURCES } from './music-catalog.js?v=1';
+import { bindArtwork, createArtworkResolver } from './artwork.js?v=1';
+import { relatedMusic, availability, groupAvailability, sourceBlocked, AVAILABILITY_LABELS, CATALOG_SOURCES } from './music-catalog.js?v=2';
 import { createCatalogService, mapConcurrent } from './catalog-service.js?v=1';
 import { MUSIC_SOURCE_OPTIONS } from './music-service.js?v=10';
 
 export function createCatalogBrowser({document, musicService, onPlay, onQueue, onLibrary = () => {}, onCollect = () => {}}) {
   const service = createCatalogService(musicService);
+  const artworkResolver = createArtworkResolver();
   const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className=className; if (text != null) node.textContent=text; return node; };
   const button = (text, action, className='catalog-button') => { const node=el('button',className,text); node.type='button'; node.addEventListener('click',action); return node; };
   const label = source => source==='netease-metadata'?'网易云公开资料':MUSIC_SOURCE_OPTIONS[source]?.label || source;
   const badge = song => { const state=groupAvailability(song); const node=el('span',`catalog-badge is-${state.status}`,AVAILABILITY_LABELS[state.status]); node.title='状态以当前渠道最近一次检查为准'; return node; };
-  const image = (url, alt, className) => {
-    const node=el('img',className); node.alt=alt; node.loading='lazy'; node.referrerPolicy='no-referrer';
-    try { const parsed=new URL(url,document.baseURI); node.src=['https:','http:'].includes(parsed.protocol)?parsed.href:'./img/icon.svg'; } catch { node.src='./img/icon.svg'; }
-    node.addEventListener('error',()=>{ if (!node.src.endsWith('/img/icon.svg')) node.src='./img/icon.svg'; }); return node;
+  const image = (url, alt, className, song = {}) => {
+    const node=el('img',className); node.alt=alt; node.loading='lazy';
+    return bindArtwork(node, { ...song, cover: url }, { size: className === 'catalog-hero-cover' ? 800 : 160 });
   };
   const dialog=el('dialog','catalog-dialog'); dialog.setAttribute('aria-labelledby','catalogTitle');
   const header=el('header','catalog-header'), heading=el('div'); heading.append(el('p','catalog-eyebrow','MUSIC LIBRARY'));
@@ -45,7 +46,7 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue, o
     list.replaceChildren();
     const visible=songs.filter(song=>filter.value==='all' || (filter.value==='restricted'?['login_required','no_copyright','region_restricted','unavailable'].includes(groupAvailability(song).status):filter.value==='unknown'?['unknown','resolved','checking'].includes(groupAvailability(song).status):groupAvailability(song).status===filter.value));
     for (const song of visible) {
-      const row=el('article','catalog-result'); row.append(image(song.cover || './img/icon.svg','', 'catalog-cover'));
+      const row=el('article','catalog-result'); row.append(image(song.cover,'', 'catalog-cover', song));
       const copy=el('div','catalog-result-copy'), details=button(song.name,()=>showDetails(song),'catalog-track-title'); details.dataset.catalogAction=`details:${song.catalogId}`;
       const subtitle=el('p','catalog-muted',`${song.artist || '未知歌手'} · ${song.album || '专辑未提供'}`);
       const meta=el('div','catalog-tags'); meta.append(el('span','catalog-badge',song.version.label),el('span','catalog-badge',`${song.sources.length} 个音源`),badge(song)); copy.append(details,subtitle,meta);
@@ -115,7 +116,14 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue, o
     const song=selected; searchView.hidden=true; detailView.hidden=false; detailView.replaceChildren(); title.textContent='歌曲资料';
     const back=button('← 返回曲库',()=>{detailController?.abort();selected=null;detailView.hidden=true;searchView.hidden=false;title.textContent='跨源曲库';input.focus();renderResults();});
     const hero=el('div','catalog-hero'), art=el('div'), variants=song.albumEntity.artwork;
-    art.append(image(variants.at(-1)?.url || song.cover || './img/icon.svg',`${song.album || song.name}封面`,'catalog-hero-cover'));
+    const cover=image(variants.at(-1)?.url || song.cover,`${song.album || song.name}封面`,'catalog-hero-cover',song);
+    art.append(cover);
+    const artController=detailController;
+    void artworkResolver.resolve(song,{signal:artController.signal,size:800}).then(result=>{
+      if(artController.signal.aborted || selected!==song)return;
+      cover.onerror=null; cover.dataset.artworkState=result.status; cover.src=result.url;
+      cover.alt=result.status==='ready'?`${song.album || song.name}封面`:'专辑封面占位图';
+    }).catch(()=>{});
     const sizes=el('div','catalog-art-sizes');
     for (const variant of variants) { const link=el('a','',variant.label); const parsed=new URL(variant.url,document.baseURI); if(!['http:','https:'].includes(parsed.protocol))continue; link.href=parsed.href; link.target='_blank'; link.rel='noopener noreferrer'; sizes.append(link); }
     art.append(sizes);

@@ -1,9 +1,12 @@
-const SHELL_CACHE = 'cplayer5-shell-v85';
+const SHELL_CACHE = 'cplayer5-shell-v86';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
 
 const CORE_ASSETS = [
+  './js/artwork.js',
+  './css/artwork.css',
+  './img/artwork-fallback.svg',
   './css/personal-library.css',
   './js/personal-library.js',
   './js/personal-library-store.js',
@@ -123,6 +126,7 @@ function classifyRequest(request) {
   if (request.method !== 'GET') return 'ignore';
 
   const url = new URL(request.url);
+  if (url.origin === self.location.origin && ['/api/cover', '/api/v1/music/cover'].includes(url.pathname)) return 'cover';
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
   if (['api.chksz.com', 'api.bilibili.com'].includes(url.hostname)) return 'api';
 
@@ -161,7 +165,7 @@ async function coverCacheFirst(request) {
   if (cached) return cached;
 
   const response = await fetch(request);
-  if (response.ok || response.type === 'opaque') {
+  if ((response.ok && /^image\//i.test(response.headers.get('content-type') || '')) || response.type === 'opaque') {
     await cache.put(request, response.clone());
     await pruneCoverCache(cache);
   }

@@ -195,8 +195,9 @@ class StartupBehaviorTests(unittest.TestCase):
             "let nativeIntegrationInitialized",
         )
         load_song = self.source + self.playback_controller
-        self.assertIn("dom.desktopMiniCover.src = savedCover", restore)
-        self.assertIn("dom.desktopMiniCover.src = picUrl", load_song)
+        self.assertIn("artworkPresenter.show({ cover: savedCover", restore)
+        self.assertIn("dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover", restore)
+        self.assertIn("artworkPresenter.show(playbackData, session)", load_song)
         self.assertNotIn("MutationObserver", self.source)
 
     def test_discovery_loads_new_song_chart_and_reuses_the_queue(self):
@@ -276,8 +277,7 @@ class StartupBehaviorTests(unittest.TestCase):
             "function createCollectionArtwork(cover, title",
             "function createCollectionCard(collection",
         )
-        self.assertIn("coverVariantUrl(cover, scene ? 960 : 720", artwork)
-        self.assertIn("image.src = coverUrl", artwork)
+        self.assertIn("bindArtwork(image, { cover, name: title }, { size: scene ? 960 : 720 })", artwork)
         self.assertNotIn("getCachedImage", artwork)
 
         image_cache = self.cache_store

@@ -32,9 +32,12 @@ export function createBackground(host) {
     const next = settings.image || url || '';
     if (next === source) return;
     source = next; const token = ++imageToken;
+    layer.style.removeProperty('--cover-color');
+    art.onerror = () => { if (token === imageToken) art.hidden = true; };
     art.hidden = !next; if (next) art.src = next; else art.removeAttribute('src');
     if (!next) return;
     const image = new Image(); image.crossOrigin = 'anonymous';
+    image.referrerPolicy = 'no-referrer';
     image.onload = () => {
       if (disposed || token !== imageToken) return;
       try {

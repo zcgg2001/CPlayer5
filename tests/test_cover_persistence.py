@@ -38,9 +38,8 @@ class CoverPersistenceTests(unittest.TestCase):
             "function restoreLastCover()",
             "let nativeIntegrationInitialized",
         )
-        self.assertIn("dom.albumArt.src = savedCover;", helpers)
-        self.assertIn("dom.mobileCoverImg.src = savedCover;", helpers)
-        self.assertIn("image.referrerPolicy = 'no-referrer';", helpers)
+        self.assertIn("artworkPresenter.show({ cover: savedCover", helpers)
+        self.assertIn("dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover", helpers)
 
         startup = source_block(
             self.source,
@@ -56,7 +55,7 @@ class CoverPersistenceTests(unittest.TestCase):
         self.assertIn("const queuedSong = songOverride || queueStore.state.playlist.find", self.playback)
         self.assertIn("const cover = normalizeMediaUrl(queuedSong?.cover || data.cover", self.playback)
         self.assertIn("const playbackData = {", self.playback)
-        self.assertIn("updateMediaSessionMetadata(playbackData);", self.source)
+        self.assertIn("artworkPresenter.show(playbackData, session)", self.source)
 
 
 if __name__ == "__main__":

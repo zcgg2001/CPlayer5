@@ -64,6 +64,22 @@ for (const provider of ['chksz', 'gd', 'bilibili']) {
   });
 }
 
+test('workerd: artwork follows trusted CDN redirects and caches missing responses without changing their status',async t=>{
+  let calls=0;
+  const mf=runtime(t,async request=>{
+    calls++;const url=new URL(request.url);assert.ok(url.hostname.endsWith('.music.126.net'));
+    if(url.pathname==='/start')return new Response(null,{status:302,headers:{location:'https://p2.music.126.net/cover'}});
+    if(url.pathname==='/missing')return new Response(null,{status:404});
+    return new Response('image',{headers:{'content-type':'image/jpg'}});
+  });
+  const target=path=>'https://player.example/api/cover?url='+encodeURIComponent('https://p1.music.126.net/'+path);
+  const cover=await mf.dispatchFetch(target('start'));
+  assert.equal(cover.status,200);assert.equal(cover.headers.get('content-type'),'image/jpeg');assert.equal(calls,2);
+  assert.equal((await mf.dispatchFetch(target('missing'))).status,404);
+  const missing=await mf.dispatchFetch(target('missing'),{method:'HEAD'});
+  assert.equal(missing.status,404);assert.equal(await missing.text(),'');assert.equal(calls,3);
+});
+
 test('workerd: upstream redirects fail without following the destination', async t => {
   let calls = 0;
   const mf = runtime(t, async request => {

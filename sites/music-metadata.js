@@ -9,9 +9,11 @@ export async function handleMusicMetadata(request,env,url) {
   const json=(body,status=200)=>new Response(request.method==='HEAD'?null:JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':status===200?'public, max-age=300':'no-store','x-content-type-options':'nosniff'}});
   const id=url.searchParams.get('id');
   if(url.searchParams.get('source')!=='netease' || !validId(id))return json({error:{code:'invalid_metadata_request',message:'暂仅支持网易云歌曲 ID 的资料查询'}},400);
+  const artworkOnly=url.searchParams.get('artwork')==='1';
+  const cacheKey=`${id}:${artworkOnly?'artwork':'details'}`;
   const fetchImpl=env.METADATA_FETCH || globalThis.fetch;
   if(!caches.has(fetchImpl))caches.set(fetchImpl,new Map());const cache=caches.get(fetchImpl);
-  const saved=cache.get(id);if(saved?.expires>Date.now())return json(saved.body);
+  const saved=cache.get(cacheKey);if(saved?.expires>Date.now())return json(saved.body);
   const signal=AbortSignal.any([request.signal,AbortSignal.timeout(12_000)]);
   const get=async path=>{
     const response=await fetchImpl(`https://music.163.com${path}`,{signal,redirect:'manual',headers:{'user-agent':USER_AGENT,referer:'https://music.163.com/'}});
@@ -22,6 +24,17 @@ export async function handleMusicMetadata(request,env,url) {
   try {
     const data=await get(`/api/song/detail/?${new URLSearchParams({id,ids:JSON.stringify([id])})}`);
     const song=data.songs?.find(song=>String(song.id)===id);if(!song)return json({error:{code:'metadata_not_found',message:'音源未提供此歌曲资料'}},404);
+    // Playback needs only native artwork, not several artist biography requests.
+    if(artworkOnly) {
+      let album=song.album || song.al;
+      if(!album?.picUrl && validId(album?.id)) {
+        try {const detail=await get(`/api/album/${album.id}`);if(String(detail.album?.id)===String(album.id))album=detail.album;} catch { /* Keep song metadata. */ }
+      }
+      const body={code:200,data:{id:String(song.id),cover:text(album?.picUrl)}};
+      cache.set(cacheKey,{body,expires:Date.now()+300_000});
+      while(cache.size>60)cache.delete(cache.keys().next().value);
+      return json(body);
+    }
     const partial=[];
     const [albumResult,...artistResults]=await Promise.allSettled([
       validId(song.album?.id)?get(`/api/album/${song.album.id}`):Promise.resolve(null),
@@ -39,7 +52,7 @@ export async function handleMusicMetadata(request,env,url) {
     const normalized={...song,duration:Number(song.duration)/1000,language:text(song.language || album?.language),publishTime:song.publishTime || album?.publishTime,description:text(song.description),artists,album:{...album,description:text(album?.description || album?.briefDesc)}};
     const info=extractMetadata(normalized);
     const body={code:200,data:{...info,id:String(song.id),provider:'netease',name:text(song.name),artist:artists.map(a=>a.name).join(' / '),album:text(album?.name),cover:text(album?.picUrl),duration:info.metadata.duration,metadataSource:'网易云公开资料',retrievedAt:Date.now(),partial:[...new Set(partial)]}};
-    cache.delete(id);if(JSON.stringify(body).length<32*1024)cache.set(id,{body,expires:Date.now()+300_000});
+    cache.delete(cacheKey);if(JSON.stringify(body).length<32*1024)cache.set(cacheKey,{body,expires:Date.now()+300_000});
     while(cache.size>60)cache.delete(cache.keys().next().value);
     return json(body);
   } catch { return json({error:{code:'metadata_unavailable',message:'补充资料暂时不可用，已保留搜索结果'}},502); }

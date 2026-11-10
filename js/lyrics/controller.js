@@ -195,6 +195,7 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
   });
   apply(); preview.setDocument(previewDocument); syncPreview();
   return {
+    refreshArtwork() { runtime.setArtwork(artwork()); preview.setArtwork(artwork()); },
     handlesTiming: true, activateLine() {}, deactivateLine() {}, resetLyrics() {},
     load(payload, song = {}) {
       generation++; sourceRequest?.abort(); busy = false; refreshButton.disabled = bestButton.disabled = false; sourceChoices = [];

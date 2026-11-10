@@ -1,5 +1,5 @@
 import { requestJson } from './http.js?v=37';
-import { mergeMetadata, neteaseMetadataId, aggregateSongs, CATALOG_SOURCES, sourceKey, sourceBlocked } from './music-catalog.js?v=1';
+import { mergeMetadata, neteaseMetadataId, aggregateSongs, CATALOG_SOURCES, sourceKey, sourceBlocked } from './music-catalog.js?v=2';
 
 export async function mapConcurrent(items, concurrency, callback, signal) {
   let index = 0;

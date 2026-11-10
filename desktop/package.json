@@ -1,7 +1,7 @@
 {
   "name": "cplayer5-desktop",
   "productName": "CPlayer5",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "CPlayer5 desktop player",
   "main": "main.cjs",
   "author": "CPlayer5 contributors",

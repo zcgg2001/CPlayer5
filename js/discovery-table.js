@@ -1,3 +1,4 @@
+import { bindArtwork } from './artwork.js?v=1';
 import { groupAvailability, AVAILABILITY_LABELS } from './music-catalog.js?v=1';
 // Discovery UI uses real tracks; missing metadata stays visibly unknown.
 export function trackDuration(song) {
@@ -83,19 +84,9 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
     indexCell.append(number,bars,play);
     const main = cell('track-main');
     const cover = document.createElement('span'); cover.className = 'track-cover'; cover.setAttribute('aria-hidden','true'); cover.innerHTML = icon('Music2');
-    if (song.cover) {
-      try {
-        const url = new URL(song.cover, document.baseURI);
-        if (['https:','http:'].includes(url.protocol)) {
-          // Preserve signed/proxy query strings; native images do not need CORS.
-          const image = document.createElement('img'); image.alt = ''; image.width = image.height = 40; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer';
-          image.addEventListener('load', () => cover.classList.add('has-cover'));
-          image.addEventListener('error', () => { image.remove(); cover.classList.remove('has-cover'); });
-          if (url.protocol === 'http:' && location.protocol === 'https:') url.protocol = 'https:';
-          image.src = url.href; cover.append(image);
-        }
-      } catch { /* Use the gradient fallback. */ }
-    }
+    const image = document.createElement('img'); image.alt=''; image.loading='lazy';
+    bindArtwork(image,song,{size:160}); cover.replaceChildren(image); cover.classList.add('has-cover');
+
     const copy = document.createElement('div'); copy.className = 'track-copy';
     const title = document.createElement('span'); title.className = 'track-title'; title.textContent = song.name || '未知歌曲'; title.title = title.textContent;
     const artist = document.createElement('span'); artist.className = 'track-artist'; artist.textContent = song.artist || '未知歌手'; artist.title = artist.textContent;

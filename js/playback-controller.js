@@ -138,6 +138,9 @@ export function createPlaybackController({
                     const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
                         || normalizeMediaUrl(data.cover, coverOptions) || '';
                     const playbackData = { ...queuedSong, ...data, id: queuedSong?.id || id, url, cover: coverUrl(cover),
+                        // Keep artwork lookup IDs tied to the chosen recording when audio switches providers.
+                        artworkSource: queuedSong || { id: data.id, provider: data.provider, sourceId: data.sourceId },
+                        albumEntity: queuedSong?.albumEntity || data.albumEntity,
                         name: queuedSong?.name || data.name, artist: queuedSong?.artist || data.artist,
                         album: queuedSong?.album || data.album || '' };
                     state.currentSong = playbackData;

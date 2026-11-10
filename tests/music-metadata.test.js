@@ -33,3 +33,20 @@ test('metadata ID extraction respects platform boundaries and does not create pl
   const song=catalogRecord(raw),updated=mergeMetadata(song,{id:'1',provider:'netease',name:'歌曲',artist:'歌手',album:'专辑',metadata:{language:'国语'},albumEntity:{description:'专辑介绍'},artistEntities:[{name:'歌手',avatar:'https://example.test/avatar'}],cover:'https://p1.music.126.net/cover.jpg'});
   assert.equal(updated.sources.length,1);assert.equal(updated.sources[0].provider,'gd');assert.equal(updated.metadata.language,'国语');assert.equal(updated.artists[0].avatar,'https://example.test/avatar');assert.equal(updated.albumEntity.artwork.length,3);
 });
+
+test('playback artwork lookup makes only one request and does not contaminate the full detail cache',async()=>{
+  const urls=[];
+  const env={METADATA_FETCH:async url=>{urls.push(url);return url.includes('/song/detail')?data({code:200,songs:[base]}):data({code:200,album:base.album,artist:base.artists[0]});}};
+  const result=await worker.fetch(request('source=netease&id=1&artwork=1'),env);
+  assert.equal((await result.json()).data.cover,base.album.picUrl);assert.equal(urls.length,1);
+  await worker.fetch(request('source=netease&id=1&artwork=1'),env);assert.equal(urls.length,1);
+  await worker.fetch(request(),env);assert.equal(urls.length,4);
+});
+
+test('artwork lookup recovers from an empty song cover using only its exact album ID',async()=>{
+  const urls=[];
+  const result=await worker.fetch(request('source=netease&id=1&artwork=1'),{METADATA_FETCH:async url=>{
+    urls.push(url);return url.includes('/song/detail')?data({code:200,songs:[{...base,album:{id:3,name:'专辑'}}]}):data({code:200,album:base.album});
+  }});
+  assert.equal((await result.json()).data.cover,base.album.picUrl);assert.equal(urls.length,2);assert.ok(urls[1].endsWith('/album/3'));
+});

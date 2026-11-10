@@ -100,7 +100,7 @@ test('anonymous telemetry is bounded, origin-checked, ignores secrets and cannot
   assert.ok(!JSON.stringify(f.db.prepare('SELECT * FROM cplayer_events').all()).includes('never-log'));
 });
 
-test('cover CDN rejects SSRF, redirects, SVG and oversized bodies; public images cache', async t => {
+test('cover CDN rejects SSRF, untrusted redirects, SVG and oversized bodies; public images cache', async t => {
   const f = fixture(t); let calls = 0; f.env.OPS_CACHE = memoryCache();
   f.env.COVER_FETCH = async (url, options) => { calls++; assert.equal(options.redirect, 'manual'); assert.equal(options.headers.cookie, undefined); return new Response('jpeg', { headers: { 'content-type': 'image/jpeg' } }); };
   const get = url => handleCover(new Request(origin + '/api/cover?url=' + encodeURIComponent(url)), f.env);
@@ -109,6 +109,37 @@ test('cover CDN rejects SSRF, redirects, SVG and oversized bodies; public images
   f.env.COVER_FETCH = async () => new Response(null, { status: 302, headers: { location: 'https://evil.example' } }); assert.equal((await get('https://p1.music.126.net/redirect')).status, 502);
   f.env.COVER_FETCH = async () => new Response('<svg/>', { headers: { 'content-type': 'image/svg+xml' } }); assert.equal((await get('https://p1.music.126.net/svg')).status, 502);
   f.env.COVER_FETCH = async () => new Response(new Uint8Array(2 * 1024 * 1024 + 1), { headers: { 'content-type': 'image/png' } }); assert.equal((await get('https://p1.music.126.net/large')).status, 502);
+});
+
+test('cover CDN allows bounded trusted redirects and preserves cached missing statuses including HEAD',async t=>{
+  const f=fixture(t);f.env.OPS_CACHE=memoryCache();const urls=[];
+  f.env.COVER_FETCH=async url=>{urls.push(String(url));return String(url).endsWith('/start')?new Response(null,{status:302,headers:{location:'https://p2.music.126.net/final'}}):new Response('png',{headers:{'content-type':'image/png'}});};
+  const target=path=>origin+'/api/cover?url='+encodeURIComponent('https://p1.music.126.net/'+path);
+  assert.equal((await handleCover(new Request(target('start')),f.env)).status,200);assert.equal(urls.length,2);
+  f.env.COVER_FETCH=async()=>new Response(null,{status:404});
+  assert.equal((await handleCover(new Request(target('missing')),f.env)).status,404);
+  f.env.COVER_FETCH=()=>assert.fail('negative cache should avoid an upstream request');
+  const missing=await handleCover(new Request(target('missing'),{method:'HEAD'}),f.env);
+  assert.equal(missing.status,404);assert.equal(await missing.text(),'');
+  let loops=0;f.env.COVER_FETCH=async()=>{loops++;return new Response(null,{status:302,headers:{location:'/loop'}});};
+  assert.equal((await handleCover(new Request(target('loop')),f.env)).status,502);assert.equal(loops,3);
+});
+
+test('temporary cover errors and unavailable cache storage do not prevent recovery',async t=>{
+  const f=fixture(t);let calls=0;f.env.OPS_CACHE={match(){throw new Error('storage');},put(){throw new Error('storage');}};
+  f.env.COVER_FETCH=async()=>++calls===1?new Response(null,{status:503}):new Response('jpeg',{headers:{'content-type':'image/jpeg'}});
+  const request=()=>new Request(origin+'/api/cover?url='+encodeURIComponent('https://p1.music.126.net/retry'));
+  assert.equal((await handleCover(request(),f.env)).status,502);
+  assert.equal((await handleCover(request(),f.env)).status,200);assert.equal(calls,2);
+});
+
+test('cover CDN accepts real-world JPEG/PNG MIME aliases while returning canonical types',async t=>{
+  const f=fixture(t);
+  for(const [mime,type] of [['image/jpg','image/jpeg'],['image/pjpeg','image/jpeg'],['image/x-png','image/png']]) {
+    f.env.COVER_FETCH=async()=>new Response('image',{headers:{'content-type':mime+'; charset=binary'}});
+    const response=await handleCover(new Request(origin+'/api/cover?url='+encodeURIComponent('https://p2.music.126.net/'+mime.split('/')[1])),f.env);
+    assert.equal(response.status,200);assert.equal(response.headers.get('content-type'),type);
+  }
 });
 
 test('SSR only publishes approved pages, escapes upstream HTML and emits canonical/schema/sitemap', async t => {

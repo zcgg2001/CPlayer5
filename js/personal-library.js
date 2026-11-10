@@ -1,3 +1,4 @@
+import { bindArtwork } from './artwork.js?v=1';
 import { createPersonalLibraryStore, createListeningTracker } from './personal-library-store.js';
 import { cleanSong, songKey, imageURL } from './library-data.js';
 import { exportCSV, exportM3U, parseTransfer, mergeImport }  from './library-transfer.js';
@@ -33,7 +34,10 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
   const request=(path,options)=>account.request(path,options);
   function showHeader(name,note,actions=[]) {const h=el('div','pl-section-heading'),copy=el('div');copy.append(el('h3','',name));if(note)copy.append(el('p','pl-muted',note));const tools=el('div','pl-actions');tools.append(...actions);h.append(copy,tools);body.append(h);}
   function empty(title,note){const block=el('div','pl-empty');block.append(el('span','pl-empty-mark','♪'),el('h4','',title),el('p','pl-muted',note));body.append(block);}
-  function art(url,name=''){const n=el('div','pl-art');if(imageURL(url)){const img=el('img');img.src=url;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();n.append(img);}else n.append(el('span','',name.slice(0,1)||'♪'));return n;}
+  function art(url,name='',song={}) {
+    const n=el('div','pl-art'),img=el('img');img.alt='';img.loading='lazy';
+    bindArtwork(img,{...song,cover:url,name},{size:320});n.append(img);return n;
+  }
   function resetBody(root=false){sectionRoot=root;viewVersion++;body.replaceChildren();dirty=false;body.scrollTop=0;return viewVersion;}
   function guard(){return !dirty || confirm('有未保存的编辑，确定放弃吗？');}
   async function navigate(key){if(!guard())return;tab=key;resetBody(true);message('');for(const [id,b] of navButtons)b.setAttribute('aria-current',id===key?'page':'false');identity.textContent=account.user()?`${account.user().username || account.user().name} · ${account.isOffline()?'离线资料，联网验证后同步':'私人资料随账号同步'}`:'游客个人库 · 保存在当前浏览器';await ({favorites:renderFavorites,playlists:renderPlaylists,history:renderHistory,stats:renderStats,offline:renderOffline,transfer:renderTransfer})[key]();}
@@ -53,7 +57,7 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
       const actions=el('div','pl-track-actions');
       if(edit){const up=button('↑',()=>edit(index,-1)),down=button('↓',()=>edit(index,1));up.setAttribute('aria-label',`上移 ${song.name}`);down.setAttribute('aria-label',`下移 ${song.name}`);up.disabled=index===0;down.disabled=index===songs.length-1;actions.append(up,down,button('移除',()=>edit(index,0)));}
       else {const heart=button(store.favorites().some(s=>songKey(s)===songKey(song))?'已喜欢':'喜欢',()=>{store.toggleSong(song);heart.textContent=store.favorites().some(s=>songKey(s)===songKey(song))?'已喜欢':'喜欢';heart.setAttribute('aria-pressed',String(store.favorites().some(s=>songKey(s)===songKey(song))));});heart.setAttribute('aria-pressed',String(store.favorites().some(s=>songKey(s)===songKey(song))));actions.append(heart,button('更多',()=>showSong(song)));}
-      row.append(art(song.cover,song.name),copy,actions);list.append(row);
+      row.append(art(song.cover,song.name,song),copy,actions);list.append(row);
     });return list;
   }
   function renderFavorites(){
@@ -61,7 +65,7 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
     for(const [type,name] of [['song','歌曲'],['album','专辑'],['artist','歌手'],['playlist','歌单']]) {const count=type==='song'?all.length:store.entities(type).length;const b=button(`${name} ${count}`,()=>{favoriteType=type;resetBody();renderFavorites();},'pl-filter');b.setAttribute('aria-pressed',String(favoriteType===type));filters.append(b);}
     showHeader('每一次心动，都在这里','四类收藏独立保存。红心歌曲会自动进入「我喜欢」。');body.append(filters);
     if(favoriteType==='song') {if(!all.length)return empty('还没有喜欢的歌曲','点击歌曲旁的红心，或从当前播放队列添加。');body.append(songRows(all));}
-    else {const values=store.entities(favoriteType);if(!values.length)return empty('收藏属于你的声音','在歌曲资料或专辑、歌手、歌单详情中点击收藏。');const grid=el('div','pl-grid');for(const item of values){const card=el('article','pl-card');card.append(art(item.cover,item.name),el('h4','',item.name),el('p','pl-muted',item.artist||({album:'专辑',artist:'歌手',playlist:'歌单'})[item.type]),button('查看作品',()=>{dialog.close();if(/^\d+$/.test(item.id) && item.provider==='netease')onCollection(item.type,item.id);else onSearch(item.name+' '+item.artist);}),button('取消收藏',()=>{store.removeEntity(item.key);resetBody();renderFavorites();}));grid.append(card);}body.append(grid);}
+    else {const values=store.entities(favoriteType);if(!values.length)return empty('收藏属于你的声音','在歌曲资料或专辑、歌手、歌单详情中点击收藏。');const grid=el('div','pl-grid');for(const item of values){const card=el('article','pl-card');card.append(art(item.cover,item.name,item),el('h4','',item.name),el('p','pl-muted',item.artist||({album:'专辑',artist:'歌手',playlist:'歌单'})[item.type]),button('查看作品',()=>{dialog.close();if(/^\d+$/.test(item.id) && item.provider==='netease')onCollection(item.type,item.id);else onSearch(item.name+' '+item.artist);}),button('取消收藏',()=>{store.removeEntity(item.key);resetBody();renderFavorites();}));grid.append(card);}body.append(grid);}
   }
   function showSong(song){
     resetBody();body.append(button('← 返回',()=>navigate(tab)));showHeader(song.name||song.id,`${song.artist||'未知歌手'} · ${song.album||'专辑未提供'}`);
