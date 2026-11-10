@@ -21,6 +21,8 @@ jobs:
           cache: npm
 
       - name: Install pinned build tools
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
         run: npm ci
 
       - name: Run unit tests
