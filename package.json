@@ -14,15 +14,22 @@
     "test:worker": "node --test tests/cloudflare-runtime.js",
     "probe:music": "node scripts/probe_music_sources.js",
     "cf:deploy": "npm run cf:build && cf deploy --prebuilt --mode production",
-    "cf:check": "npm run cf:build && cf deploy --prebuilt --mode production --dry-run"
+    "cf:check": "npm run cf:build && cf deploy --prebuilt --mode production --dry-run",
+    "accounts:dev": "ACCOUNTS_DEV=1 node server.js",
+    "accounts:migration": "node scripts/generate_account_migration.js",
+    "desktop:dev": "electron desktop",
+    "desktop:package": "npm exec --yes --package=node@22.23.4 -- node scripts/package_desktop.js"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.12",
+    "@electron/packager": "19.0.1",
     "cf": "1.0.0-beta.28",
+    "electron": "45.2.3",
     "miniflare": "5.20261104.0-beta",
     "vite": "8.3.6"
   },
   "dependencies": {
+    "better-auth": "1.7.18",
     "cheerio": "1.1.2"
   }
 }

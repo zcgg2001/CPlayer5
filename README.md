@@ -144,7 +144,7 @@ cd CPlayer
 
 ### 2. 构建与启动服务
 
-本地 Node 服务本身无需第三方依赖（需要支持 `AbortSignal.any` 和原生流）。Cloudflare 构建工具需要先运行 `npm ci`，统一使用 `.node-version` 中的 Node.js 26.12.0。ChKSz 功能需要在服务进程中配置 `CHKSZ_API_KEY`，GD 和 Bilibili 公开内容不需要此密钥。
+本地 Node 服务和 Cloudflare 构建均需先运行 `npm ci` 安装锁定的依赖（包括账号认证库），统一使用 `.node-version` 中的 Node.js 26.12.0。ChKSz 功能需要在服务进程中配置 `CHKSZ_API_KEY`，GD 和 Bilibili 公开内容不需要此密钥。
 
 ```bash
 npm run build
@@ -306,3 +306,9 @@ GD 请求经同源后端转发，固定访问 music-api.gdstudio.xyz，不携带
 ### 自动换源与最高可用音质
 
 播放时自动尝试同一首歌的可用渠道，每个渠道从最高支持音质开始；失败后自动降级或换源，连接中断时尽量保留进度。搜索渠道与实际播放渠道可以不同，播放器显示实际来源。策略、音源样本结果和限制见 [自动播放说明](docs/auto-playback.md)。
+
+### 账号与多端
+
+每次打开播放器先显示登录入口，可用用户名和密码直接注册、登录，或选择游客试听 50 首不同歌曲。账号与密码哈希保存在服务器数据库，刷新、重启或更换设备后仍可用同一账号登录，无需邮箱、短信或第三方应用。认证采用 Better Auth；Node 使用持久 SQLite，Cloudflare 使用 D1。设置页保留云同步、保存歌单、设备会话、数据导出与注销，以及 PWA 安装入口；Electron 使用系统浏览器授权登录。
+
+开发、配置和验证步骤见 [账号与多端](docs/accounts-and-devices.md)。本地直接运行：`npm run build && npm start`。线上配置数据库、站点地址与会话密钥后启用账号服务。桌面运行：`npm run desktop:dev`；打包：`npm run desktop:package`。

@@ -162,7 +162,7 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
     try { await onMore(); } finally { busy = false; get('discoveryLoadMore').disabled = false; }
   });
   get('desktopFavoriteBtn').addEventListener('click', () => { const song = getPlayback().song; if (song?.id) favoriteSong(song); });
-  return {sync, status, reset, setSongs(songs,{append = false, more = true} = {}) {
+  return {sync, status, reset, refreshFavorites() { try { favorites = new Map(JSON.parse(storage.getItem('cp_favorites_v1') || '[]')); } catch { favorites = new Map(); } sync(); if (favoritesOnly) render(); }, setSongs(songs,{append = false, more = true} = {}) {
     tracks = [...new Map((append ? [...tracks,...songs] : songs).map(song => [keyOf(song),song])).values()];
     hasMore = more; busy = false; list.setAttribute('aria-busy','false'); render();
   }, count: () => tracks.length};

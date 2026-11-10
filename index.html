@@ -1415,9 +1415,36 @@
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
     <script src="playlist.js?v=22"></script>
+    <link rel="stylesheet" href="./css/account.css?v=3">
 </head>
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
+    <dialog id="accountEntryDialog" class="account-entry" open aria-labelledby="entryTitle" aria-describedby="entrySubtitle">
+        <div class="entry-layout">
+            <aside class="entry-intro" aria-label="CPlayer 5">
+                <div class="entry-brand"><span class="entry-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>CPlayer <b>5</b></span></div>
+                <div class="entry-record" aria-hidden="true"><div></div></div>
+                <p class="entry-kicker">YOUR MUSIC, EVERYWHERE</p>
+                <h1>让音乐，<br>接着陪你。</h1>
+                <p>收藏喜欢的歌，保存此刻的歌单。<br>换一台设备，也能接着听。</p>
+            </aside>
+            <section class="entry-card">
+                <div id="entryModes" class="entry-modes" aria-label="选择登录或注册"><button type="button" data-entry-mode="login" aria-pressed="true">登录</button><button type="button" data-entry-mode="register" aria-pressed="false">注册账号</button></div>
+                <h2 id="entryTitle">欢迎回来</h2><p id="entrySubtitle">登录账号，在不同设备间继续聆听。</p>
+                <form id="entryForm"><fieldset id="entryFields" disabled>
+                    <label for="entryUsername">用户名</label><input id="entryUsername" name="username" autocomplete="username" spellcheck="false" autocapitalize="none" placeholder="3–24 位字母、数字或下划线" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" required>
+                    <label for="entryPassword">密码</label><div class="entry-password"><input id="entryPassword" name="password" type="password" autocomplete="current-password" placeholder="8–128 位密码" minlength="8" maxlength="128" required><button id="entryShowPassword" type="button" aria-pressed="false" aria-label="显示或隐藏密码">显示</button></div>
+                    <div id="entryConfirmLabel" hidden><label for="entryConfirm">确认密码</label><input id="entryConfirm" name="confirmPassword" type="password" autocomplete="new-password" placeholder="再次输入密码" minlength="8" maxlength="128"></div>
+                    <button id="entrySubmit" class="entry-primary" type="submit">登录</button>
+                </fieldset></form>
+                <button id="entryDesktopLogin" class="entry-primary" type="button" hidden>使用系统浏览器登录</button>
+                <p id="entryStatus" role="status" aria-live="polite">正在连接账号服务…</p><button id="entryRetry" type="button" hidden>重新连接</button>
+                <div class="entry-divider"><span>也可以先听听</span></div>
+                <button id="entryGuest" class="entry-guest" type="button" disabled>游客试用 <span aria-hidden="true">→</span></button><p id="entryGuestQuota">可试听 50 首不同歌曲，重复播放不扣次数</p>
+                <p class="entry-footnote">每次打开都由你选择登录或游客模式。</p>
+            </section>
+        </div>
+    </dialog>
 
     <!-- ★ WebGL 流体背景 -->
     <canvas id="fluidBg" class="fixed inset-0 w-full h-full -z-10 pointer-events-none"></canvas>
@@ -2640,6 +2667,7 @@
             <!-- 歌单切换区域 -->
             <div class="max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 mb-4 text-left space-y-3">
 
+                <section id="accountPanel" class="account-panel" aria-label="账号与多端"></section>
                 <section class="lyric-settings" aria-labelledby="lyricSettingsTitle">
                     <div class="lyric-settings__heading">
                         <div><h3 id="lyricSettingsTitle">歌词设置</h3><label for="lyricEffectSelect">歌词效果</label></div>
@@ -2786,7 +2814,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 text-center text-xs opacity-40 font-mono tracking-wider">
-                CPlayer 5 · v1.5.0 • 2026.11.09
+                CPlayer 5 · v1.6.0 • 2026.11.10
             </div>
         </div>
     </div>
@@ -3010,6 +3038,10 @@
         import { createDownloadSession } from './js/download-session.js?v=22';
         import { createPlaybackController } from './js/playback-controller.js?v=5';
         import { createQueueStore } from './js/queue-store.js?v=1';
+        import { initAccountPanel } from './js/account-panel.js?v=3';
+        import { createGuestTrial } from './js/guest-trial.js?v=1';
+        const guestTrial = createGuestTrial(localStorage);
+        let accountPanel = null;
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import { isMusicChannel } from './js/music-channels.js?v=1';
@@ -3459,7 +3491,31 @@
             initSettingsUI();
             initMusicSourceControl();
             setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
-            loadDefaultPlaylist();
+            loadDefaultPlaylist().finally(() => {
+                accountPanel = initAccountPanel({
+                    root: document.getElementById('accountPanel'), openSettings, closeSettings, guestTrial,
+                    refreshFavorites: () => discoveryTable?.refreshFavorites(),
+                    onSettings: keys => { if (keys.includes('cp_theme')) applyTheme(localStorage.getItem('cp_theme') || 'night', { persist: false }); },
+                    player: {
+                        queue: () => queue.playlist,
+                        progress: () => ({ song: playback.state.currentSong, position: audio.currentTime }),
+                        isPlaying: () => !audio.paused,
+                        suspend: () => {
+                            playback.stop(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
+                            dom.songTitle.textContent = '请选择歌曲'; dom.artistName.textContent = '从歌单或搜索中开始播放';
+                            setLyricsStatus('播放音乐以查看歌词');
+                            if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+                        },
+                        setQueue: songs => {
+                            queue.playlist = songs;
+                            queue.currentIndex = songs.findIndex(song => String(song.id) === String(playback.state.currentSong?.id) && song.provider === playback.state.currentSong?.provider);
+                            queueStore.resetOrder(); syncQueueAfterMutation();
+                        },
+                        resume: value => loadAndPlaySong(value.song.id, value.song, { position: value.position }),
+                    },
+                });
+                for (const event of ['pause', 'seeked']) audio.addEventListener(event, () => accountPanel.checkpoint());
+            });
             loadNewSongDiscovery();
             scheduleMusicCollections();
             const sharedQuery = new URL(location.href).searchParams.get('q');
@@ -6293,6 +6349,13 @@
         }
 
         async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
+            if (accountPanel?.canEnter && !accountPanel.canEnter()) return;
+            const trialSong = { ...(songOverride || {}), id, provider: songOverride?.provider || musicService.config.source };
+            if (!accountPanel?.isSignedIn() && !guestTrial.allows(trialSong)) {
+                audio.pause();
+                if (accountPanel) accountPanel.requireLogin(); else { openSettings(); showToast('游客试听额度已用完，请登录后继续', true); }
+                return;
+            }
             discoveryHome?.beforePlay(songOverride);
             return playback.load(id, songOverride, {
                 onLoading() {
@@ -6337,6 +6400,8 @@
                     showToast('歌曲已加载，请点击播放键继续');
                 },
                 onStarted(data, playbackData, session) {
+                    const recordTrial = () => { if (session.isCurrent() && !accountPanel?.isSignedIn()) { guestTrial.record(trialSong); accountPanel?.updateGuest(); } };
+                    if (!audio.paused) recordTrial(); else audio.addEventListener('playing', recordTrial, { once: true, signal: session.signal });
                     const picUrl = playbackData.cover;
                     const { isCurrent } = session;
                     if (position > 0 && !session.recovering) {

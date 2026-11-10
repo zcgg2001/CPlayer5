@@ -1,21 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { createCipheriv } from 'node:crypto';
 import { Miniflare, Response } from 'miniflare';
 
 // Exercise the actual deploy bundle in workerd, not Node's fetch implementation.
 const output = new URL('../.cloudflare/output/v0/workers/default/', import.meta.url);
 const code = await readFile(new URL('bundle/index.js', output), 'utf8');
-const { compatibilityDate } = JSON.parse(await readFile(new URL('worker.config.json', output), 'utf8'));
+const { compatibilityDate, compatibilityFlags } = JSON.parse(await readFile(new URL('worker.config.json', output), 'utf8'));
+const modules = Object.fromEntries(await Promise.all((await readdir(new URL('bundle/', output), { recursive: true })).filter(name => name.endsWith('.js')).map(async name => [name, { type: 'esm', contents: await readFile(new URL(`bundle/${name}`, output), 'utf8') }])));
 const video = { bvid: 'BV1C9b76cEks', title: 'Runtime fixture', owner: { name: 'Test' }, rights: {}, pages: [{ cid: 123 }] };
 
-function runtime(t, handler = upstream) {
+function runtime(t, handler = upstream, extraEnv = {}) {
   const mf = new Miniflare({ workers: [{
     config: {
-      name: 'cplayer-runtime-test', compatibilityDate,
-      env: { CHKSZ_API_KEY: { type: 'json', value: 'fixture-key' } },
-      manifest: { mainModule: 'index.js', modules: { 'index.js': { type: 'esm', contents: code } } },
+      name: 'cplayer-runtime-test', compatibilityDate, compatibilityFlags,
+      env: { CHKSZ_API_KEY: { type: 'json', value: 'fixture-key' }, ...extraEnv },
+      manifest: { mainModule: 'index.js', modules },
     },
     dev: { outboundService: { type: 'fetcher', handler } },
   }] });
@@ -156,4 +157,46 @@ test('workerd: quota-independent discovery playlists and concurrent chart reques
     const responses=await Promise.all([1,2].map(()=>mf.dispatchFetch(`https://player.example/api/v1/discovery/${path}`)));
     for(const response of responses){assert.equal(response.status,200);const body=await response.json();if(body.tracks){assert.equal(body.tracks[0].provider,'gd');assert.equal(body.tracks[0].duration,210);}else assert.equal(body.items[0].name,'新歌榜');}
   }
+});
+
+test('workerd: D1 account OTP, authenticated CAS sync and deletion', { timeout: 20000 }, async t => {
+  let otp;
+  const mf = runtime(t, async request => {
+    if (new URL(request.url).hostname === 'api.resend.com') { otp = (await request.json()).text.match(/\b\d{6}\b/)[0]; return Response.json({ id: 'test' }); }
+    return upstream(request);
+  }, { ACCOUNTS_DB: { type: 'd1', name: 'accounts-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-test-secret-thirty-two-characters' }, RESEND_API_KEY: { type: 'json', value: 'test' }, AUTH_EMAIL_FROM: { type: 'json', value: 'CPlayer <login@example.com>' } });
+  const db = await mf.getD1Database('ACCOUNTS_DB');
+  const migration = (await Promise.all(['0001_accounts.sql', '0002_username.sql'].map(name => readFile(new URL('../migrations/' + name, import.meta.url), 'utf8')))).join('\n');
+  await db.batch(migration.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
+  const call = async (path, body, cookie, method = 'POST') => {
+    const response = await mf.dispatchFetch('https://player.example' + path, { method, headers: { origin: 'https://player.example', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    const data = await response.json(); assert.equal(response.status, 200, JSON.stringify(data)); return { response, data };
+  };
+  await call('/api/auth/email-otp/send-verification-otp', { email: 'runtime@example.com', type: 'sign-in' });
+  assert.match(otp, /^\d{6}$/);
+  const login = await call('/api/auth/sign-in/email-otp', { email: 'runtime@example.com', otp });
+  const cookie = login.response.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+  await call('/api/sync', { revision: 0, records: { 'favorite:gd:1': { id: '1' } } }, cookie, 'PUT');
+  assert.equal((await call('/api/sync', undefined, cookie, 'GET')).data.records['favorite:gd:1'].id, '1');
+  await call('/api/account/delete', { confirmation: '删除我的账号' }, cookie);
+  assert.equal((await db.prepare('SELECT count(*) n FROM cplayer_sync').first()).n, 0);
+});
+
+test('workerd: username/password registration and login persist in D1 without mail services', { timeout: 20000 }, async t => {
+  const mf = runtime(t, upstream, { ACCOUNTS_DB: { type: 'd1', name: 'password-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-password-secret-thirty-two-characters' } });
+  const db = await mf.getD1Database('ACCOUNTS_DB');
+  for (const file of ['0001_accounts.sql', '0002_username.sql']) {
+    const sql = await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8');
+    await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
+  }
+  const call = (path, body) => mf.dispatchFetch('https://player.example' + path, { method: 'POST', headers: { origin: 'https://player.example', 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const password = 'test-worker-password';
+  let response = await call('/api/auth/sign-up/username', { username: 'worker_user', password });
+  assert.equal(response.status, 200, await response.text());
+  const account = await db.prepare("SELECT password FROM account WHERE providerId = 'credential'").first();
+  assert.ok(account.password.length > 100); assert.ok(!account.password.includes(password));
+  response = await call('/api/auth/sign-in/username', { username: 'WORKER_USER', password });
+  assert.equal(response.status, 200, await response.text());
+  response = await call('/api/auth/sign-in/username', { username: 'worker_user', password: 'wrong-password' });
+  assert.equal(response.status, 401);
 });

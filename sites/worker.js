@@ -1,4 +1,5 @@
 import { handleDiscoveryContent } from './discovery-content.js';
+import { handleAccounts } from './accounts.js';
 import { handleMusicMetadata } from './music-metadata.js';
 import {
   handleArtistsRequest,
@@ -130,6 +131,8 @@ async function handleMusicProxyRequest(request, env, requestUrl, route) {
 
 const worker = {
   async fetch(request, env) {
+    const accountPath = new URL(request.url).pathname;
+    if (accountPath.startsWith('/api/auth/') || accountPath.startsWith('/api/account/') || accountPath === '/api/sync') return handleAccounts(request, env);
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return new Response('Method Not Allowed', {
         status: 405,

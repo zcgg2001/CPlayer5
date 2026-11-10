@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises';
 
 import worker from './sites/worker.js';
 import { createMusicKeySettings, MUSIC_KEY_PATH } from './local-music-key.js';
+import { localAccountsEnv } from './local-accounts.js';
 
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(process.env.CPLAYER_STATIC_DIR || `${PROJECT_ROOT}/dist/static`);
@@ -92,7 +93,7 @@ async function fetchStaticAsset(request) {
   );
 }
 
-function requestHeaders(incoming) {
+function requestHeaders(incoming, trustProxy) {
   const headers = new Headers();
   for (const [name, value] of Object.entries(incoming.headers)) {
     if (Array.isArray(value)) {
@@ -101,18 +102,22 @@ function requestHeaders(incoming) {
       headers.set(name, value);
     }
   }
+  // Direct Node clients cannot select their own authentication rate-limit bucket.
+  // Only opt in to forwarded client IPs behind a proxy that replaces this header.
+  if (!trustProxy || !headers.has('cf-connecting-ip')) headers.set('cf-connecting-ip', incoming.socket.remoteAddress || '127.0.0.1');
   return headers;
 }
 
-function toFetchRequest(incoming, signal) {
+function toFetchRequest(incoming, signal, trustProxy) {
   const forwardedProto = incoming.headers['x-forwarded-proto'];
   const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'http';
   const host = incoming.headers.host || `${DEFAULT_HOST}:${DEFAULT_PORT}`;
   const url = new URL(incoming.url || '/', `${protocol}://${host}`);
   return new Request(url, {
     method: incoming.method || 'GET',
-    headers: requestHeaders(incoming),
+    headers: requestHeaders(incoming, trustProxy),
     signal,
+    ...(incoming.method !== 'GET' && incoming.method !== 'HEAD' && url.pathname !== MUSIC_KEY_PATH ? { body: Readable.toWeb(incoming), duplex: 'half' } : {}),
   });
 }
 
@@ -120,10 +125,11 @@ function runtimeEnv() {
   return {
     ASSETS: { fetch: fetchStaticAsset },
     CHKSZ_API_KEY: process.env.CHKSZ_API_KEY || '',
+    ...localAccountsEnv(),
   };
 }
 
-export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker } = {}) {
+export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker, trustProxy = process.env.AUTH_TRUST_PROXY === '1' } = {}) {
   // Each running server has its own key; never mutate process.env or write it to disk.
   env = { ...env };
   const musicKeySettings = createMusicKeySettings(env);
@@ -131,18 +137,18 @@ export function createCPlayerServer({ env = runtimeEnv(), workerImpl = worker } 
     const controller = new AbortController();
     outgoing.once('close', () => controller.abort());
     try {
-      const request = toFetchRequest(incoming, controller.signal);
+      const request = toFetchRequest(incoming, controller.signal, trustProxy);
       const url = new URL(request.url);
       let response;
       if (url.pathname === MUSIC_KEY_PATH) {
         response = await musicKeySettings.handle(incoming, url);
       } else {
-        if (incoming.method !== 'GET' && incoming.method !== 'HEAD') incoming.resume();
         response = (url.pathname.startsWith('/api/') && musicKeySettings.guard(incoming, url))
           || await workerImpl.fetch(request, env);
       }
       const responseHeaders = {};
       for (const [name, value] of response.headers) responseHeaders[name] = value;
+      if (response.headers.getSetCookie().length) responseHeaders['set-cookie'] = response.headers.getSetCookie();
       outgoing.writeHead(response.status, response.statusText, responseHeaders);
       if (incoming.method === 'HEAD' || !response.body) {
         await response.body?.cancel();

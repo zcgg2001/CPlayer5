@@ -42,3 +42,6 @@ mkdir -p "$dist_dir/js"
 cp "$project_dir/js/music-channels.js" "$dist_dir/js/music-channels.js"
 
 cp "$project_dir/js/music-catalog.js" "$dist_dir/js/music-catalog.js"
+cp "$project_dir/sites/accounts.js" "$server_dir/accounts.js"
+cp "$project_dir/sites/account-auth.js" "$server_dir/account-auth.js"
+cp "$project_dir/js/account-data.js" "$dist_dir/js/account-data.js"

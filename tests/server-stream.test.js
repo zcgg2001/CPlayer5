@@ -3,6 +3,20 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createCPlayerServer } from '../server.js';
 
+test('Node uses the connection IP unless a trusted proxy is explicitly configured', async t => {
+  for (const trustProxy of [false, true]) {
+    const server = createCPlayerServer({ env: {}, trustProxy, workerImpl: {
+      fetch: request => Response.json({ ip: request.headers.get('cf-connecting-ip') }),
+    } });
+    t.after(() => { server.closeAllConnections(); server.close(); });
+    server.listen(0, '127.0.0.1'); await once(server, 'listening');
+    const origin = `http://127.0.0.1:${server.address().port}`;
+    const forged = await (await fetch(origin, { headers: { 'cf-connecting-ip': '192.0.2.44' } })).json();
+    assert.equal(forged.ip, trustProxy ? '192.0.2.44' : '127.0.0.1');
+    assert.equal((await (await fetch(origin)).json()).ip, '127.0.0.1');
+  }
+});
+
 test('the local server forwards chunks before the upstream body finishes and cancels on disconnect', async t => {
   let producer;
   let clientSignal;

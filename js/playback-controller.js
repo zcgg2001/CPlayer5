@@ -307,5 +307,10 @@ export function createPlaybackController({
         } else view.onNext?.();
     }
 
-    return { state, load, toggle, changeQuality, preloadNext, ended };
+    function stop() {
+        sessions.start(); commandVersion++; activeLoad = null; cancelPreload();
+        state.quality.controller?.abort(); state.quality.songLoading = false;
+        state.currentSong = null; audio.pause?.(); audio.removeAttribute?.('src'); audio.load?.();
+    }
+    return { state, load, toggle, changeQuality, preloadNext, ended, stop };
 }

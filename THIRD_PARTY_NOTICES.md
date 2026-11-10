@@ -14,3 +14,11 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Account and desktop dependencies
+
+- Better Auth 1.7.18: https://github.com/better-auth/better-auth — MIT. Used through its npm package for authentication and device authorization; package license is retained in dependency installations.
+- Electron 45.2.3: https://github.com/electron/electron — MIT, plus Chromium and other bundled dependencies. Packaged desktop builds retain Electron's LICENSE and LICENSES.chromium.html.
+- @electron/packager 19.0.1: https://github.com/electron/packager — BSD-2-Clause, development packaging tool.
+
+Exact versions and transitive dependencies are recorded in package-lock.json. No source from other music-player repositories is copied into the account feature.
