@@ -1,6 +1,7 @@
 import { MUSIC_CHANNELS, isMusicChannel } from '../js/music-channels.js';
 import { ChannelError, USER_AGENT, checkedUrl, audioUrl, createChannelClient } from './channel-http.js';
 import { searchChannel, resolveChannel, resolveJbsou, channelLyric } from './channel-providers.js';
+import { XINGHAI_USER_AGENT } from './xinghai-music.js';
 import { OP_USER_AGENT } from './op-music.js';
 
 export { isMusicChannel };
@@ -44,7 +45,7 @@ async function streamAudio(request, info, platform, fetchImpl, source) {
     try {
       response = await fetchImpl(url.href, {
         method: request.method, redirect: 'manual',
-        headers: { 'user-agent': source.startsWith('op-') ? OP_USER_AGENT : USER_AGENT, ...(range ? { range } : {}) },
+        headers: { 'user-agent': source.startsWith('op-') ? OP_USER_AGENT : source.startsWith('xinghai-') ? XINGHAI_USER_AGENT : USER_AGENT, ...(range ? { range } : {}) },
         signal: AbortSignal.any([request.signal, timeout.signal]),
       });
     } finally { clearTimeout(timer); }
@@ -110,12 +111,16 @@ export async function handleMusicChannelRequest(request, env, url) {
     const requested = params.get('level') || channel.qualities.at(-1) || 'standard';
     if (!['standard','exhigh','lossless','hires','jymaster'].includes(requested)) throw new ChannelError(400, '音质参数无效');
     const level = channel.qualities.includes(requested) ? requested : channel.qualities.at(-1) || 'standard';
-    const info = await cached(cache, `${source}:song:${id}:${level}`, 60_000, async () => {
-      const resolved = await resolveChannel(source, channel.platform, id, level, client);
+    const inspected = source.startsWith('op-') || source.startsWith('xinghai-');
+    const resolve = async () => {
+      const resolved = await resolveChannel(source, channel.platform, id, level, client, env);
       const url = audioUrl(resolved.url, channel.platform, source);
-      const format = source.startsWith('op-') ? resolved.format : url.pathname.match(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i)[1].toLowerCase();
-      return { ...resolved, format, br: (Number(resolved.bitrate) || 0) * 1000, level: source.startsWith('op-') ? resolved.level : format === 'flac' ? 'lossless' : Number(resolved.bitrate) >= 300 ? 'exhigh' : 'standard' };
-    });
+      const format = inspected ? resolved.format : url.pathname.match(/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i)[1].toLowerCase();
+      return { ...resolved, format, br: (Number(resolved.bitrate) || 0) * 1000, level: inspected ? resolved.level : format === 'flac' ? 'lossless' : Number(resolved.bitrate) >= 300 ? 'exhigh' : 'standard' };
+    };
+    // Xinghai URLs can depend on a server license. Do not put them in a shared
+    // public-metadata cache or retain request-local authorization across calls.
+    const info = source.startsWith('xinghai-') ? await resolve() : await cached(cache, `${source}:song:${id}:${level}`, 60_000, resolve);
     if (action === 'audio') {
       try { return await streamAudio(request, info, channel.platform, fetchImpl, source); }
       catch (error) { cache.delete(`${source}:song:${id}:${level}`); throw error; }
@@ -123,7 +128,7 @@ export async function handleMusicChannelRequest(request, env, url) {
     return json({ code:200, data: {
       id, url: `/api/v1/music/audio?${new URLSearchParams({ source, id, level })}`,
       format: info.format, level: info.level, br: info.br, cover: info.cover || '', downloadAllowed:false,
-      ...(source.startsWith('op-') ? { name:info.name, artist:info.artist, album:info.album, duration:info.duration, sampleRate:info.sampleRate, bitDepth:info.bitDepth } : {}),
+      ...(inspected ? { name:info.name, artist:info.artist, album:info.album, duration:info.duration, sampleRate:info.sampleRate, bitDepth:info.bitDepth } : {}),
     } });
   } catch (error) {
     return json({ error: { code:'channel_error', message: error instanceof ChannelError ? error.message : '渠道连接失败或超时，请稍后重试或切换渠道' } }, error instanceof ChannelError ? error.status : 502, error.retryAfter);

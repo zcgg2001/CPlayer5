@@ -36,7 +36,7 @@ test('profile bounds data, survives denied/corrupt storage and never persists si
   const disk=storage(),store=createDiscoveryProfile({storage:disk});
   const raw=song(1,{url:'https://secret.test/song?token=secret',sources:[{...song(1),url:'https://secret.test/audio'}],catalogId:'recording:1'});
   store.import([raw]);store.record(raw,42,10);store.setTags(['华语','华语','invalid']);
-  assert.doesNotMatch(disk.getItem('cp_discovery_profile_v1'),/secret|token/);
+  assert.doesNotMatch(disk.getItem('cp_discovery_profile_v1:guest'),/secret|token/);
   const reloaded=createDiscoveryProfile({storage:disk});assert.equal(reloaded.profile.history[0].position,42);assert.deepEqual(reloaded.profile.tags,['华语']);
   for(let i=0;i<105;i++)store.record(song(i),1,1);assert.equal(store.profile.history.length,100);
   for(let i=0;i<505;i++)store.dismiss(song(i));assert.equal(store.profile.dismissed.length,500);

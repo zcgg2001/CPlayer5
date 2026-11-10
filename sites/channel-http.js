@@ -30,6 +30,7 @@ export function audioUrl(value, platform, source = '') {
     throw new ChannelError(502, '渠道返回了不支持的音频地址');
   }
   if (!/\.(mp3|flac|m4a|aac|ogg|wav|opus)$/i.test(url.pathname)) throw new ChannelError(502, '渠道未返回音频直链');
+  if (source.startsWith('xinghai-')) url.protocol = 'https:';
   return url;
 }
 export function jbsouUrl(value) {

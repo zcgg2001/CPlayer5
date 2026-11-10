@@ -157,3 +157,12 @@ test('source disabling cannot be bypassed through accepted case or whitespace al
     assert.equal(response.status,503);assert.equal((await response.json()).error.code,'source_disabled');
   }
 });
+
+test('existing operations config gains newly installed sources without resetting operator choices',async t=>{
+  const f=fixture(t),settings=defaults();delete settings.sources['xinghai-netease'];delete settings.sources['xinghai-qq'];
+  settings.sources.gd={enabled:false,priority:78};settings.modules=['history'];
+  f.db.prepare('INSERT INTO cplayer_ops_config VALUES(1,7,?,?)').run(JSON.stringify(settings),Date.now());
+  const merged=await config(f.env);assert.equal(merged.revision,7);assert.deepEqual(merged.sources.gd,settings.sources.gd);assert.deepEqual(merged.modules,['history']);assert.equal(merged.sources['xinghai-netease'].enabled,true);assert.equal(merged.sources['xinghai-qq'].enabled,true);
+  const admin=await f.login('upgrade_admin');f.env.OPS_ADMIN_USER_IDS=admin.user.id;
+  assert.equal((await f.call('/api/admin/config',{...admin,method:'PUT',body:merged})).status,200);assert.equal((await config(f.env)).revision,8);
+});

@@ -5,6 +5,7 @@ import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:
 import { Buffer } from 'node:buffer';
 import { load } from 'cheerio/slim';
 import { ChannelError, AT38, JBSOU, GEQUKE, audioUrl, jbsouUrl, boundedBytes, responseText } from './channel-http.js';
+import { resolveXinghai } from './xinghai-music.js';
 import { searchOp, resolveOp, lyricOp } from './op-music.js';
 
 const EAPI_KEY = Buffer.from('e82ckenh8dichen8');
@@ -32,6 +33,7 @@ async function netease(client, lyric, payload) {
 }
 
 export async function searchChannel(source, platform, keyword, limit, offset, client) {
+  if (source.startsWith('xinghai-')) return searchChannel(platform, platform, keyword, limit, offset, client);
   if (source.startsWith('op-')) return searchOp(source, keyword, limit, offset, client);
   if (source === 'netease') {
     const data = await netease(client, false, { s: keyword, type: 1, limit, offset, total: true });
@@ -112,7 +114,8 @@ export async function resolveJbsou(id, platform, client, cover = false) {
 }
 
 const pageValue = (html, name) => html.match(new RegExp(`window\\.${name}\\s*=\\s*['"]([^'"]*)['"]`))?.[1] || '';
-export async function resolveChannel(source, platform, id, level, client) {
+export async function resolveChannel(source, platform, id, level, client, env = {}) {
+  if (source.startsWith('xinghai-')) return resolveXinghai(source, id, level, client, env.XINGHAI_LICENSE || '');
   if (source.startsWith('op-')) return resolveOp(source, id, level, client);
   if (source.startsWith('jianbin-')) return { url: await resolveJbsou(id, platform, client) };
   validateId(id, source === 'gequke' ? 'kuwo' : platform);

@@ -1,5 +1,9 @@
 import { cleanRecords, mergeRecords, same } from './account-data.js';
 
+// Sync exchanges complete, revisioned snapshots. Missing and null are equivalent
+// in the three-way merge, so expired history/stat rows need no lasting tombstone.
+const compact = records => Object.fromEntries(Object.entries(records).filter(([key,value]) => value !== null || !/^(history:|listen:)/.test(key)));
+
 export function createAccountSync({ storage, request, onApply = () => {}, onStatus = () => {} }) {
   let userId = null, state = null, epoch = 0, running = null;
   const key = () => `cp_cloud_v1:${userId}`;
@@ -10,7 +14,7 @@ export function createAccountSync({ storage, request, onApply = () => {}, onStat
       epoch++; userId = id; running = null;
       try { state = JSON.parse(storage.getItem(key())); } catch { state = null; }
       if (!state || !state.base || !state.local) state = { base: {}, local: {}, revision: 0, conflicts: [] };
-      state.local = cleanRecords(state.local); state.base = cleanRecords(state.base);
+      state.local = cleanRecords(compact(state.local)); state.base = cleanRecords(compact(state.base));
       onApply(state.local); status('正在连接云端');
     },
     disconnect({ erase = false } = {}) { if (erase && userId) storage.removeItem(key()); epoch++; userId = null; state = null; running = null; },
@@ -19,7 +23,7 @@ export function createAccountSync({ storage, request, onApply = () => {}, onStat
       const clean = cleanRecords(records), local = { ...state.local };
       for (const k of new Set([...Object.keys(local), ...Object.keys(clean)])) local[k] = clean[k] ?? null;
       if (same(local, state.local)) return;
-      state.local = local; persist(); status('修改已保存在此设备，等待同步');
+      state.local = compact(local); persist(); status('修改已保存在此设备，等待同步');
     },
     import(records) { if (state) { state.local = cleanRecords({ ...state.local, ...records }); persist(); onApply(state.local); status('已导入此设备的资料'); } },
     resolve(key, choice) {
@@ -40,7 +44,7 @@ export function createAccountSync({ storage, request, onApply = () => {}, onStat
             const merged = mergeRecords(state.base, state.local, cleanRecords(remote.records));
             // Preserve unresolved conflicts across pulls and page reloads.
             state.conflicts = [...new Set([...state.conflicts.filter(k => !same(state.local[k], remote.records[k])), ...merged.conflicts])];
-            state.local = merged.records; state.base = remote.records; state.revision = remote.revision;
+            state.local = compact(merged.records); state.base = remote.records; state.revision = remote.revision;
             persist(); onApply(state.local);
             if (state.conflicts.length) { status('有冲突，请选择要保留的版本'); return; }
             if (same(state.local, state.base)) { status('已与云端同步'); return; }

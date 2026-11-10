@@ -36,7 +36,7 @@ cp "$project_dir/sites/bilibili.js" "$server_dir/bilibili.js"
 cp "$project_dir/sites/chksz.js" "$server_dir/chksz.js"
 cp "$project_dir/sites/gd.js" "$server_dir/gd.js"
 
-for module in music-channels channel-http channel-providers op-music music-metadata discovery-content; do
+for module in music-channels channel-http channel-providers op-music xinghai-music music-metadata discovery-content; do
   cp "$project_dir/sites/$module.js" "$server_dir/$module.js"
 done
 mkdir -p "$dist_dir/js"
@@ -47,6 +47,9 @@ cp "$project_dir/sites/accounts.js" "$server_dir/accounts.js"
 cp "$project_dir/sites/account-auth.js" "$server_dir/account-auth.js"
 cp "$project_dir/js/account-data.js" "$dist_dir/js/account-data.js"
 
-for module in operations-store reliability operations-api cover-cache public-pages response-cache admin-bootstrap; do
+for module in operations-store reliability operations-api cover-cache public-pages response-cache admin-bootstrap personal-library playlist-import; do
   cp "$project_dir/sites/$module.js" "$server_dir/$module.js"
 done
+
+cp "$project_dir/js/library-data.js" "$dist_dir/js/library-data.js"
+cp "$project_dir/js/library-transfer.js" "$dist_dir/js/library-transfer.js"

@@ -18,7 +18,7 @@ export function filterDiscoveryTracks(songs, query = '', sort = 'default') {
 const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const keyOf = song => `${song.provider || 'gd'}:${song.id}`;
 
-export function createDiscoveryTable({document, storage, list, onPlay, onQueue, onBatch, onDownload, onSearch, onRetry, onMore, onNotify = () => {}, onDetails = () => {}, getPlayback, canDownload}) {
+export function createDiscoveryTable({document, storage, list, onPlay, onQueue, onBatch, onDownload, onSearch, onRetry, onMore, onNotify = () => {}, onDetails = () => {}, getPlayback, canDownload, onLibrary = () => {}}) {
   let tracks = [], query = '', sort = 'default', favoritesOnly = false, hasMore = true, busy = false;
   let favorites;
   try { favorites = new Map(JSON.parse(storage.getItem('cp_favorites_v1') || '[]').filter(pair => Array.isArray(pair) && pair[1]?.id)); } catch { favorites = new Map(); }
@@ -49,6 +49,7 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
       const node = button(label, glyph, () => { closeMenu(); action(); }, 'track-menu-item');
       const text = document.createElement('span'); text.textContent = label; node.append(text); node.setAttribute('role','menuitem'); menu.append(node); return node;
     };
+    item('保存到歌单 / 标签与笔记', 'ListPlus', () => onLibrary(song));
     item('歌曲资料与音源', 'Info', () => onDetails(song,trigger));
     if (canDownload(song)) item('下载歌曲', 'ArrowDownToLine', () => onDownload(song,trigger));
     item('复制歌曲链接', 'Link', async () => {

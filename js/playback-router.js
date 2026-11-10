@@ -4,7 +4,7 @@ import { RequestCancelledError } from './http.js';
 
 // Default order for automatic choices and fallbacks. An explicitly selected
 // search/catalog channel takes precedence over this order and latency scores.
-export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
+export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'xinghai-netease', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'xinghai-qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
 const QUALITY_ORDER = ['jymaster', 'hires', 'lossless', 'exhigh', 'standard'];
 const HEALTH_KEY = 'cp_playback_health_v1';
 export function actualPlaybackQuality(data) {
@@ -79,12 +79,12 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     };
     for (const item of sources) add({ ...original, ...item, sources:undefined, provider:item.provider || service.sourceForSong(item).provider });
     const neteaseId = neteaseMetadataId(original);
-    if (neteaseId) for (const provider of ['netease','chksz','gd','at38-netease','op-netease']) {
+    if (neteaseId) for (const provider of ['netease','chksz','gd','at38-netease','op-netease','xinghai-netease']) {
       if (!direct.has(provider)) add({ ...original, sources:undefined, provider, id:MUSIC_CHANNELS[provider]?channelTrackId(provider,neteaseId):neteaseId, sourceId:neteaseId, availability:undefined });
     }
-    for (const item of sources) if (['qq','at38-qq','op-qq'].includes(item.provider)) {
+    for (const item of sources) if (['qq','at38-qq','op-qq','xinghai-qq'].includes(item.provider)) {
       const mid=channelSourceId(item.provider,item.sourceId||item.id);
-      if (/^[a-zA-Z0-9]{1,128}$/.test(mid)) for (const provider of ['qq','at38-qq','op-qq']) if(!direct.has(provider)) add({...item,provider,id:channelTrackId(provider,mid),sourceId:mid,availability:undefined});
+      if (/^[a-zA-Z0-9]{1,128}$/.test(mid)) for (const provider of ['qq','at38-qq','op-qq','xinghai-qq']) if(!direct.has(provider)) add({...item,provider,id:channelTrackId(provider,mid),sourceId:mid,availability:undefined});
     }
     const video = sources.some(item=>item.provider==='bilibili');
     const primaryPlatform=platform(sources[0]?.provider || service.sourceForSong(original).provider);

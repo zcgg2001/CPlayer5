@@ -1,3 +1,4 @@
+import { handlePersonalLibrary, exportSharedLibrary } from './personal-library.js';
 import { bootstrapRequired } from './admin-bootstrap.js';
 import { accountCapabilities, createAccountAuth } from './account-auth.js';
 import { cleanRecords, MAX_SYNC_BYTES } from '../js/account-data.js';
@@ -30,7 +31,7 @@ export async function handleAccounts(original, env) {
   try {
     if (write) {
       if (!original.headers.get('content-type')?.startsWith('application/json')) return json({ message: '需要 JSON 请求' }, 415);
-      const bytes = await boundedRequest(original, path === '/api/sync' ? MAX_SYNC_BYTES + 2048 : 16384);
+      const bytes = await boundedRequest(original, (path === '/api/sync' || path.startsWith('/api/library/')) ? MAX_SYNC_BYTES + 2048 : 16384);
       try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { return json({ message: 'JSON 格式无效' }, 400); }
       request = new Request(original.url, { method: original.method, headers: original.headers, body: bytes });
     }
@@ -66,6 +67,7 @@ export async function handleAccounts(original, env) {
     if (!session) return json({ message: '请先登录' }, 401);
     const userId = session.user.id;
     if (path !== '/api/account/me' && await bootstrapRequired(env, userId)) return json({ message: '请先在后台修改初始管理员密码' }, 403);
+    if (path.startsWith('/api/library/')) return handlePersonalLibrary(request, env, userId, body);
     if (path === '/api/account/me' && request.method === 'GET') return json({ user: { id: userId, name: session.user.name, username: session.user.username || null, email: session.user.email.endsWith('.invalid') ? null : session.user.email }, fresh: Date.now() - new Date(session.session.createdAt).getTime() < 300000 });
     if (path === '/api/sync' && request.method === 'GET') return json(await readCloud(env, userId));
     if (path === '/api/sync' && request.method === 'PUT') {
@@ -80,7 +82,7 @@ export async function handleAccounts(original, env) {
       if (!row) return json({ message: '云端已有更新', ...await readCloud(env, userId) }, 409);
       return json({ revision: row.revision });
     }
-    if (path === '/api/account/export' && request.method === 'GET') return json({ format: 'cplayer5-account-v1', exportedAt: new Date().toISOString(), user: { id: userId, name: session.user.name, username: session.user.username || null, email: session.user.email, createdAt: session.user.createdAt }, cloud: await readCloud(env, userId) });
+    if (path === '/api/account/export' && request.method === 'GET') return json({ format: 'cplayer5-account-v1', exportedAt: new Date().toISOString(), user: { id: userId, name: session.user.name, username: session.user.username || null, email: session.user.email, createdAt: session.user.createdAt }, cloud: await readCloud(env, userId), sharedPlaylists: await exportSharedLibrary(env, userId) });
     if (path === '/api/account/sessions' && request.method === 'GET') {
       const sessions = await auth.api.listSessions({ headers: request.headers });
       return json(sessions.map(s => ({ id: s.id, current: s.id === session.session.id, createdAt: s.createdAt, updatedAt: s.updatedAt, userAgent: s.userAgent })));

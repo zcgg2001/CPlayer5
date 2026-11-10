@@ -1,3 +1,4 @@
+import { LIBRARY_KEY, personalRecord } from './personal-library-store.js';
 import { cleanRecords, cleanSong, SYNC_SETTINGS, same } from './account-data.js';
 
 export function createAccountLibrary({ storage, player, refreshFavorites, onSettings }) {
@@ -17,7 +18,7 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
         const value = player.progress();
         if (value?.song?.id && value.position > 0) progress[`progress:${deviceId}`] = { ...value, song: cleanSong(value.song), position: Math.floor(value.position), device: /Mobile|Android|iPhone/.test(navigator.userAgent) ? '手机' : window.cplayerDesktop ? '桌面客户端' : '浏览器', savedAt: Date.now() };
       }
-      return cleanRecords({ ...records, ...progress });
+      return cleanRecords({ ...records, ...progress, ...read(LIBRARY_KEY, {}) });
     },
     apply(records) {
       const favorites = [], playlists = {}; progress = {};
@@ -27,6 +28,7 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
         if (key.startsWith('playlist:')) playlists[key.slice(9)] = value;
         if (key.startsWith('progress:')) progress[key] = value;
       }
+      storage.setItem(LIBRARY_KEY, JSON.stringify(Object.fromEntries(Object.entries(records).filter(([key]) => personalRecord(key)))));
       storage.setItem('cp_favorites_v1', JSON.stringify(favorites));
       storage.setItem('cp_saved_playlists_v1', JSON.stringify(playlists)); refreshFavorites();
       const changed = [];
@@ -35,6 +37,7 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
         if (value !== storage.getItem(key)) { changed.push(key); if (value === null) storage.removeItem(key); else storage.setItem(key, value); }
       }
       if (changed.length) onSettings(changed);
+      globalThis.window?.dispatchEvent(new Event('cplayer:library-applied'));
       const next = records.queue || { songs: [], name: '播放队列' };
       if (!same(next, currentQueue)) { currentQueue = next; player.setQueue(next.songs); }
     },

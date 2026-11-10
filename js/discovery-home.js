@@ -6,7 +6,7 @@ import { createRecommendationService, createRadio } from './recommendation-servi
 import { catalogRecord, groupAvailability, AVAILABILITY_LABELS } from './music-catalog.js';
 import { durationLabel } from './discovery-table.js';
 
-export function createDiscoveryHome({ document, root, musicService, storage, onPlay, onBatch, onDetails, getCurrentSong, getLibrary, notify = () => {} }) {
+export function createDiscoveryHome({ onCollect = () => {}, document, root, musicService, storage, onPlay, onBatch, onDetails, getCurrentSong, getLibrary, notify = () => {} }) {
   const profileStore = createDiscoveryProfile({ storage }), { profile } = profileStore;
   const service = createRecommendationService({ musicService, profileStore, storage });
   let controller, modalController, daily = [], modalEntries = [], filters = {}, dialogOpener, lastDismissed, lastDay = dayKey(), homeLoading = true;
@@ -168,6 +168,7 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     try { const data = await service.playlist(id, signal); if (signal.aborted) return;
       service.add(data.tracks, `来自歌单《${data.collection.name}》`);
       showTracks(data.collection.name, data.tracks, `${data.collection.source} · 已取得 ${data.tracks.length} / ${data.collection.trackCount} 首${data.partial ? '，上游仅提供部分内容' : ''}`);
+      dialogBody.prepend(button('收藏歌单', () => onCollect({...data.collection,type:'playlist',provider:'netease'})));
     } catch (error) { if (!signal.aborted) { textStatus(dialogBody, requestErrorMessage(error)); dialogBody.append(button('重试', () => openPlaylist(id))); } }
   }
   async function openCollection(type, id) {
@@ -176,7 +177,7 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     const signal = openDialog('正在读取音乐资料'); textStatus(dialogBody, '正在读取音乐资料…');
     try {
       const data = await requestJson(`/api/v1/discovery/${type}?id=${id}`, { signal });
-      if (!signal.aborted) showTracks(data.collection.name, data.tracks, data.collection.description || data.collection.source);
+      if (!signal.aborted) { showTracks(data.collection.name, data.tracks, data.collection.description || data.collection.source); dialogBody.prepend(button(type==='album'?'收藏专辑':'收藏歌手',()=>onCollect({...data.collection,type,provider:'netease'}))); }
     } catch (error) { if (!signal.aborted) textStatus(dialogBody, requestErrorMessage(error)); }
   }
   function collectionCards(items) {
@@ -280,6 +281,11 @@ export function createDiscoveryHome({ document, root, musicService, storage, onP
     for (const event of ['pause', 'ended']) audio.addEventListener(event, () => savePlayback(audio, true));
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') savePlayback(audio, true); else if (lastDay !== dayKey()) { lastDay = dayKey(); load(); } });
   }
+  let profileOwner = storage?.getItem('cp_account_owner');
+  globalThis.window?.addEventListener('cplayer:library-applied', () => {
+    const next = storage?.getItem('cp_account_owner');
+    if (next !== profileOwner) { profileOwner = next; radio.stop(); dialog.close(); renderHistory(); renderRecommendations(); }
+  });
   load();
   return { load, connectAudio, openCollection, showCharts, startRadio, radio, advanceRadio,
     playbackFailed(error) { if (radio.active()) radioStatus.textContent = `这首暂时无法播放，点击下一首继续 · ${requestErrorMessage(error)}`; },

@@ -6,6 +6,7 @@ export function createAccountEntry() {
   function controls() {
     $('entryFields').disabled = busy || !ready;
     $('entryGuest').disabled = busy;
+    $('entryOffline').disabled = busy;
     $('entryDesktopLogin').disabled = busy || !ready;
   }
   function setMode(next) {
@@ -46,6 +47,7 @@ export function createAccountEntry() {
     finally { $('entryPassword').value = ''; $('entryConfirm').value = ''; }
   }); });
   $('entryGuest').addEventListener('click', () => { void run(async () => { message('正在进入游客模式…'); await handlers.guest?.(); close(); }); });
+  $('entryOffline').addEventListener('click', () => { void run(async () => { await handlers.offline?.(); close(); }); });
   $('entryDesktopLogin').addEventListener('click', () => { void run(async () => { const result = await handlers.desktop(); message(`请在系统浏览器核对验证码 ${result.user_code}，登录后允许连接。`); }); });
   $('entryRetry').addEventListener('click', () => { void run(async () => { await handlers.retry?.(); }); });
   // The static open attribute covers the first paint; promote to a modal as soon
@@ -55,11 +57,13 @@ export function createAccountEntry() {
     open, close, message,
     isOpen: () => dialog.open,
     configure(callbacks) { handlers = callbacks; },
-    ready(caps, remaining, isDesktop = false) {
+    ready(caps, remaining, isDesktop = false, offlineName = '') {
       ready = Boolean(caps.enabled && caps.username); desktop = isDesktop;
       $('entryGuestQuota').textContent = `可试听 ${remaining} / 50 首不同歌曲，重复播放不扣次数`;
       $('entryForm').hidden = desktop; $('entryModes').hidden = desktop; $('entryDesktopLogin').hidden = !desktop;
       $('entryRetry').hidden = ready;
+      $('entryOffline').hidden = ready || !offlineName;
+      $('entryOffline').textContent = `离线打开 ${offlineName} 的本机资料`;
       if (!ready) message('账号服务暂未连接，你可以先以游客试听。'); else message('');
       controls();
     },

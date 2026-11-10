@@ -1,3 +1,5 @@
+import { publicPlaylist } from './personal-library.js';
+import { importPlaylistLink } from './playlist-import.js';
 import { rateLimit, reliableRequest, maintainOperations } from './reliability.js';
 import { handleOperations } from './operations-api.js';
 import { handleCover } from './cover-cache.js';
@@ -138,7 +140,7 @@ async function handleMusicProxyRequest(request, env, requestUrl, route) {
 const core = {
   async fetch(request, env) {
     const accountPath = new URL(request.url).pathname;
-    if (accountPath.startsWith('/api/auth/') || accountPath.startsWith('/api/account/') || accountPath === '/api/sync') return handleAccounts(request, env);
+    if (accountPath.startsWith('/api/auth/') || accountPath.startsWith('/api/account/') || accountPath === '/api/sync' || accountPath.startsWith('/api/library/')) return handleAccounts(request, env);
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       return new Response('Method Not Allowed', {
         status: 405,
@@ -232,9 +234,11 @@ const managedWorker = {
       if (api) {
         if (url.href.length > 8192) return opsError(414, 'url_too_long', '请求地址过长');
         const limited = await rateLimit(request, env); if (limited) return limited;
+        if (url.pathname.startsWith('/api/library/public/')) return await publicPlaylist(request, env);
+        if (url.pathname === '/api/v1/library/import') return await importPlaylistLink(request, env);
         const operations = await handleOperations(request, env); if (operations) return operations;
         if (url.pathname === '/api/cover') return handleCover(request, env);
-        if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/api/account/') || url.pathname === '/api/sync') return core.fetch(request, env);
+        if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/api/account/') || url.pathname === '/api/sync' || url.pathname.startsWith('/api/library/')) return core.fetch(request, env);
         return await reliableRequest(request, env, filteredCore);
       }
       if (/^\/(artist|album|playlist)\//.test(url.pathname)) { const limited = await rateLimit(request, env); if (limited) return limited; }

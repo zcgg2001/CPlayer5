@@ -2,7 +2,7 @@ import { relatedMusic, availability, groupAvailability, sourceBlocked, AVAILABIL
 import { createCatalogService, mapConcurrent } from './catalog-service.js?v=1';
 import { MUSIC_SOURCE_OPTIONS } from './music-service.js?v=10';
 
-export function createCatalogBrowser({document, musicService, onPlay, onQueue}) {
+export function createCatalogBrowser({document, musicService, onPlay, onQueue, onLibrary = () => {}, onCollect = () => {}}) {
   const service = createCatalogService(musicService);
   const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className=className; if (text != null) node.textContent=text; return node; };
   const button = (text, action, className='catalog-button') => { const node=el('button',className,text); node.type='button'; node.addEventListener('click',action); return node; };
@@ -122,7 +122,7 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue}) 
     const copy=el('div'); copy.append(el('p','catalog-eyebrow',song.version.label),el('h3','',song.name),el('p','catalog-muted',song.artist));
     const actions=el('div','catalog-tools'); const play=button('播放可用音源',()=>playRecord(song),'catalog-button catalog-primary'); play.disabled=song.sources.every(source => sourceBlocked(source));
     const summary=el('span'); summary.dataset.catalogSummary=''; summary.append(badge(song));
-    actions.append(play,button('加入队列',()=>{onQueue(song);}),summary); copy.append(actions); hero.append(art,copy);
+    actions.append(play,button('加入队列',()=>{onQueue(song);}),button('收藏 / 歌单 / 笔记',()=>{dialog.close();onLibrary(song);}),summary); copy.append(actions); hero.append(art,copy);
     const fields=el('dl','catalog-metadata');
     const duration=song.metadata.duration; const values={duration:duration?`${Math.floor(duration/60)}:${String(Math.round(duration%60)).padStart(2,'0')}`:'',bitrate:song.metadata.bitrate?`${song.metadata.bitrate} kbps（元数据）`:'',releaseDate:song.metadata.releaseDate,language:song.metadata.language,genres:song.metadata.genres.join(' / '),label:song.metadata.label,isrc:song.metadata.isrc};
     for (const [field,name] of Object.entries({duration:'时长',bitrate:'码率',releaseDate:'发行日期',language:'语言',genres:'风格',label:'厂牌',isrc:'ISRC'})) {
@@ -147,9 +147,10 @@ export function createCatalogBrowser({document, musicService, onPlay, onQueue}) 
     renderSourceStates();
     const about=el('div','catalog-about');
     const album=el('section'); album.append(el('h3','catalog-section-title',`专辑 · ${song.albumEntity.name || '未提供'}`),el('p','catalog-muted',song.albumEntity.description || '音源未提供专辑介绍。'));
+    if(song.albumEntity.name) album.append(button('收藏专辑',()=>onCollect({type:'album',provider:song.albumEntity.id?'netease':song.provider||'unknown',...song.albumEntity,artist:song.artist,cover:song.cover})));
     const description=el('section'); description.append(el('h3','catalog-section-title','歌曲简介'),el('p','catalog-muted',song.metadata.description || '音源未提供歌曲简介。')); about.append(album,description); detailView.append(about);
     detailView.append(el('h3','catalog-section-title','歌手'));
-    for (const artist of song.artists) { const row=el('div','catalog-artist'); if(artist.avatar)row.append(image(artist.avatar,`${artist.name}头像`,'catalog-cover')); const copy=el('div'); copy.append(el('strong','',artist.name),el('p','catalog-muted',artist.description || '音源未提供艺人介绍。')); row.append(copy); detailView.append(row); }
+    for (const artist of song.artists) { const row=el('div','catalog-artist'); if(artist.avatar)row.append(image(artist.avatar,`${artist.name}头像`,'catalog-cover')); const copy=el('div'); copy.append(el('strong','',artist.name),el('p','catalog-muted',artist.description || '音源未提供艺人介绍。')); row.append(copy,button('收藏歌手',()=>onCollect({type:'artist',provider:artist.id?'netease':song.provider||'unknown',...artist,cover:artist.avatar}))); detailView.append(row); }
     const related=relatedMusic(song,songs), recommendations=el('section'); recommendations.append(el('h3','catalog-section-title','相似歌曲 · 当前搜索结果'));
     if(!related.songs.length)recommendations.append(el('p','catalog-muted','当前结果中没有足够的歌手、专辑或风格信息来推荐。'));
     for(const entry of related.songs)recommendations.append(button(`${entry.song.name} · ${entry.reasons.join(' / ')}`,()=>showDetails(entry.song),'catalog-related'));

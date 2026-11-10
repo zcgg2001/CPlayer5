@@ -127,6 +127,7 @@ function runtimeEnv() {
   return {
     ASSETS: { fetch: fetchStaticAsset },
     CHKSZ_API_KEY: process.env.CHKSZ_API_KEY || '',
+    XINGHAI_LICENSE: process.env.XINGHAI_LICENSE || '',
     ...localAccountsEnv(),
   };
 }

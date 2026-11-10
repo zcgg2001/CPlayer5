@@ -117,14 +117,21 @@ export function rankRecommendations(tracks, { profile, favorites = [], context =
 }
 
 export function createDiscoveryProfile({ storage, now = Date.now, random = Math.random } = {}) {
-  const key = 'cp_discovery_profile_v1';
-  let saved; try { saved = JSON.parse(storage?.getItem(key) || 'null'); } catch { /* Ignore corrupt data. */ }
-  const profile = { seed: String(saved?.seed || random()), tags: Array.isArray(saved?.tags) ? saved.tags.filter(t => allowedTags.has(t)).slice(0, 12) : [],
-    history: [], library: [], dismissed: Array.isArray(saved?.dismissed) ? saved.dismissed.filter(v => typeof v === 'string').slice(-500) : [] };
+  const scope = () => { try { return storage?.getItem('cp_account_owner') || 'guest'; } catch { return 'guest'; } };
+  let currentScope = scope();
+  const key = () => `cp_discovery_profile_v1:${currentScope}`;
+  const profile = {};
+  function reload() {
+  let saved; try { saved = JSON.parse(storage?.getItem(key()) || (currentScope==='guest' ? storage?.getItem('cp_discovery_profile_v1') : null) || 'null'); } catch { /* Ignore corrupt data. */ }
+  Object.assign(profile, { seed: String(saved?.seed || random()), tags: Array.isArray(saved?.tags) ? saved.tags.filter(t => allowedTags.has(t)).slice(0, 12) : [],
+    history: [], library: [], dismissed: Array.isArray(saved?.dismissed) ? saved.dismissed.filter(v => typeof v === 'string').slice(-500) : [] });
   profile.library = (Array.isArray(saved?.library) ? saved.library : []).slice(0, 1000).map(storedSong).filter(Boolean);
   profile.history = (Array.isArray(saved?.history) ? saved.history : []).slice(0, 100).filter(h => storedSong(h?.song)).map(h => ({ song: storedSong(h.song), position: Math.max(0, Number(h.position) || 0), listened: Math.max(0, Number(h.listened) || 0), at: Number(h.at) || 0 }));
+  }
+  reload();
+  globalThis.window?.addEventListener('cplayer:library-applied', () => { if (currentScope!==scope()) { currentScope=scope();reload();save(); } });
   let persistent = true;
-  const save = () => { try { storage?.setItem(key, JSON.stringify(profile)); persistent = Boolean(storage); } catch { persistent = false; } };
+  const save = () => { try { storage?.setItem(key(), JSON.stringify(profile)); persistent = Boolean(storage); } catch { persistent = false; } };
   save();
   return { profile, persistent: () => persistent,
     setTags(tags) { profile.tags = [...new Set(tags)].filter(t => allowedTags.has(t)).slice(0, 12); save(); },

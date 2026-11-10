@@ -9,7 +9,12 @@ export const clock = env => typeof env.OPS_NOW === 'function' ? env.OPS_NOW() : 
 export const defaults = () => ({ sources: Object.fromEntries(Object.keys(SOURCE_NAMES).map((id, priority) => [id, { enabled: true, priority }])), charts: [], modules: [...HOME_MODULES], sensitiveWords: [], pages: [] });
 export async function config(env) {
   const row = await sqlDB(env)?.prepare('SELECT revision, body FROM cplayer_ops_config WHERE id = ?').bind(1).first();
-  return row ? { revision: row.revision, ...JSON.parse(row.body) } : { revision: 0, ...defaults() };
+  const base = defaults();
+  if (!row) return { revision: 0, ...base };
+  const saved = JSON.parse(row.body);
+  // Newly installed channels must also appear on sites with an existing config.
+  // Preserve the operator's existing switches, priorities and revision.
+  return { ...base, ...saved, sources: { ...base.sources, ...saved.sources }, revision: row.revision };
 }
 export function validateConfig(value) {
   if (!value || typeof value !== 'object' || !Number.isSafeInteger(value.revision) || value.revision < 0) throw new Error('版本号无效');

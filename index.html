@@ -1416,6 +1416,7 @@
     <script src="./js/anime-progress-thumb.js?v=23"></script>
     <script src="playlist.js?v=22"></script>
     <link rel="stylesheet" href="./css/account.css?v=3">
+<link rel="stylesheet" href="./css/personal-library.css">
 </head>
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
@@ -1442,6 +1443,7 @@
                 <p id="entryStatus" role="status" aria-live="polite">正在连接账号服务…</p><button id="entryRetry" type="button" hidden>重新连接</button>
                 <div class="entry-divider"><span>也可以先听听</span></div>
                 <button id="entryGuest" class="entry-guest" type="button" disabled>游客试用 <span aria-hidden="true">→</span></button><p id="entryGuestQuota">可试听 50 首不同歌曲，重复播放不扣次数</p>
+                <button id="entryOffline" class="entry-guest" type="button" hidden>打开本机离线资料</button>
                 <p class="entry-footnote">每次打开都由你选择登录或游客模式。</p>
             </section>
         </div>
@@ -1517,6 +1519,7 @@
                         <span>播放队列</span>
                         <span id="playlistCount" class="app-nav-count" aria-live="polite">0首</span>
                     </button>
+                    <button class="app-nav-item personal-library-entry" type="button" data-open-personal-library aria-controls="personalLibraryDialog"><i class="fas fa-heart" aria-hidden="true"></i><span>我的音乐</span></button>
                     <button id="desktopImportBtn" class="app-nav-item" type="button"
                         data-shell-destination="import" aria-controls="playlistFile" aria-label="导入本地 JSON 歌单">
                         <i class="fas fa-file-import" aria-hidden="true"></i>
@@ -2158,6 +2161,7 @@
                 aria-controls="mobileChartsSheet" aria-expanded="false">
                 <i class="fas fa-compass" aria-hidden="true"></i>
             </button>
+            <button class="mobile-personal-library" type="button" data-open-personal-library aria-label="打开我的音乐"><i class="fas fa-heart" aria-hidden="true"></i></button>
             <button id="mobileThemeBtn" class="min-w-11 min-h-11" type="button"
                 aria-label="切换到明亮模式" aria-pressed="true">
                 <i class="fas fa-sun" aria-hidden="true"></i>
@@ -2817,7 +2821,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 text-center text-xs opacity-40 font-mono tracking-wider">
-                CPlayer 5 · v1.7.0 • 2026.11.10
+                CPlayer 5 · v1.8.0 • 2026.11.11
             </div>
         </div>
     </div>
@@ -3048,6 +3052,8 @@
         import { createGuestTrial } from './js/guest-trial.js?v=1';
         const guestTrial = createGuestTrial(localStorage);
         let accountPanel = null;
+        let personalLibrary = null;
+        import { initPersonalLibrary } from './js/personal-library.js';
         import { createCacheStore } from './js/cache-store.js?v=1';
         import { createMusicKeySettings } from './js/music-key-settings.js?v=4';
         import { isMusicChannel } from './js/music-channels.js?v=1';
@@ -3288,13 +3294,14 @@
 
         function syncPlaybackQualityDisplay(level) {
             const source = musicService.sourceForSong(playback.state.currentSong);
+            const isOffline = Boolean(playback.state.currentSong?.offline);
             const isBilibili = source.provider === 'bilibili';
             const levels = isMusicChannel(source.provider) ? source.qualities
                 : source.provider === 'gd' ? ['standard', 'exhigh', 'lossless', 'hires'] : Object.keys(QUALITY_DETAILS);
             const requestedLevel = supportedQuality(level);
             const resolvedLevel = !playback.state.currentSong && levels.length && !levels.includes(requestedLevel) ? levels.at(-1) : requestedLevel;
             const fixedQuality = isMusicChannel(source.provider) && !source.qualities.length;
-            const detail = fixedQuality ? { name: String(playback.state.currentSong?.format || '自动').toUpperCase(), className: 'quality-standard' } : isBilibili
+            const detail = isOffline ? { name: '离线', className: 'quality-standard' } : fixedQuality ? { name: String(playback.state.currentSong?.format || '自动').toUpperCase(), className: 'quality-standard' } : isBilibili
                 ? { name: 'AAC', className: 'quality-standard' }
                 : qualityDetails(resolvedLevel);
             dom.qualityBadge.textContent = detail.name;
@@ -3311,9 +3318,10 @@
                 dom.mobilePlaybackQualityBtn.setAttribute('aria-label', `播放音质：${detail.name}，点击选择`);
             }
             [dom.desktopPlaybackQualityBtn, dom.mobilePlaybackQualityBtn].filter(Boolean).forEach(button => {
-                button.disabled = isBilibili || fixedQuality;
-                button.title = fixedQuality ? '此渠道按实际返回音质播放' : isBilibili ? 'Bilibili 公开 AAC 音轨' : '选择播放音质';
-                if (isBilibili) button.setAttribute('aria-label', 'Bilibili 公开 AAC 音轨');
+                button.disabled = isOffline || isBilibili || fixedQuality;
+                button.title = isOffline ? '正在播放此设备保存的音频' : fixedQuality ? '此渠道按实际返回音质播放' : isBilibili ? 'Bilibili 公开 AAC 音轨' : '选择播放音质';
+                if (isOffline) button.setAttribute('aria-label', '离线播放 · 本地保存的音频');
+                else if (isBilibili) button.setAttribute('aria-label', 'Bilibili 公开 AAC 音轨');
                 else if (fixedQuality) button.setAttribute('aria-label', `播放音质：${detail.name}，此渠道不支持手动切换`);
             });
         }
@@ -3519,6 +3527,16 @@
                         },
                         resume: value => loadAndPlaySong(value.song.id, value.song, { position: value.position }),
                     },
+                });
+                personalLibrary = initPersonalLibrary({ document, storage: localStorage, account: accountPanel, musicService, audio,
+                    getSong: () => playback.state.currentSong, getQueue: () => queue.playlist,
+                    onPlay: (song, options) => addDiscoverySong(song, options),
+                    onQueue: (songs, replace = false) => {
+                        if (replace) { queue.playlist = songs; queue.currentIndex = -1; queueStore.resetOrder(); syncQueueAfterMutation(); }
+                        else addChartSong(songs, { playNow: false, source: songs.source });
+                    },
+                    onCollection: (type, id) => discoveryHome.openCollection(type, id), onSearch: openMusicSearch,
+                    notify: showToast, refreshFavorites: () => discoveryTable?.refreshFavorites(),
                 });
                 for (const event of ['pause', 'seeked']) audio.addEventListener(event, () => accountPanel.checkpoint());
             });
@@ -3934,6 +3952,7 @@
         }
 
         function openPlaybackQualityDialog(opener) {
+            if (playback.state.currentSong?.offline) return showToast('正在播放本地保存的音频');
             playbackQualityOpener = opener;
             const source = musicService.sourceForSong(playback.state.currentSong);
             const isGd = source.provider === 'gd';
@@ -4945,6 +4964,7 @@
         }
 
         function playbackDetailText(data, level) {
+            if (data?.offline) return data.provider === 'local' ? '本地音频 · 离线播放' : '离线缓存 · 本机播放';
             const resolvedLevel = supportedQuality(level);
             const bitrate = Number(data?.br ?? data?.bitrate);
             if (data?.provider === 'bilibili') return `Bilibili · ${Math.round(bitrate / 1000)} kbps · AAC`;
@@ -5247,10 +5267,12 @@
         let discoveryPageController = null;
         function initDiscoveryTable() {
             catalogBrowser = createCatalogBrowser({document, musicService,
+                onLibrary: song => personalLibrary?.song(song), onCollect: item => personalLibrary?.collect(item),
                 onPlay: song => addDiscoverySong(song),
                 onQueue: song => addChartSong(song, {playNow:false,source:song.source}),
             });
             discoveryHome = createDiscoveryHome({ document, root: dom.discoveryHome, musicService, storage: localStorage,
+                onCollect: item => personalLibrary?.collect(item),
                 onPlay: (song, options) => addDiscoverySong(song, options),
                 onBatch: (songs, label) => addCollectionTracks(songs, {label, playNow:true, source:'recommendations'}),
                 onDetails: (song, trigger) => catalogBrowser.open({song,trigger}),
@@ -5285,7 +5307,7 @@
                 onQueue: song => addChartSong(song, { playNow: false, source: song.source }),
                 onBatch: (tracks, playNow) => addCollectionTracks(tracks, { label: '发现音乐', playNow, source: musicService.config.source }),
                 onDownload: openDownloadDialog, onSearch: openMusicSearch, onRetry: loadNewSongDiscovery, onNotify: showToast,
-                onMore: loadMoreDiscovery,
+                onMore: loadMoreDiscovery, onLibrary: song => personalLibrary?.song(song),
                 onDetails: (song,trigger) => catalogBrowser.open({song,trigger}),
                 canDownload: song => !['gd', ...Object.keys(MUSIC_SOURCE_OPTIONS).filter(isMusicChannel)].includes(song.provider) && song.downloadAllowed !== false,
                 getPlayback: () => ({ song: discoveryLoadingSong || playback.state.currentSong, playing: !discoveryLoadingSong && !audio.paused && !audio.ended, loading: Boolean(discoveryLoadingSong), duration: discoveryLoadingSong ? 0 : audio.duration }),
@@ -6254,6 +6276,10 @@
                 ? (collection.artist || '未知艺术家')
                 : (collection.creator || '网易云音乐');
             const declaredCount = Number(collection.trackCount) || collection.tracks.length;
+            document.getElementById('collectionSavePersonal')?.remove();
+            const savePersonal = document.createElement('button'); savePersonal.id = 'collectionSavePersonal'; savePersonal.type = 'button'; savePersonal.className = 'collection-library-secondary'; savePersonal.textContent = '收藏' + typeLabel;
+            savePersonal.addEventListener('click', () => personalLibrary?.collect({ ...collection, type, provider: 'netease' }));
+            document.querySelector('.collection-library-actions')?.append(savePersonal);
             dom.collectionDialogTitle.textContent = collection.name || `${typeLabel}音乐库`;
             dom.collectionDialogMeta.textContent = `${typeLabel} · ${owner} · ${declaredCount}首`;
             dom.collectionDialogCover.src = coverVariantUrl(collection.cover, 720, 720) || './img/icon.png';
@@ -6364,7 +6390,8 @@
         async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
             if (accountPanel?.canEnter && !accountPanel.canEnter()) return;
             const trialSong = { ...(songOverride || {}), id, provider: songOverride?.provider || musicService.config.source };
-            if (!accountPanel?.isSignedIn() && !guestTrial.allows(trialSong)) {
+            const localPlayback = trialSong.provider === 'local' || accountPanel?.isOffline?.();
+            if (!localPlayback && !accountPanel?.isSignedIn() && !guestTrial.allows(trialSong)) {
                 audio.pause();
                 if (accountPanel) accountPanel.requireLogin(); else { openSettings(); showToast('游客试听额度已用完，请登录后继续', true); }
                 return;
@@ -6414,7 +6441,7 @@
                     showToast('歌曲已加载，请点击播放键继续');
                 },
                 onStarted(data, playbackData, session) {
-                    const recordTrial = () => { if (session.isCurrent() && !accountPanel?.isSignedIn()) { guestTrial.record(trialSong); accountPanel?.updateGuest(); } };
+                    const recordTrial = () => { if (session.isCurrent() && !localPlayback && !accountPanel?.isSignedIn()) { guestTrial.record(trialSong); accountPanel?.updateGuest(); } };
                     if (!audio.paused) recordTrial(); else audio.addEventListener('playing', recordTrial, { once: true, signal: session.signal });
                     const picUrl = playbackData.cover;
                     const { isCurrent } = session;

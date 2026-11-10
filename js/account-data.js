@@ -1,27 +1,23 @@
+import { cleanSong, cleanPlaylist, cleanEntity, cleanAnnotation, cleanHistory, cleanListening } from './library-data.js';
+export { cleanSong } from './library-data.js';
 // Shared wire format. Never synchronize playable URLs, service keys or browser caches.
 export const SYNC_SETTINGS = ['cp_theme', 'cp_quality', 'cp_source', 'cp_download_quality', 'cp_anime_thumb', 'cp_immersiveMode', 'cp_lyricAppearance', 'cp_lyricStudio_v1', 'cp_lyricTracks_v1'];
 // D1 limits an entire row to 2,000,000 bytes, including metadata columns.
 export const MAX_SYNC_BYTES = 1_990_000;
 export const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
-export function cleanSong(song) {
-  if (!song || typeof song !== 'object' || !/^[\w:.\-]{1,160}$/.test(String(song.id))) throw new Error('歌曲 ID 无效');
-  const result = { id: String(song.id) };
-  for (const key of ['name', 'artist', 'album', 'provider', 'source', 'sourceId', 'platform', 'mid']) {
-    if (typeof song[key] === 'string') result[key] = song[key].slice(0, 300);
-  }
-  for (const key of ['duration', 'durationSeconds', 'dt']) if (Number.isFinite(song[key]) && song[key] >= 0) result[key] = song[key];
-  // Album art is public metadata; signed audio URLs and arbitrary object fields are excluded.
-  if (typeof song.cover === 'string' && song.cover.length < 1500 && /^https:\/\//.test(song.cover) && !/[?&](token|key|signature)=/i.test(song.cover)) result.cover = song.cover;
-  return result;
-}
 export function cleanRecords(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length > 2500) throw new Error('同步项目过多或格式无效');
   const output = {};
   for (const [key, value] of Object.entries(input)) {
-    if (!/^(favorite:[\w:.\-]{1,200}|playlist:[\w-]{1,80}|setting:cp_[\w]+|queue|progress:[\w-]{1,80})$/.test(key)) throw new Error('同步类型无效');
+    if (!/^(favorite:[\w:.\-]{1,200}|playlist:[\w-]{1,80}|setting:cp_[\w]+|entity:(album|artist|playlist):[\w:.\-]{1,180}|annotation:[\w:.\-]{1,200}|history:[\w-]{1,80}|listen:\d{4}-(?:0[1-9]|1[0-2]):[\w-]{1,80}|queue|progress:[\w-]{1,80})$/.test(key)) throw new Error('同步类型无效');
     if (key.startsWith('setting:') && !SYNC_SETTINGS.includes(key.slice(8))) throw new Error('设置不允许同步');
     if (value === null) { output[key] = null; continue; } // Durable tombstone.
     if (key.startsWith('favorite:')) output[key] = cleanSong(value);
+    else if (key.startsWith('entity:')) output[key] = cleanEntity(value);
+    else if (key.startsWith('annotation:')) output[key] = cleanAnnotation(value);
+    else if (key.startsWith('history:')) output[key] = cleanHistory(value);
+    else if (key.startsWith('listen:')) output[key] = cleanListening(value);
+    else if (key.startsWith('playlist:')) output[key] = cleanPlaylist(value);
     else if (key.startsWith('setting:')) {
       if (typeof value !== 'string' || value.length > 16000) throw new Error('设置过大');
       output[key] = value;

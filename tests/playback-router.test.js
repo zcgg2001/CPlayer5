@@ -23,7 +23,7 @@ test('legacy numeric IDs can use exact NetEase IDs without search and start loss
  const next=await router.candidates('123').next();assert.equal(next.value.provider,'chksz');assert.equal(calls[0].id,'123');assert.equal(calls[0].level,'jymaster');
 });
 test('a selected search provider wins over global priority and latency for every channel',async()=>{
- for(const provider of ['gd','netease','chksz','op-netease','op-qq','op-applemusic','at38-qq','at38-netease','jianbin-netease','jianbin-qq','jianbin-kugou','jianbin-kuwo','gequke','bilibili']){
+ for(const provider of ['gd','netease','chksz','op-netease','op-qq','xinghai-netease','xinghai-qq','op-applemusic','at38-qq','at38-netease','jianbin-netease','jianbin-qq','jianbin-kugou','jianbin-kuwo','gequke','bilibili']){
   const {router,calls}=harness((id,level,{source})=>playable(source,level));
   router.success({provider},29000);router.success({provider:'chksz'},10);
   const song={...track,provider,id:`${provider}:123`,sourceId:'123',preferredProvider:provider};
@@ -197,4 +197,16 @@ test('server policy skips disabled sources and honors operator ordering', async 
  const {router,service,calls}=harness((id,level,{source})=>playable(source,level));
  service.getRuntimePolicy=async()=>({sources:{chksz:{enabled:false},netease:{enabled:true,priority:9},gd:{enabled:true,priority:0}}});
  assert.equal((await router.candidates(track.id,{song:track}).next()).value.provider,'gd');assert.equal(calls.length,1);
+});
+
+test('Xinghai fallback reuses exact NetEase IDs and QQ mids; refusal cools only its channel',async()=>{
+ for(const [source,id,original] of [['xinghai-netease','123',track],['xinghai-qq','mid123',{...track,provider:'qq',id:'qq:mid123',sourceId:'mid123'}]]) {
+  const h=harness((id,level,{source:provider})=>provider===source?playable(provider,level):Promise.reject(new HttpStatusError(503)));
+  h.service.search=async()=>{throw new Error('Exact platform IDs should not need search');};
+  const result=(await h.router.candidates(original.id,{song:original}).next()).value;
+  assert.equal(result.provider,source);assert.equal(h.calls.at(-1).id,`${source}:${id}`);assert.equal(h.calls.at(-1).level,'hires');
+  const selected={...original,provider:source,id:`${source}:${id}`,sourceId:id,preferredProvider:source};
+  const denied=harness((id,level,{source:provider})=>{if(provider===source)throw new HttpStatusError(403);return playable(provider,level);});
+  assert.notEqual((await denied.router.candidates(selected.id,{song:selected}).next()).value.provider,source);assert.equal(denied.calls.filter(x=>x.source===source).length,1);assert.ok(denied.router.health()[source].until>Date.now());
+ }
 });

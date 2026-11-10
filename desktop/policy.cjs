@@ -9,6 +9,6 @@ function trusted(url, origin) { try { return new URL(url).origin === origin; } c
 function tokenRoute(url, origin) {
   if (!trusted(url, origin)) return false;
   const path = new URL(url).pathname;
-  return /^\/api\/account\/(me|sessions|revoke|export|delete)$/.test(path) || path === '/api/sync' || path === '/api/auth/sign-out';
+  return /^\/api\/account\/(me|sessions|revoke|export|delete)$/.test(path) || /^\/api\/library\/playlists(?:\/[\w-]{1,80}(?:\/(?:members|invitation))?)?$/.test(path) || path === '/api/sync' || path === '/api/auth/sign-out';
 }
 module.exports = { appOrigin, trusted, tokenRoute };

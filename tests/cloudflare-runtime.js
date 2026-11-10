@@ -173,7 +173,7 @@ test('workerd: D1 account OTP, authenticated CAS sync and deletion', { timeout: 
     return upstream(request);
   }, { ACCOUNTS_DB: { type: 'd1', name: 'accounts-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-test-secret-thirty-two-characters' }, RESEND_API_KEY: { type: 'json', value: 'test' }, AUTH_EMAIL_FROM: { type: 'json', value: 'CPlayer <login@example.com>' } });
   const db = await mf.getD1Database('ACCOUNTS_DB');
-  const migration = (await Promise.all(['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql'].map(name => readFile(new URL('../migrations/' + name, import.meta.url), 'utf8')))).join('\n');
+  const migration = (await Promise.all(['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql', '0005_personal_library.sql'].map(name => readFile(new URL('../migrations/' + name, import.meta.url), 'utf8')))).join('\n');
   await db.batch(migration.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
   const call = async (path, body, cookie, method = 'POST') => {
     const response = await mf.dispatchFetch('https://player.example' + path, { method, headers: { origin: 'https://player.example', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -192,7 +192,7 @@ test('workerd: D1 account OTP, authenticated CAS sync and deletion', { timeout: 
 test('workerd: username/password registration and login persist in D1 without mail services', { timeout: 20000 }, async t => {
   const mf = runtime(t, upstream, { ACCOUNTS_DB: { type: 'd1', name: 'password-test' }, AUTH_URL: { type: 'json', value: 'https://player.example' }, AUTH_SECRET: { type: 'json', value: 'workerd-password-secret-thirty-two-characters' } });
   const db = await mf.getD1Database('ACCOUNTS_DB');
-  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql']) {
+  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql', '0005_personal_library.sql']) {
     const sql = await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8');
     await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
   }
@@ -234,7 +234,7 @@ test('workerd: bootstrap admin must rotate password and old D1 sessions are revo
     OPS_ADMIN_USER_IDS: { type: 'json', value: userId },
   });
   const db = await mf.getD1Database('ACCOUNTS_DB');
-  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql']) {
+  for (const file of ['0001_accounts.sql', '0002_username.sql', '0003_operations.sql', '0004_admin_bootstrap.sql', '0005_personal_library.sql']) {
     const sql = await readFile(new URL('../migrations/' + file, import.meta.url), 'utf8');
     await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)));
   }
@@ -262,4 +262,50 @@ test('workerd: bootstrap admin must rotate password and old D1 sessions are revo
   const freshCookie = relogin.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
   assert.equal((await call('/api/admin/dashboard', null, freshCookie)).status, 200);
   assert.equal((await db.prepare('SELECT mustChange FROM cplayer_admin_bootstrap WHERE userId=?').bind(userId).first()).mustChange, 0);
+});
+
+test('workerd: personal library D1 collaboration preserves private access and CAS updates', {timeout:20000}, async t=>{
+ const mf=runtime(t,upstream,{ACCOUNTS_DB:{type:'d1',name:'personal-library-runtime'},AUTH_URL:{type:'json',value:'https://player.example'},AUTH_SECRET:{type:'json',value:'workerd-library-secret-thirty-two-characters'}});
+ const db=await mf.getD1Database('ACCOUNTS_DB');
+ for(const file of ['0001_accounts.sql','0002_username.sql','0003_operations.sql','0004_admin_bootstrap.sql','0005_personal_library.sql']){
+  const sql=await readFile(new URL('../migrations/'+file,import.meta.url),'utf8');await db.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
+ }
+ const call=(path,body,cookie,method=body?'POST':'GET')=>mf.dispatchFetch('https://player.example'+path,{method,headers:{origin:'https://player.example','content-type':'application/json',...(cookie?{cookie}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ async function signup(username){const r=await call('/api/auth/sign-up/username',{username,password:'runtime-library-password'});assert.equal(r.status,200,await r.clone().text());return r.headers.getSetCookie().map(c=>c.split(';')[0]).join('; ');}
+ const owner=await signup('runtime_owner'),editor=await signup('runtime_editor');
+ const created=await call('/api/library/playlists',{name:'共享歌单',songs:[{id:'1',name:'歌曲',provider:'gd'}]},owner);assert.equal(created.status,201,await created.clone().text());
+ const id=(await created.json()).id,path='/api/library/playlists/'+id;
+ assert.equal((await call('/api/library/public/'+id)).status,404);
+ assert.equal((await call(path+'/members',{username:'runtime_editor',role:'editor'},owner)).status,200);
+ assert.equal((await call(path,null,editor)).status,404);
+ assert.equal((await call(path+'/invitation',{accept:true},editor)).status,200);
+ const state=await (await call(path,null,editor)).json();
+ assert.equal((await call(path,{...state,visibility:undefined,name:'更新后的歌单'},editor,'PUT')).status,200);
+ assert.equal((await call(path,{...state,visibility:undefined},owner,'PUT')).status,409);
+ const current=await (await call(path,null,owner)).json();assert.equal((await call(path,{...current,visibility:'public'},owner,'PUT')).status,200);
+ const publicResult=await call('/api/library/public/'+id);assert.equal(publicResult.status,200);assert.equal((await publicResult.json()).name,'更新后的歌单');
+});
+
+test('workerd: Xinghai concurrent requests keep tokens local and stream Range without credential leakage',async t=>{
+  const tokens=new Set(),devices=new Set();let count=0;
+  const mf=runtime(t,async request=>{
+    const url=new URL(request.url);assert.equal(request.headers.get('cookie'),null);
+    if(url.hostname==='yy.zddyr.top') {
+      if(url.pathname.endsWith('token.php')) {
+        const device=url.searchParams.get('device_id');assert.ok(device);devices.add(device);
+        const token=`runtime-token-${++count}`;tokens.add(token);
+        await new Promise(r=>setTimeout(r,50));return Response.json({code:0,data:{token}});
+      }
+      assert.ok(tokens.has(request.headers.get('x-token')));assert.equal(request.headers.get('x-license'),'runtime-license');
+      return Response.json({code:200,url:'http://m801.music.126.net/runtime.mp3',br:128000});
+    }
+    assert.equal(url.hostname,'m801.music.126.net');assert.equal(url.protocol,'https:');assert.equal(request.headers.get('x-token'),null);assert.equal(request.headers.get('x-license'),null);
+    const range=request.headers.get('range');assert.ok(['bytes=0-63','bytes=0-3'].includes(range));
+    return new Response(range==='bytes=0-63'?'ID3 audio fixture for prefix':'ID3!',{status:206,headers:{'content-type':'audio/mpeg','content-range':range==='bytes=0-3'?'bytes 0-3/100':'bytes 0-27/100'}});
+  },{XINGHAI_LICENSE:{type:'json',value:'runtime-license'}});
+  const url='https://player.example/api/v1/music/song?source=xinghai-netease&id=259138&level=hires';
+  const replies=await Promise.all([1,2].map(()=>mf.dispatchFetch(url)));
+  for(const reply of replies){assert.equal(reply.status,200);const body=await reply.text();assert.doesNotMatch(body,/runtime-token|runtime-license/);assert.equal(JSON.parse(body).data.level,'standard');}
+  assert.equal(devices.size,2);
+  const audio=await mf.dispatchFetch(url.replace('/song?','/audio?'),{headers:{range:'bytes=0-3'}});assert.equal(audio.status,206);assert.equal(audio.headers.get('content-range'),'bytes 0-3/100');assert.equal(await audio.text(),'ID3!');assert.equal(count,3);
 });

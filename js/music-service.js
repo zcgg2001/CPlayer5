@@ -109,6 +109,7 @@ export class MusicService {
   }
 
   sourceForSong(song = null) {
+    if (song?.provider === 'local') return { provider: 'local', label: '本地音频', qualities: [] };
     if (song?.routing?.automatic && MUSIC_SOURCE_OPTIONS[song.provider]) return musicSourceOption(song.provider);
     if (song?.provider === 'bilibili' || bilibiliVideoUrl(song)) {
       return musicSourceOption('bilibili');
@@ -202,9 +203,17 @@ export class MusicService {
 
   async getRuntimePolicy() { return globalThis.document ? runtimePolicy() : null; }
 
-  playbackCandidates(id, options) { return this.playbackRouter.candidates(id, options); }
-  recordPlaybackSuccess(data, elapsedMs) { this.playbackRouter.success(data, elapsedMs); }
-  recordPlaybackFailure(data, error) { this.playbackRouter.failure(data, error); }
+  async *playbackCandidates(id, options = {}) {
+    let offline;
+    try { offline = await this.offlineAudio?.resolve(options.song, options.signal); }
+    catch (error) { if (options.signal?.aborted) throw error; }
+    if (offline) { yield offline; return; }
+    if (this.offlineOnly?.()) throw new Error('离线模式只能播放此设备已保存的音频，请联网登录后重试');
+    if (options.song?.provider === 'local') throw new Error('此设备没有该本地音频，请在个人库重新导入');
+    yield* this.playbackRouter.candidates(id, options);
+  }
+  recordPlaybackSuccess(data, elapsedMs) { if (!data.offline) this.playbackRouter.success(data, elapsedMs); }
+  recordPlaybackFailure(data, error) { if (!data?.offline) this.playbackRouter.failure(data, error); }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     if (queueSong?.sources?.length) {
@@ -235,6 +244,7 @@ export class MusicService {
   }
 
   async getLyric(id, { song = null, signal, fetchImpl } = {}) {
+    if (song?.provider === 'local') return { lrc: '' };
     const option = ['gd', 'chksz'].includes(song?.provider) ? musicSourceOption(song.provider) : this.sourceForSong(song);
     const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : (song?.sourceId || id) });
     try {
