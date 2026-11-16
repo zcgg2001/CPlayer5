@@ -176,7 +176,7 @@ class AccessibilityMarkupTests(unittest.TestCase):
         ):
             self.assertIn(element_id, markup.by_id)
 
-        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         component = (ROOT / "js/anime-progress-thumb.js").read_text(encoding="utf-8")
         styles = (ROOT / "css/anime-progress-thumb.css").read_text(encoding="utf-8")
         self.assertIn("function initAnimeProgressThumbs", source)
@@ -195,10 +195,12 @@ class AccessibilityMarkupTests(unittest.TestCase):
     def test_pages_define_reduced_motion_styles(self):
         for filename in ("index.html", "playlist-downloader.html"):
             source = (ROOT / filename).read_text(encoding="utf-8")
+            if filename == "index.html":
+                source += (ROOT / "css/player-base.css").read_text(encoding="utf-8")
             self.assertIn("@media (prefers-reduced-motion: reduce)", source)
 
     def test_player_pauses_rendering_when_page_is_hidden(self):
-        source = (ROOT / "index.html").read_text(encoding="utf-8")
+        source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         self.assertIn("document.addEventListener('visibilitychange'", source)
         self.assertIn("window.matchMedia('(prefers-reduced-motion: reduce)')", source)
 

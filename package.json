@@ -18,6 +18,7 @@
     "accounts:dev": "ACCOUNTS_DEV=1 node server.js",
     "accounts:migration": "node scripts/generate_account_migration.js",
     "desktop:dev": "electron desktop",
+    "android:build": "sh scripts/build_android.sh",
     "desktop:package": "npm exec --yes --package=node@22.23.4 -- node scripts/package_desktop.js"
   },
   "devDependencies": {

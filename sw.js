@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v87';
+const SHELL_CACHE = 'cplayer5-shell-v88';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -92,6 +92,9 @@ const CORE_ASSETS = [
   './js/playback-controller.js',
   './js/playback-router.js',
   './js/playback-cache.js',
+  './js/app.js',
+  './css/player-base.css',
+  './js/native-audio.js',
   './js/queue-store.js',
   './js/cache-store.js',
   './js/oneko-butterfly.js',

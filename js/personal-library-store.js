@@ -25,7 +25,8 @@ export function createPersonalLibraryStore({ storage, now = Date.now, onChange =
     history: () => Object.entries(records()).filter(([k,v]) => k.startsWith('history:') && v).map(([id,v]) => ({id,...v})).sort((a,b) => b.at-a.at),
     record({ sessionId, deviceId, song, seconds, position, first = false }) {
       if (!(seconds > 0)) return;
-      const next = records(), at = now(), date = new Date(at), month = date.toISOString().slice(0,7), day = date.toISOString().slice(8,10);
+      const next = records(), at = now(), date = new Date(at);
+      const month = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`, day = String(date.getDate()).padStart(2,'0');
       const key = `history:${sessionId}`, prior = next[key];
       next[key] = { song: cleanSong(song), at, seconds: Math.min(86400,(prior?.seconds || 0)+seconds), position: Math.min(86400,position) };
       const statsKey = `listen:${month}:${deviceId}`, stats = next[statsKey] || { seconds:0,plays:0,days:{},artists:{} };
@@ -37,7 +38,7 @@ export function createPersonalLibraryStore({ storage, now = Date.now, onChange =
       // Recent sessions and two years of monthly totals keep cloud rows bounded.
       const recent = Object.entries(next).filter(([k,v])=>k.startsWith('history:') && v).sort((a,b)=>b[1].at-a[1].at);
       for (const [k] of recent.slice(200)) delete next[k];
-      const cutoff = new Date(at); cutoff.setUTCDate(1); cutoff.setUTCMonth(cutoff.getUTCMonth()-23); const before=cutoff.toISOString().slice(0,7);
+      const cutoff = new Date(date.getFullYear(), date.getMonth()-23, 1); const before=`${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}`;
       for (const k of Object.keys(next)) if (k.startsWith('listen:') && k.slice(7,14)<before) delete next[k];
       write(LIBRARY_KEY, cleanRecords(next));
     },

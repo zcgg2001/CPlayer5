@@ -39,7 +39,7 @@ class MarkupParser(HTMLParser):
 class DesktopShellMarkupTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         cls.css = (ROOT / "css/app-shell.css").read_text(encoding="utf-8")
         cls.markup = MarkupParser()
         cls.markup.feed(cls.source)
@@ -337,7 +337,7 @@ class DesktopShellMarkupTests(unittest.TestCase):
 
     def test_discovery_row_uses_sibling_operable_play_and_download_controls(self):
         factory = re.search(
-            r"(?s)function createDiscoverySongRow\(song, index\) \{(.*?)\n        \}\n\n        function addDiscoverySong",
+            r"(?s)function createDiscoverySongRow\(song, index\) \{(.*?)\n\s*\}\n\s*function addDiscoverySong",
             self.source,
         )
         self.assertIsNotNone(factory)

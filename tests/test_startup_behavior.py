@@ -14,7 +14,7 @@ def function_block(source, start_marker, end_marker):
 class StartupBehaviorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         cls.music_service = (ROOT / "js/music-service.js").read_text(encoding="utf-8")
         cls.playback_controller = (ROOT / "js/playback-controller.js").read_text(encoding="utf-8")
         cls.cache_store = (ROOT / "js/cache-store.js").read_text(encoding="utf-8")
@@ -46,7 +46,7 @@ class StartupBehaviorTests(unittest.TestCase):
 
     def test_desktop_shell_initializes_with_injected_elements_and_actions(self):
         self.assertIn(
-            "import { DESKTOP_SHELL_MEDIA, initAppShell } from './js/app-shell.js?v=23';",
+            "import { DESKTOP_SHELL_MEDIA, initAppShell } from './app-shell.js?v=23';",
             self.source,
         )
         self.assertIn(

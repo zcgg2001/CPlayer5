@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/icon.svg" alt="ZPlayer 5 Logo" width="120" height="120">
+  <img src="img/icon.svg" alt="CPlayer 5 Logo" width="120" height="120">
 </p>
 
 <h1 align="center">CPlayer 5</h1>
@@ -17,21 +17,27 @@
 
 <p align="center">
   <a href="https://music.505zc.tech">在线演示</a> ·
-  <a href="https://cp.chksz.top/playlist-downloader">歌单下载工具</a> ·
-  <a href="https://github.com/ChKSz/CPlayer">GitHub 仓库</a>
+  <a href="https://music.505zc.tech/playlist-downloader.html">歌单下载工具</a> ·
+  <a href="https://github.com/zcgg2001/CPlayer5">GitHub 仓库</a>
 </p>
 
 ---
 
 ## 简介
 
+本仓库基于 [ChKSz/CPlayer](https://github.com/ChKSz/CPlayer) 持续开发。
+
 项目文档：[项目梳理、重点与优势](docs/PROJECT_OVERVIEW.md) · [分阶段优化方案](docs/OPTIMIZATION_PLAN.md)
 
-ZPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入。在线内容通过同源服务端接口访问，不能仅靠静态文件服务运行。
+CPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入。在线内容通过同源服务端接口访问，不能仅靠静态文件服务运行。
 
 当前版本除了基础播放体验，还加入了更完整的歌单加载链路：支持远程歌单 ID 拉取、`playlist.js` 本地离线歌单、JSON 文件导入、拖拽导入，以及 IndexedDB 歌单缓存与静默更新。
 
 ## 最新功能
+
+- 新增 Android APK 预览版：复用本站界面，在线音乐交给原生 Media3 服务播放，支持后台播放与系统媒体控制。Android 8.0+，构建、安装与限制见 [Android 说明](docs/android.md)。
+- 主页面结构、基础样式和应用入口已分离；完整代码目录见 [代码地图](docs/CODE_MAP.md)，本轮问题与验证见 [项目检查记录](docs/project-audit-2026-11-17.md)。
+- 收藏、歌单与云同步保留选定播放源，支持编码歌曲 ID；新产生的听歌统计按设备当地日期记账。
 
 - 新增 **星海 · 网易云 / QQ 音乐** 渠道，接入搜索、歌词、自动换源与健康监控。网易云已通过本地真实 FLAC 播放验证；QQ 无卡密样本返回 403。可选服务端变量 `XINGHAI_LICENSE`，网络限制与验证范围见 [星海接入说明](docs/xinghai-source.md)。
 
@@ -53,8 +59,8 @@ ZPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持�
 ## 在线体验
 
 - 在线演示：`https://music.505zc.tech`
-- 歌单下载工具：`https://cp.chksz.top/playlist-downloader`
-- 仓库地址：`https://github.com/ChKSz/CPlayer`
+- 歌单下载工具：`https://music.505zc.tech/playlist-downloader.html`
+- 仓库地址：`https://github.com/zcgg2001/CPlayer5`
 
 ## 功能特性
 
@@ -140,8 +146,8 @@ ZPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持�
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/ChKSz/CPlayer.git
-cd CPlayer
+git clone https://github.com/zcgg2001/CPlayer5.git
+cd CPlayer5
 ```
 
 ### 2. 构建与启动服务
@@ -170,7 +176,7 @@ npm run smoke:server
 
 ### 4. 运行项目检查
 
-项目使用 Python 和 Node.js 内置测试，不需要安装 npm 依赖：
+测试使用 Python 和 Node.js 内置测试框架；部分测试会加载项目依赖，请先运行 `npm ci`：
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -181,6 +187,10 @@ python3 scripts/check_static_site.py
 CI 还会对构建产物、字体 MIME 类型、页面路由以及缺少音乐服务密钥时的结构化错误响应进行验证。
 
 GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探测播放器、歌单下载器、离线页、Service Worker 和 PWA 清单。
+
+### Android APK
+
+准备 JDK 17、Android SDK 36 后运行 `npm run android:build`。生成的可安装预览包位于 `output/android/CPlayer5-android-preview.apk`，GitHub Actions 的 **Android APK** 工作流也会提供构建产物。它使用调试签名；正式分发需固定签名密钥，详见 [Android 文档](docs/android.md)。
 
 ### Cloudflare 部署
 
@@ -200,14 +210,17 @@ npm run cf:deploy
 
 ```text
 CPlayer5/
-├── index.html               # 主播放器页面与应用启动逻辑
+├── index.html               # 主播放器页面结构
+├── js/app.js                # 应用启动与页面编排
+├── css/player-base.css      # 主页面基础样式
+├── android/                 # Android WebView + Media3 APK
 ├── playlist-downloader.html # 歌单导出工具页
 ├── offline.html             # 离线提示页
 ├── server.js                # 本地服务入口
 ├── sw.js                    # PWA 离线缓存
 ├── manifest.json            # PWA 清单
 ├── css/                     # 页面、播放器、Bilibili 与挂件样式
-├── js/                      # 播放、下载、页面交互与挂件逻辑
+├── js/                      # 播放、下载、页面交互与挂件逻辑；native-audio 为 Android 桥接
 ├── img/                     # 图标、封面预览与像素挂件素材
 ├── sites/                   # 同源接口与 Sites 运行入口
 ├── scripts/                 # 构建与静态检查脚本

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = (ROOT / "index.html").read_text(encoding="utf-8")
+SOURCE = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
 
 
 class _MarkupNode:
@@ -56,7 +56,7 @@ class _MarkupParser(HTMLParser):
 
 
 MARKUP = _MarkupParser()
-MARKUP.feed(SOURCE)
+MARKUP.feed((ROOT / "index.html").read_text(encoding="utf-8"))
 MARKUP.close()
 IDS = MARKUP.ids
 ELEMENTS_BY_ID = {

@@ -8,6 +8,7 @@ test('inline player scripts have valid JavaScript syntax', () => {
   const inlineScripts = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
     .map((match) => match[1])
     .filter((source) => source.trim());
+  inlineScripts.push(readFileSync(new URL('../js/app.js', import.meta.url), 'utf8'));
 
   assert.ok(inlineScripts.length > 0);
   for (const source of inlineScripts) {

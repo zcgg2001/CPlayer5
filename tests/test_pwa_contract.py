@@ -44,7 +44,7 @@ REQUIRED_CORE_ASSETS = {
 
 class PwaContractTests(unittest.TestCase):
     def test_manifest_and_service_worker_registration_contract_remain(self):
-        index_source = (ROOT / "index.html").read_text(encoding="utf-8")
+        index_source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         manifest = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertIn('<link rel="manifest" href="manifest.json">', index_source)
@@ -76,7 +76,7 @@ class PwaContractTests(unittest.TestCase):
 
     def test_service_worker_cache_and_precache_contract_remain(self):
         worker_source = (ROOT / "sw.js").read_text(encoding="utf-8")
-        index_source = (ROOT / "index.html").read_text(encoding="utf-8")
+        index_source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
 
         self.assertTrue(worker_source.strip())
         self.assertRegex(worker_source, r"const SHELL_CACHE = 'cplayer5-shell-v\d+';")
@@ -118,8 +118,8 @@ class PwaContractTests(unittest.TestCase):
             "css/charts.css?v=22",
             "css/music-explore.css?v=23",
             "css/art-direction.css?v=34",
-            "js/app-shell.js?v=23",
-            "js/charts-page.js?v=33",
-            "js/music-explore.js?v=32",
+            "./app-shell.js?v=23",
+            "./charts-page.js?v=33",
+            "./music-explore.js?v=32",
         ):
             self.assertIn(versioned_asset, index_source)

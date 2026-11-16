@@ -14,7 +14,7 @@ def source_block(source, start_marker, end_marker):
 class LyricsFocusTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
 
     def test_desktop_and_mobile_lyrics_are_centered(self):
         desktop = source_block(self.source, ".lrc-line {", ".lrc-line.active {")
