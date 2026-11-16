@@ -84,6 +84,10 @@ def validate_site(root):
                 f"{html_file.name}: unsafe dynamic innerHTML uses song data"
             )
 
+    for script in (root / 'js').glob('*.js'):
+        if UNSAFE_SONG_HTML.search(script.read_text(encoding='utf-8')):
+            errors.append(f"js/{script.name}: unsafe dynamic innerHTML uses song data")
+
     manifest_file = root / "manifest.json"
     if manifest_file.is_file():
         manifest = json.loads(manifest_file.read_text(encoding="utf-8"))

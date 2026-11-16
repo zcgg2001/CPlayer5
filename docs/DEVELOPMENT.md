@@ -1,5 +1,15 @@
 # CPlayer5 Development Workflow
 
+Use Node.js 26.12.0 (`.node-version`) and `npm ci`. `index.html` owns markup,
+`css/player-base.css` owns the extracted base styles, and `js/app.js` owns
+application startup and UI orchestration. Keep playback policy in
+`playback-router.js` / `playback-controller.js`, not in Android or view code.
+See [the full code map](CODE_MAP.md) and [Android build instructions](android.md).
+
+`npm run android:build` builds an installable debug APK and runs Android unit
+tests and lint. The Android CI job uses the same Gradle tasks.
+
+
 ## Player experience browser regression
 
 `tests/browser-experience.js` is a program for the Tabbit browser-owned runtime
@@ -29,24 +39,22 @@ clears that origin's local storage and unregisters its service worker to isolate
 the scenarios. These checks do not replace the separate PWA/cache tests. Close
 the test tab after reviewing it, and stop the dedicated server when finished.
 
-This fork uses two Git remotes:
+Use `origin` for this fork. An optional read-only upstream remote can be added for comparison:
 
 - `origin`: `zcgg2001/CPlayer5`, the writable fork.
-- `upstream`: `ChKSz/CPlayer`, the original project. Pushes are disabled locally.
+- `upstream`: `ChKSz/CPlayer`, the original project; configure it only if needed.
 
 ## Branches
 
 - `main` is the stable, integrated branch.
-- `feature/<name>` is for new features.
-- `fix/<name>` is for bug fixes.
-- `chore/<name>` is for maintenance and tooling.
+- `codex/<name>` is the default working branch for this repository.
 
 Create each change from an up-to-date `main` branch:
 
 ```bash
 git switch main
 git pull --ff-only origin main
-git switch -c feature/<name>
+git switch -c codex/<name>
 ```
 
 ## Commit And Push
@@ -69,7 +77,7 @@ python3 scripts/check_static_site.py
 git status
 git add <files>
 git commit -m "feat: describe the change"
-git push -u origin feature/<name>
+git push -u origin codex/<name>
 ```
 
 Merge the branch into `main` through a GitHub pull request after review.
@@ -79,14 +87,18 @@ Merge the branch into `main` through a GitHub pull request after review.
 Fetch and integrate the original project's latest changes regularly:
 
 ```bash
+git remote add upstream https://github.com/ChKSz/CPlayer.git # first time only
+git remote set-url --push upstream DISABLED
 git fetch upstream
 git switch main
 git pull --ff-only origin main
 git merge upstream/main
-python3 -m http.server 8080
+npm ci
+npm run build
+npm start
 ```
 
-Open `http://127.0.0.1:8080`, verify the player and playlist downloader, then push:
+Open `http://127.0.0.1:8787`, verify the player and playlist downloader, then push:
 
 ```bash
 git push origin main

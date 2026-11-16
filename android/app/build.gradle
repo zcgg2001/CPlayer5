@@ -1,0 +1,27 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'tech.zc505.cplayer'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'tech.zc505.cplayer'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0-preview'
+        buildConfigField 'String', 'PLAYER_ORIGIN', '"https://music.505zc.tech"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes {
+        debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
+        release { minifyEnabled false }
+    }
+    lint { abortOnError true; disable 'ObsoleteSdkInt' }
+}
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-session:1.11.1'
+    implementation 'androidx.webkit:webkit:1.18.0'
+    testImplementation 'junit:junit:4.13.2'
+}

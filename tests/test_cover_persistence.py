@@ -18,7 +18,7 @@ def source_block(source, start_marker, end_marker):
 class CoverPersistenceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "index.html").read_text(encoding="utf-8")
+        cls.source = ((ROOT / "index.html").read_text(encoding="utf-8") + "\n" + (ROOT / "js/app.js").read_text(encoding="utf-8") + "\n" + (ROOT / "css/player-base.css").read_text(encoding="utf-8"))
         cls.service = (ROOT / "js/music-service.js").read_text(encoding="utf-8")
         cls.playback = (ROOT / "js/playback-controller.js").read_text(encoding="utf-8")
 

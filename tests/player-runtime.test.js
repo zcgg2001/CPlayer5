@@ -13,7 +13,7 @@ import { createPlaybackController } from '../js/playback-controller.js';
 import { createCacheStore } from '../js/cache-store.js';
 import { createArtworkPresenter } from '../js/artwork.js';
 
-const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const html = (readFileSync(new URL('../index.html', import.meta.url), 'utf8') + '\n' + readFileSync(new URL('../js/app.js', import.meta.url), 'utf8'));
 
 function block(startMarker, endMarker) {
   const start = html.indexOf(startMarker);
@@ -23,10 +23,10 @@ function block(startMarker, endMarker) {
 }
 
 function inlineFunction(name) {
-  const match = html.match(new RegExp(`        (?:async )?function ${name}\\(`));
+  const match = html.match(new RegExp(`^(?:async )?function ${name}\\(`, 'm'));
   assert.ok(match, `Missing inline function: ${name}`);
-  const end = html.indexOf('\n        }', match.index);
-  return html.slice(match.index, end + '\n        }'.length);
+  const end = html.indexOf('\n}', match.index);
+  return html.slice(match.index, end + '\n}'.length);
 }
 
 function deferred() {
@@ -718,4 +718,16 @@ test('failed GD discovery clears loading and keeps its refresh action available'
   assert.equal(attributes.get('aria-busy'), 'false');
   assert.equal(context.dom.desktopDiscoveryRefresh.disabled, false);
   assert.match(messages.at(-1), /搜索与播放仍可独立使用/);
+});
+
+test('replacing the public playlist rebuilds the real queue order without throwing', () => {
+  const queueStore = createQueueStore({random:()=>0});
+  queueStore.state.playlist=[{id:'old'}];queueStore.resetOrder();
+  const sandbox={window:{},queueStore,queue:queueStore.state};
+  vm.runInNewContext(block("Object.defineProperty(window, 'playlist'", 'const playback ='),sandbox);
+  const replacement=[{id:'a'},{id:'b'},{id:'c'}];
+  sandbox.window.playlist=replacement;
+  assert.equal(queueStore.state.playlist,replacement);
+  assert.deepEqual([...queueStore.state.shuffledOrder].sort(),[0,1,2]);
+  assert.equal(sandbox.window.playlist,replacement);
 });

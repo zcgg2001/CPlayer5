@@ -71,7 +71,7 @@ test('all pages load the final studio stylesheet and no Font Awesome runtime', (
 });
 
 test('desktop player actions use the selected Lucide glyphs', () => {
-  const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const page = (readFileSync(new URL('../index.html', import.meta.url), 'utf8') + '\n' + readFileSync(new URL('../js/app.js', import.meta.url), 'utf8'));
   for (const icon of ['AudioWaveform', 'ChevronUp', 'ListMusic', 'ArrowUpRight', 'ArrowDownToLine']) {
     assert.match(page, new RegExp(`data-lucide="${icon}"`));
   }
@@ -87,7 +87,7 @@ test('Bilibili cards and quality controls share the liquid glass material', () =
 });
 
 test('playback quality dialog exposes a visible labeled close button', () => {
-  const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const page = (readFileSync(new URL('../index.html', import.meta.url), 'utf8') + '\n' + readFileSync(new URL('../js/app.js', import.meta.url), 'utf8'));
   assert.match(
     page,
     /<button id="playbackQualityCancel"[^>]*aria-label="关闭播放音质窗口"[^>]*>[\s\S]*?<span>关闭<\/span>[\s\S]*?<\/button>/,

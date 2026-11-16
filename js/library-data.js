@@ -1,14 +1,19 @@
 // Shared, bounded metadata projections. Audio URLs and blobs never enter cloud data.
 export const songKey = song => `${song.provider || 'gd'}:${song.id}`;
 export const text = (value, max = 300) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+// Catalog IDs may contain percent-encoded names or provider URLs. They remain
+// opaque identifiers; accepting them never makes them a playable URL.
+export const validLibraryId = (value, max = 1500) => typeof value === 'string' && value.length > 0 && value.length <= max && /^(?:[\w:.\-!~*'()]|%[\da-f]{2})+$/i.test(value);
 export function imageURL(value) {
   if (typeof value !== 'string' || value.length > 1500) return '';
   try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !/[?&](token|key|signature)=/i.test(value) ? url.href : ''; } catch { return ''; }
 }
 export function cleanSong(song) {
-  if (!song || typeof song !== 'object' || !/^[\w:.\-]{1,160}$/.test(String(song.id))) throw new Error('歌曲 ID 无效');
+  if (!song || typeof song !== 'object' || !validLibraryId(String(song.id ?? ''))) throw new Error('歌曲 ID 无效');
   const result = { id: String(song.id) };
-  for (const key of ['name', 'artist', 'album', 'provider', 'source', 'sourceId', 'platform', 'mid']) if (typeof song[key] === 'string') result[key] = song[key].slice(0, 300);
+  for (const key of ['name', 'artist', 'album', 'provider', 'source', 'platform', 'mid']) if (typeof song[key] === 'string') result[key] = song[key].slice(0, 300);
+  if (typeof song.sourceId === 'string') result.sourceId = song.sourceId.slice(0, 1500);
+  if (typeof song.preferredProvider === 'string' && /^[\w-]{1,40}$/.test(song.preferredProvider)) result.preferredProvider = song.preferredProvider;
   for (const key of ['duration', 'durationSeconds', 'dt']) if (Number.isFinite(song[key]) && song[key] >= 0) result[key] = song[key];
   const cover = imageURL(song.cover); if (cover) result.cover = cover;
   if (typeof song.downloadAllowed === 'boolean') result.downloadAllowed = song.downloadAllowed;
@@ -26,8 +31,8 @@ export function entityKey(item) {
 }
 export function cleanEntity(item) {
   if (!item || !['album', 'artist', 'playlist'].includes(item.type) || !text(item.name)) throw new Error('收藏资料无效');
-  const id = text(item.id == null ? '' : String(item.id), 100), provider = text(item.provider || 'netease', 40);
-  if ((id && !/^[\w:.\-]+$/.test(id)) || !/^[\w-]+$/.test(provider)) throw new Error('收藏来源无效');
+  const id = text(item.id == null ? '' : String(item.id), 1500), provider = text(item.provider || 'netease', 40);
+  if ((id && !validLibraryId(id)) || !/^[\w-]+$/.test(provider)) throw new Error('收藏来源无效');
   return { type: item.type, id, provider, name: text(item.name), artist: text(item.artist), cover: imageURL(item.cover), description: text(item.description, 1200), addedAt: Number.isFinite(item.addedAt) ? item.addedAt : 0 };
 }
 export function cleanPlaylist(value) {

@@ -17,3 +17,10 @@ output/playwright/
 .dev.vars.*
 .local/
 desktop/dist/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
+output/android/
