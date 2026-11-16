@@ -32,7 +32,7 @@ export const MUSIC_SOURCE_OPTIONS = Object.freeze({
   ...MUSIC_CHANNELS,
   chksz: Object.freeze({
     label: 'ChKSz · 网易云',
-    detail: '网易云搜索、解析与歌词；需要有效密钥与可用额度',
+    detail: '限额备用源 · 仅手动选中时播放，不参与自动切源或预解析',
     provider: 'chksz',
   }),
   bilibili: Object.freeze({
@@ -192,6 +192,7 @@ export class MusicService {
     return {
       ...normalized, id: isMusicChannel(option.provider) ? channelTrackId(option.provider, normalized.id) : normalized.id,
       sourceId: normalized.id, provider: option.provider, format: json.data?.format,
+      expiresAt: json.data?.expiresAt ?? json.data?.expire ?? json.data?.expires,
       source: isMusicChannel(option.provider) ? option.label : option.provider === 'gd' ? 'GD 音乐台' : 'ChKSz',
       name: song?.name || normalized.name,
       artist: song?.artist || normalized.artist,
@@ -245,7 +246,10 @@ export class MusicService {
 
   async getLyric(id, { song = null, signal, fetchImpl } = {}) {
     if (song?.provider === 'local') return { lrc: '' };
-    const option = ['gd', 'chksz'].includes(song?.provider) ? musicSourceOption(song.provider) : this.sourceForSong(song);
+    // NetEase IDs are shared: even explicitly selected ChKSz audio does not
+    // need another paid request for lyrics.
+    const option = song?.provider === 'chksz' ? musicSourceOption('netease')
+      : song?.provider === 'gd' ? musicSourceOption('gd') : this.sourceForSong(song);
     const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : (song?.sourceId || id) });
     try {
       const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 30_000 : 10_000 });

@@ -118,3 +118,12 @@ test('GD discovery, search, playback and lyrics work while ChKSz quota is exhaus
   assert.ok(calls.every(url => url.searchParams.get('source') === 'gd'));
   assert.ok(calls.every(url => !url.pathname.endsWith('/playlist')));
 });
+
+test('explicit ChKSz audio uses free lyrics for the same NetEase ID',async()=>{
+ const service=new MusicService({storage:null,location:{search:''}}), calls=[];
+ const lyrics=await service.getLyric('123',{song:{id:'123',sourceId:'123',provider:'chksz'},fetchImpl:async value=>{
+   const url=new URL(value,'https://player.test');calls.push(url);
+   return Response.json({code:200,data:{lrc:'[00:01]歌词',yrc:'逐字歌词'}});
+ }});
+ assert.equal(calls.length,1);assert.equal(calls[0].searchParams.get('source'),'netease');assert.equal(calls[0].searchParams.get('id'),'123');assert.equal(lyrics.lrc,'[00:01]歌词');
+});

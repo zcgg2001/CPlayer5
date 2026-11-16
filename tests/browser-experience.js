@@ -63,6 +63,7 @@ await page.route(`${origin}/experience-fixture.wav*`, async route => {
 });
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(`${origin}/?experience-test=1`, { waitUntil: 'domcontentloaded' });
+await page.locator('#entryGuest').click();
 await expect(page.getByRole('heading', { name: '从一首喜欢的歌开始' })).toBeVisible();
 await expect(page.locator('#mobileMetaContainer')).toBeHidden();
 await page.getByRole('button', { name: '搜索歌曲', exact: true }).click();
@@ -91,8 +92,8 @@ const feedback = page.locator('#mobileBrowsePlayer [data-player-feedback]');
 await expect(feedback).toContainText('正在尝试');
 await expect(page.getByRole('status').filter({ hasText: '已添加并播放' })).toHaveCount(0);
 resolveSong();
-await expect.poll(() => attempts.length).toBeGreaterThanOrEqual(4);
-assert.deepEqual(attempts.slice(0,4),[{source:'chksz',level:'jymaster'},{source:'netease',level:'lossless'},{source:'netease',level:'exhigh'},{source:'netease',level:'standard'}]);
+await expect.poll(() => attempts.length).toBeGreaterThanOrEqual(3);
+assert.deepEqual(attempts.slice(0,3),[{source:'netease',level:'lossless'},{source:'netease',level:'exhigh'},{source:'netease',level:'standard'}]);
 await expect(feedback).toContainText('正在缓冲音频');
 await expect(page.locator('#mobileBrowsePlay')).toBeDisabled();
 resolveAudio();
@@ -157,7 +158,7 @@ assert.deepEqual(attempts.slice(mobileAttempt),[{source:'op-netease',level:'hire
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
 assert.deepEqual(errors, []);
 await page.unrouteAll({ behavior: 'wait' });
-return { passed: true, checks: ['mobile entry, search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', '503 automatic source switch', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow', 'desktop search plays selected OP QQ', 'mobile search plays selected OP NetEase'], errors };
+return { passed: true, checks: ['guest entry, mobile search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', 'no automatic ChKSz requests', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow', 'desktop search plays selected OP QQ', 'mobile search plays selected OP NetEase'], errors };
 } finally {
   resolveHot(); resolveNews(); resolveSong(); resolveAudio();
   await page.evaluate(()=>{ for(const audio of window.__testAudio||[]) { audio.pause();audio.removeAttribute('src');audio.load(); } }).catch(()=>{});

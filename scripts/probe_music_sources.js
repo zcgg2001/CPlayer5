@@ -10,7 +10,8 @@ if (!origin || !/^https?:\/\//.test(origin)) {
 const base = new URL(origin).origin;
 const all = ['gd', 'chksz', ...Object.keys(MUSIC_CHANNELS), 'bilibili'];
 const selected = args.filter(arg => !arg.startsWith('--'));
-const providers = selected.length ? selected : all;
+// Quota-limited sources are probed only when explicitly named by the operator.
+const providers = selected.length ? selected : all.filter(source => source !== 'chksz');
 if (providers.some(name => !all.includes(name))) throw new Error('Unknown music source');
 const rounds = Number(args.find(arg => arg.startsWith('--rounds='))?.split('=')[1] || 1);
 if (!Number.isInteger(rounds) || rounds < 1 || rounds > 3) throw new Error('Rounds must be between 1 and 3');

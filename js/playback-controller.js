@@ -18,11 +18,14 @@ export function createPlaybackController({
     let commandVersion = 0;
     let preloadController = null;
     let preloadedSong = null;
+    let preloadTimer = null;
     let activeLoad = null;
     const mediaUrl = url => normalizeMediaUrl(url, { baseUrl });
     const songId = song => song?.id ?? song;
 
     function cancelPreload() {
+        clearTimer(preloadTimer);
+        preloadTimer = null;
         preloadController?.abort();
         preloadController = null;
         preloadedSong = null;
@@ -34,32 +37,26 @@ export function createPlaybackController({
 
     async function preloadNext() {
         if (globalThis.navigator?.connection?.saveData || /(^|-)2g$/.test(globalThis.navigator?.connection?.effectiveType || '')) return;
-        if (!musicService.getSong) return;
-        if (!preloadAudio || !queueStore.state.playlist.length) return;
+        if (!musicService.playbackCandidates || !queueStore.state.playlist.length || audio.paused || state.quality.songLoading) return;
+        // Resolve only near the transition so short-lived URLs are still fresh.
+        // The router's cache is consumed by normal playback, with policy checked again.
+        if (!Number.isFinite(audio.duration) || audio.duration <= 0 || audio.duration - audio.currentTime > 45) return;
+        if (queueStore.state.playMode === 'single') return;
         const next = queueStore.state.playlist[queueStore.next()];
-        if (next == null || bilibiliVideoUrl(next) || preloadedSong === next || String(next.provider || '').startsWith('op-')) return;
+        if (next == null || String(songId(next)) === String(state.currentSong?.id) || bilibiliVideoUrl(next) || preloadedSong === next || next.preferredProvider === 'chksz' || next.provider === 'local') return;
         preloadController?.abort();
         const controller = new AbortController();
-        const timeout = setTimer(() => { controller.abort(); if (preloadController === controller) cancelPreload(); }, 8000);
+        const timeout = setTimer(() => controller.abort(), 8000);
         preloadController = controller;
+        // A failed optional attempt must not retry on every timeupdate event.
+        preloadedSong = next;
+        const iterator = musicService.playbackCandidates(songId(next), {
+            song: typeof next === 'object' ? next : null, signal: controller.signal, prefetch: true,
+        });
         try {
-            const data = await musicService.getSong(songId(next), {
-                song: typeof next === 'object' ? next : null, signal: controller.signal,
-            });
-            if (controller.signal.aborted || queueStore.state.playlist[queueStore.next()] !== next) return;
-            const url = mediaUrl(data?.url);
-            if (url) {
-                preloadAudio.preload = 'metadata';
-                preloadAudio.src = url;
-                preloadAudio.load();
-                preloadedSong = next;
-                const release = () => { if (preloadController === controller) { preloadAudio.removeAttribute('src'); preloadAudio.load(); preloadController = null; } };
-                preloadAudio.addEventListener?.('loadedmetadata', release, { once: true, signal: controller.signal });
-                const mediaTimer = setTimer(release, 8000);
-                controller.signal.addEventListener('abort', () => clearTimer(mediaTimer), { once: true });
-            }
+            await iterator.next();
         } catch { /* Preloading is optional. */ }
-        finally { clearTimer(timeout); if (preloadController === controller && controller.signal.aborted) cancelPreload(); }
+        finally { clearTimer(timeout); await iterator.return?.(); if (preloadController === controller) preloadController = null; }
     }
 
     async function load(id, songOverride = null, view = {}, options = {}) {
@@ -175,7 +172,8 @@ export function createPlaybackController({
                     Promise.resolve().then(() => isMediaCurrent() ? musicService.getLyric(id, { song: playbackData, signal: session.signal }) : null)
                         .then(lyrics => { if (isMediaCurrent()) view.onLyrics?.(lyrics, data, playbackData); })
                         .catch(error => { if (isMediaCurrent()) view.onLyricsError?.(error); });
-                    if (preloadAudio || view.onPreload) setTimer(() => { if (isCurrent() && active.wantsPlay && !blocked) (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
+                    clearTimer(preloadTimer);
+                    preloadTimer = setTimer(() => { if (isCurrent() && active.wantsPlay && !blocked) void (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
                     return;
                 }
             } catch (error) {
@@ -207,7 +205,7 @@ export function createPlaybackController({
             }, stallTimeoutMs);
         };
         const onPlaying = () => { stopStall(); active.wantsPlay = true; };
-        const onProgress = () => { if (audio.currentTime > lastTime + 0.1) stopStall(); lastTime = audio.currentTime; };
+        const onProgress = () => { if (audio.currentTime > lastTime + 0.1) stopStall(); lastTime = audio.currentTime; if (active.wantsPlay) void preloadNext(); };
         const onPause = () => { stopStall(); if (!active.attempting && !audio.error) active.wantsPlay = false; };
         const listeners = { error:onError, waiting:onWaiting, stalled:onWaiting, playing:onPlaying, timeupdate:onProgress, pause:onPause };
         for (const [event, handler] of Object.entries(listeners)) audio.addEventListener?.(event, handler);
