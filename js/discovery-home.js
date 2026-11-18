@@ -1,4 +1,5 @@
-import { runtimePolicy, coverUrl } from './runtime-policy.js';
+import { runtimePolicy } from './runtime-policy.js';
+import { bindArtwork } from './artwork.js?v=1';
 import { requestJson } from './http.js';
 import { requestErrorMessage } from './http.js';
 import { createDiscoveryProfile, PREFERENCE_GROUPS, SCENES, analyzeLibrary, artistNames, canRecommend, dayKey, matchesFilters, parseLibraryJson, parsePlaylistInput, recordingKey } from './recommendation-model.js';
@@ -29,10 +30,9 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
   const heading = (title, note) => { const node = el('header', 'discover-section-heading'); const copy = el('div'); copy.append(el('h2', '', title)); if (note) copy.append(el('p', '', note)); node.append(copy); return node; };
   const section = (title, note, action) => { const node = el('section', 'discover-section'), head = heading(title, note), content = el('div', 'discover-tracks'); if (action) head.append(action); node.append(head, content); root.append(node); return content; };
   const img = song => {
-    const cover = el('span', 'discover-cover'); cover.append(icon('Music2'));
-    try { const url = new URL(song.cover, document.baseURI); if (song.cover && ['http:', 'https:'].includes(url.protocol)) {
-      const image = el('img'); image.src = coverUrl(url.href.replace(/^http:/, 'https:')); image.alt = ''; image.width = image.height = 48; image.loading = 'lazy'; image.referrerPolicy = 'no-referrer'; image.addEventListener('error', () => image.remove()); cover.append(image);
-    } } catch { /* Keep the note fallback. */ }
+    const cover = el('span', 'discover-cover'), image = el('img');
+    image.alt = ''; image.width = image.height = 48; image.loading = 'lazy';
+    cover.append(bindArtwork(image, song, { size: 160 }));
     return cover;
   };
   root.classList.add('discovery-home');
@@ -193,7 +193,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     const grid = el('div', 'discover-collections');
     for (const item of items) {
       const card = button('', () => openPlaylist(item.id), { className: 'discover-collection', title: `打开 ${item.name}` });
-      card.append(img(item), el('strong', '', item.name), el('span', '', `${item.trackCount} 首 · ${item.tags?.join(' / ') || item.source}`)); grid.append(card);
+      card.append(img({name:item.name, cover:item.cover}), el('strong', '', item.name), el('span', '', `${item.trackCount} 首 · ${item.tags?.join(' / ') || item.source}`)); grid.append(card);
     }
     return grid;
   }

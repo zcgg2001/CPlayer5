@@ -1,3 +1,4 @@
+import { bindArtwork } from './artwork.js?v=1';
 import { catalogRecord } from './music-catalog.js';
 const CHARTS = Object.freeze({
   hot: Object.freeze({ id: '3778678', name: '热歌榜' }),
@@ -135,26 +136,6 @@ function formatUpdatedAt(value) {
   }).format(date);
 }
 
-function safeImageUrl(value) {
-  try {
-    const url = new URL(value, window.location.href);
-    if (url.protocol === 'http:') url.protocol = 'https:';
-    return url.protocol === 'https:' ? url.href : '';
-  } catch {
-    return '';
-  }
-}
-
-function imageVariant(value, size) {
-  const safe = safeImageUrl(value);
-  if (!safe) return '';
-  const url = new URL(safe);
-  if (url.hostname === 'music.126.net' || url.hostname.endsWith('.music.126.net')) {
-    url.searchParams.set('param', `${size}y${size}`);
-  }
-  return url.href;
-}
-
 function createIcon(className) {
   const icon = document.createElement('i');
   icon.className = `fas ${className}`;
@@ -207,19 +188,9 @@ function createChartRow(item, { onPlay, onAdd }) {
 
   const cover = document.createElement('span');
   cover.className = 'chart-track-cover';
-  const coverUrl = imageVariant(item.cover, 160);
-  if (coverUrl) {
-    const image = document.createElement('img');
-    image.src = coverUrl;
-    image.alt = '';
-    image.width = 56;
-    image.height = 56;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    cover.appendChild(image);
-  } else {
-    cover.appendChild(createIcon('fa-music'));
-  }
+  const image = document.createElement('img');
+  image.alt = ''; image.width = image.height = 56; image.loading = 'lazy';
+  cover.appendChild(bindArtwork(image, item, { size: 160 }));
 
   const copy = document.createElement('span');
   copy.className = 'chart-track-copy';
@@ -346,14 +317,8 @@ function renderSurface(surface, payload, options) {
   surface.updated.textContent = formatUpdatedAt(chart.fetchedAt);
   surface.count.textContent = `${chart.trackCount || items.length} 首`;
 
-  const coverUrl = imageVariant(chart.cover || items[0]?.cover, 480);
-  if (coverUrl) {
-    surface.cover.src = coverUrl;
-    surface.cover.alt = `${chart.name}封面`;
-  } else {
-    surface.cover.src = './img/icon.png';
-    surface.cover.alt = '';
-  }
+  surface.cover.alt = `${chart.name}封面`;
+  bindArtwork(surface.cover, { name: chart.name, cover: chart.cover || items[0]?.cover }, { size: 480 });
 
   const fragment = document.createDocumentFragment();
   items.forEach(item => fragment.appendChild(createChartRow(item, options)));

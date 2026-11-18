@@ -98,6 +98,29 @@ export function neteaseMetadataId(song) {
   return null;
 }
 
+export function artworkIdentity(song) {
+  if (!song) return '';
+  const provider = song.provider || 'gd';
+  try {
+    const sourceId = channelSourceId(provider, song.sourceId || song.id);
+    const identity = platformIdentity({ ...song, provider, sourceId });
+    if (identity.startsWith('qq:') && /^qq:\d*$/.test(identity)) {
+      const mid = song.mid || song.songmid;
+      return typeof mid === 'string' && /^[A-Za-z0-9]{14}$/.test(mid) ? `qq:${mid}` : '';
+    }
+    return /^(?:netease:\d{1,20}|qq:[A-Za-z0-9]{14})$/.test(identity) ? identity : '';
+  } catch { return ''; } // Imported IDs can contain invalid percent escapes.
+}
+
+// The same recording can appear on an original album and a later compilation.
+export function sameArtworkRelease(song, other) {
+  const album = key(song?.albumEntity?.name || song?.album);
+  return Boolean(album && album === key(other?.albumEntity?.name || other?.album)
+    && key(song.artist) && key(song.artist) === key(other.artist)
+    && key(song.name) === key(other.name)
+    && versionOf(song.name, song.versionLabel).descriptor === versionOf(other.name, other.versionLabel).descriptor);
+}
+
 export const sourceKey = song => `${song.provider || 'gd'}:${song.sourceId || song.id}`;
 
 export function catalogRecord(song) {
@@ -140,8 +163,10 @@ export function aggregateSongs(songs) {
       const evidence = group.provenance[field] ||= [];
       if (!evidence.some(item => item.provider === song.provider && JSON.stringify(item.value) === JSON.stringify(value))) evidence.push({provider:song.provider,value});
     }
-    if (!group.cover && song.cover) group.cover = song.cover;
-    if (!group.albumEntity.artwork.length) group.albumEntity.artwork = song.albumEntity.artwork;
+    if (platformIdentity(group) === platformIdentity(song) || sameArtworkRelease(group, song)) {
+      if (!group.cover && song.cover) group.cover = song.cover;
+      if (!group.albumEntity.artwork.length) group.albumEntity.artwork = song.albumEntity.artwork;
+    }
     if (!group.albumEntity.description) group.albumEntity.description = song.albumEntity.description;
     for (const artist of group.artists) { const match = song.artists.find(item => key(item.name) === key(artist.name)); if (match) { artist.avatar ||= match.avatar; artist.description ||= match.description; } }
   }
@@ -170,7 +195,9 @@ export function mergeMetadata(record, details) {
   const merged = aggregateSongs([record, {...extra, catalogId:record.catalogId, sources:record.sources}])[0];
   // A detail query is not an additional playable channel.
   merged.sources = record.sources;
-  if (details.cover) { merged.cover = details.cover; merged.albumEntity.artwork = artworkVariants(details.cover); }
+  if (details.cover && (artworkIdentity(record) === `netease:${details.id}` || sameArtworkRelease(record, details))) {
+    merged.cover = details.cover; merged.albumEntity.artwork = artworkVariants(details.cover);
+  }
   merged.metadataRetrievedAt = details.retrievedAt;
   merged.metadataSource = details.metadataSource;
   return merged;

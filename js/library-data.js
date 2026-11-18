@@ -4,9 +4,32 @@ export const text = (value, max = 300) => typeof value === 'string' ? value.trim
 // Catalog IDs may contain percent-encoded names or provider URLs. They remain
 // opaque identifiers; accepting them never makes them a playable URL.
 export const validLibraryId = (value, max = 1500) => typeof value === 'string' && value.length > 0 && value.length <= max && /^(?:[\w:.\-!~*'()]|%[\da-f]{2})+$/i.test(value);
+export function qqAlbumMid(song) {
+  const mid = song?.albumEntity?.mid || song?.albumMid || song?.albummid;
+  return typeof mid === 'string' && /^[a-zA-Z0-9]{14}$/.test(mid) ? mid : '';
+}
 export function imageURL(value) {
   if (typeof value !== 'string' || value.length > 1500) return '';
-  try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !/[?&](token|key|signature)=/i.test(value) ? url.href : ''; } catch { return ''; }
+  // Provider picture endpoints are portable across the app and website origins.
+  if (value.startsWith('/api/v1/music/cover?')) {
+    const params = new URLSearchParams(value.slice(value.indexOf('?') + 1));
+    const id = params.get('id'), source = params.get('source');
+    if (params.size !== 2 || !id) return '';
+    if (source === 'gd' && /^\d{1,32}$/.test(id)) return `/api/v1/music/cover?source=gd&id=${id}`;
+    const type = { 'jianbin-netease': 'wy', 'jianbin-qq': 'qq', 'jianbin-kuwo': 'kw', 'jianbin-kugou': 'kg' }[source];
+    if (!type) return '';
+    try {
+      const picture = new URL(id), query = picture.searchParams;
+      if (picture.origin !== 'https://www.jbsou.cn' || picture.username || picture.password || picture.hash || picture.pathname !== '/api.php'
+        || query.size !== 3 || query.get('get') !== 'pic' || query.get('type') !== type || !/^[A-Za-z0-9_-]{1,128}$/.test(query.get('id') || '')) return '';
+      return `/api/v1/music/cover?${new URLSearchParams({ source, id: picture.href })}`;
+    } catch { return ''; }
+  }
+  try {
+    const url = new URL(value);
+    if (url.protocol === 'http:' && /(^|\.)(music\.126\.net|gtimg\.cn)$/.test(url.hostname)) url.protocol = 'https:';
+    return url.protocol === 'https:' && !url.username && !url.password && !/[?&](token|key|signature)=/i.test(value) ? url.href : '';
+  } catch { return ''; }
 }
 export function cleanSong(song) {
   if (!song || typeof song !== 'object' || !validLibraryId(String(song.id ?? ''))) throw new Error('歌曲 ID 无效');
@@ -16,6 +39,8 @@ export function cleanSong(song) {
   if (typeof song.preferredProvider === 'string' && /^[\w-]{1,40}$/.test(song.preferredProvider)) result.preferredProvider = song.preferredProvider;
   for (const key of ['duration', 'durationSeconds', 'dt']) if (Number.isFinite(song[key]) && song[key] >= 0) result[key] = song[key];
   const cover = imageURL(song.cover); if (cover) result.cover = cover;
+  const albumMid = qqAlbumMid(song);
+  if (albumMid) result.albumMid = albumMid;
   if (typeof song.downloadAllowed === 'boolean') result.downloadAllowed = song.downloadAllowed;
   const entity = item => ({ ...(item.id != null ? { id: text(String(item.id), 100) } : {}), name: text(item.name), ...(imageURL(item.cover || item.avatar) ? { cover: imageURL(item.cover || item.avatar) } : {}) });
   if (song.albumEntity?.name) result.albumEntity = entity(song.albumEntity);

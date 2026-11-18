@@ -1,25 +1,19 @@
 import { normalizeMediaUrl } from './security.js';
 import { coverUrl } from './runtime-policy.js';
-import { neteaseMetadataId, versionOf } from './music-catalog.js?v=2';
+import { artworkIdentity, sameArtworkRelease } from './music-catalog.js?v=2';
+export { sameArtworkRelease };
+import { imageURL, qqAlbumMid } from './library-data.js';
 import { requestJson } from './http.js?v=37';
 
 const text = value => typeof value === 'string' ? value.trim() : '';
 const key = value => text(value).normalize('NFKC').toLowerCase().replace(/\s+/g, '');
 const albumName = song => text(song?.albumEntity?.name || song?.album || song?.name);
 const base = () => globalThis.location?.href || 'https://cplayer.invalid/';
+const qqAlbumCover = mid => /^[a-zA-Z0-9]{14}$/.test(mid || '') ? `https://y.gtimg.cn/music/photo_new/T002R300x300M000${mid}.jpg` : '';
 const boundedSet = (cache, id, value) => {
   cache.delete(id); cache.set(id, value);
   while (cache.size > 200) cache.delete(cache.keys().next().value);
 };
-
-// Album identity matters: an ISRC alone can refer to several different releases.
-export function sameArtworkRelease(song, other) {
-  const album = key(song?.albumEntity?.name || song?.album);
-  return Boolean(album && album === key(other?.albumEntity?.name || other?.album)
-    && key(song.artist) && key(song.artist) === key(other.artist)
-    && key(song.name) === key(other.name)
-    && versionOf(song.name, song.versionLabel).descriptor === versionOf(other.name, other.versionLabel).descriptor);
-}
 
 export function artworkUrl(value, size = 640, baseUrl = base()) {
   let safe = normalizeMediaUrl(value, { allowDataImage: true, baseUrl });
@@ -36,22 +30,26 @@ export function artworkUrl(value, size = 640, baseUrl = base()) {
   if (/\/img\/icon\.(png|svg)$/.test(url.pathname)) return '';
   const width = Math.max(80, Math.min(1200, Math.round(Number(size) || 640)));
   if (url.hostname.endsWith('.music.126.net') && [...url.searchParams.keys()].every(k => k === 'param')) {
-    url.searchParams.set('param', `${width}y${width}`);
-  } else if (url.hostname === 'y.gtimg.cn' && !url.search && /\/T002R\d+x\d+M000/.test(url.pathname)) {
+    if (size === 0) url.searchParams.delete('param');
+    else url.searchParams.set('param', `${width}y${width}`);
+  } else if (size !== 0 && url.hostname === 'y.gtimg.cn' && !url.search && /\/T002R\d+x\d+M000/.test(url.pathname)) {
     const qqSize = width <= 150 ? 150 : width <= 300 ? 300 : 800;
     url.pathname = url.pathname.replace(/T002R\d+x\d+M000/, `T002R${qqSize}x${qqSize}M000`);
+  } else if (size > 0 && width <= 320 && url.hostname.endsWith('.hdslb.com') && !url.search && /\.(jpe?g|png)$/i.test(url.pathname)) {
+    url.pathname += '@480w_270h_1c.webp';
   }
   return coverUrl(url.href, origin);
 }
 
-export function artworkCandidates(song, size = 640, baseUrl = base()) {
+function artworkSources(song) {
+  // Playback may switch providers. Keep the selected recording's album art in that case.
+  if (song?.artworkSource?.provider && song.artworkSource.provider !== song.provider) song = song.artworkSource;
   const values = [song?.cover, song?.albumEntity?.cover];
   for (const variant of [...(song?.albumEntity?.artwork || [])].reverse()) values.push(variant.url);
   for (const source of song?.sources || []) if (sameArtworkRelease(song, source)) values.push(source.cover);
   // QQ exposes an album mid; it is not interchangeable with a numeric album ID.
-  const mid = song?.albumEntity?.mid || song?.albummid || song?.albumMid;
-  if (/^[a-zA-Z0-9]{14}$/.test(mid || '')) values.push(`https://y.gtimg.cn/music/photo_new/T002R800x800M000${mid}.jpg`);
-  return [...new Set(values.map(value => artworkUrl(value, size, baseUrl)).filter(Boolean))].slice(0, 4);
+  values.push(qqAlbumCover(qqAlbumMid(song)));
+  return values.filter(Boolean);
 }
 
 export function fallbackArtwork(song = {}) {
@@ -90,81 +88,203 @@ export function loadArtworkImage(url, { signal, timeoutMs = 3500, ImageClass = g
   });
 }
 
-export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage = loadArtworkImage, now = Date.now, baseUrl = base(), timeoutMs = 12000 } = {}) {
-  const failures = new Map(), metadata = new Map(), successes = new Map();
+// Include the original CDN resource when a particular thumbnail rendition is missing.
+export function artworkCandidates(song, size = 640, baseUrl = base()) {
+  return imageVariants(artworkSources(song), size, baseUrl);
+}
+
+function imageVariants(sources, size, baseUrl) {
+  return [...new Set(sources.flatMap(source => [artworkUrl(source, size, baseUrl), artworkUrl(source, 0, baseUrl)]).filter(Boolean))];
+}
+
+// Persist only verified public cover references, never image bytes, credentials or playback URLs.
+const COVER_INDEX = 'cp_verified_track_covers_v1';
+function publicCover(value, baseUrl) {
+  if (typeof value !== 'string' || !value) return '';
+  let url;
+  try { url = new URL(value, baseUrl); } catch { return ''; }
+  if (url.origin === new URL(baseUrl).origin) {
+    if (url.pathname === '/api/v1/music/cover') return imageURL(url.pathname + url.search);
+    if (url.pathname === '/api/cover') return publicCdnCover(url.searchParams.get('url'));
+  }
+  return publicCdnCover(url.href);
+}
+function publicCdnCover(value) {
+  const safe = imageURL(value);
+  if (!safe.startsWith('https://')) return '';
+  const url = new URL(safe);
+  if (url.port || url.hash) return '';
+  if (url.hostname.endsWith('.music.126.net') && [...url.searchParams.keys()].every(k => k === 'param')) {
+    url.searchParams.delete('param'); return url.href;
+  }
+  return url.hostname === 'y.gtimg.cn' && !url.search && /^\/music\/photo_new\/T002R\d+x\d+M000[A-Za-z0-9]{14}\.jpg$/.test(url.pathname) ? url.href : '';
+}
+
+// A canceled view can stop waiting without aborting another view's shared lookup.
+async function waitForMetadata(pending, signal) {
+  signal.throwIfAborted();
+  let abort;
+  const canceled = new Promise((_, reject) => {
+    abort = () => reject(signal.reason);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+  try { return await Promise.race([pending, canceled]); }
+  finally { signal.removeEventListener('abort', abort); }
+}
+
+export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage = loadArtworkImage, now = Date.now, baseUrl = base(), timeoutMs = 12000, storage } = {}) {
+  const failures = new Map(), metadata = new Map(), successes = new Map(), pendingMetadata = new Map();
+  const knownCovers = new Map();
+  try {
+    const saved = JSON.parse(storage?.getItem(COVER_INDEX) || '[]');
+    for (const [id, url] of saved.slice(-200)) {
+      const cover = publicCover(url, baseUrl);
+      if (cover && /^(?:qq:[A-Za-z0-9]{14}|netease:\d{1,20})$/.test(id)) knownCovers.set(id, cover);
+    }
+  } catch { /* Older installations and private browsing can start with an empty index. */ }
+
+  function remember(id, url) {
+    const cover = publicCover(url, baseUrl);
+    if (!id || !cover || knownCovers.get(id) === cover) return;
+    boundedSet(knownCovers, id, cover);
+    try { storage?.setItem(COVER_INDEX, JSON.stringify([...knownCovers])); } catch { /* Memory cache is still valid. */ }
+  }
+
+  async function nativeCover(id) {
+    const cached = metadata.get(id);
+    if (cached?.expires > now()) return cached.url;
+    if (pendingMetadata.has(id)) return pendingMetadata.get(id);
+    const [platform, nativeId] = id.split(':');
+    const bundledQQ = platform === 'qq' && globalThis.CPlayerNative && new URL(baseUrl).pathname.startsWith('/android-player/');
+    const path = bundledQQ ? `/android-player/qq-artwork/${nativeId}`
+      : `/api/v1/music/metadata?${new URLSearchParams({ source: platform, id: nativeId, artwork: '1' })}`;
+    // Each waiter owns its image and cancellation. One disappearing row must not cancel a shared lookup.
+    const pending = (async () => {
+      let url = '', ttl = 300000;
+      try {
+        const result = await requestJson(path, { fetchImpl, timeoutMs: 5500 });
+        if (result?.code !== 200 || String(result.data?.id) !== nativeId) throw new Error('Mismatched artwork');
+        url = platform === 'qq' ? qqAlbumCover(result.data.albumMid) : result.data.cover || result.data.albumEntity?.cover || '';
+      } catch (error) { if (error.status !== 404) ttl = 30000; }
+      boundedSet(metadata, id, { url, expires: now() + ttl });
+      return url;
+    })().finally(() => pendingMetadata.delete(id));
+    pendingMetadata.set(id, pending);
+    return pending;
+  }
+
+  function identity(song) {
+    const original = song.artworkSource || song;
+    if (original.type && original.type !== 'song') return '';
+    return artworkIdentity(original) || (original.sources || []).filter(other => sameArtworkRelease(song, other)).map(artworkIdentity).find(Boolean) || '';
+  }
+
   return {
+    knownCover(song) { return knownCovers.get(identity(song)) || ''; },
     async resolve(song, { signal, size = 640 } = {}) {
       signal?.throwIfAborted();
-      const fallback = fallbackArtwork(song);
       const scope = new AbortController();
       const abort = () => scope.abort(signal.reason);
       signal?.addEventListener('abort', abort, { once: true });
       const timer = setTimeout(() => scope.abort(new DOMException('Artwork deadline', 'TimeoutError')), timeoutMs);
-      const original = song.artworkSource || song;
-      // Don't borrow a native ID from a loosely grouped source with a different album.
-      const id = neteaseMetadataId({ ...original, sources: [original, ...(original.sources || []).filter(source => sameArtworkRelease(song, source))] });
-      const identity = `${original.provider || ''}:${original.sourceId || original.id || ''}:${key(albumName(song))}:${key(song.artist)}`;
+      const id = identity(song);
+      const sources = artworkSources(song);
+      const cacheId = JSON.stringify([id || sources, size]);
       const tried = new Set();
-      let attempts = 0;
-      const attempt = async value => {
-        const url = artworkUrl(value, size, baseUrl);
-        if (!url || tried.has(url) || attempts >= 4 || failures.get(url) > now()) return '';
-        scope.signal.throwIfAborted(); tried.add(url); attempts++;
+      const attempt = async url => {
+        if (!url || tried.has(url) || tried.size >= 5 || failures.get(url) > now()) return null;
+        scope.signal.throwIfAborted(); tried.add(url);
         try {
           await loadImage(url, { signal: scope.signal }); scope.signal.throwIfAborted();
-          boundedSet(successes, identity, { url, expires: now() + 86400000 });
-          return url;
         } catch (error) {
           if (scope.signal.aborted) throw error;
-          boundedSet(failures, url, now() + 30000); return '';
+          boundedSet(failures, url, now() + 30000); return null;
         }
+        boundedSet(successes, cacheId, { url, expires: now() + 86400000 });
+        remember(id, url);
+        return { url, status: 'ready' };
       };
       try {
-        const saved = successes.get(identity);
-        const candidates = artworkCandidates(song, size, baseUrl);
+        const saved = successes.get(cacheId);
+        const known = knownCovers.get(id);
+        const candidates = imageVariants(known ? [known, ...sources] : sources, size, baseUrl);
         if (saved?.expires > now()) candidates.unshift(saved.url);
-        // Reserve one attempt for native metadata rather than spending all on broken variants.
-        for (const candidate of [...new Set(candidates)].slice(0, id ? 3 : 4)) {
-          const url = await attempt(candidate); if (url) return { url, status: 'ready' };
+        for (const url of [...new Set(candidates)].slice(0, id ? 3 : 5)) {
+          const result = await attempt(url); if (result) return result;
         }
         if (id) {
-          let entry = metadata.get(id);
-          if (!entry || entry.expires <= now()) {
-            try {
-              const response = await requestJson(`/api/v1/music/metadata?${new URLSearchParams({ source: 'netease', id, artwork: '1' })}`, { fetchImpl, signal: scope.signal, timeoutMs: 4500 });
-              if (response?.code !== 200 || String(response.data?.id) !== id) throw new Error('Mismatched artwork');
-              entry = { url: response.data.cover || response.data.albumEntity?.cover || '', expires: now() + 300000 };
-              boundedSet(metadata, id, entry);
-            } catch (error) {
-              if (scope.signal.aborted) throw error;
-              // Transient failures are retried sooner than an authoritative miss.
-              boundedSet(metadata, id, { url: '', expires: now() + (error.status === 404 ? 300000 : 30000) });
-            }
+          scope.signal.throwIfAborted();
+          const source = await waitForMetadata(nativeCover(id), scope.signal);
+          for (const url of imageVariants(source ? [source] : [], size, baseUrl)) {
+            const result = await attempt(url); if (result) return result;
           }
-          const url = await attempt(entry?.url); if (url) return { url, status: 'ready' };
         }
-        return fallback;
-      } catch (error) {
-        if (signal?.aborted) throw error;
-        return fallback;
-      } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+      } catch (error) { if (signal?.aborted) throw error; }
+      finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
+      return fallbackArtwork(song);
     },
   };
 }
 
-// Lightweight list/card rendering: native lazy loading, no metadata fan-out per row.
-export function bindArtwork(image, song, { size = 320, url = song?.cover, baseUrl = base() } = {}) {
-  const fallback = fallbackArtwork(song);
-  const src = artworkUrl(url, size, baseUrl);
-  image.referrerPolicy = 'no-referrer'; image.decoding = 'async';
-  image.classList.add('cplayer-artwork');
-  image.style.backgroundImage = `url("${fallback.url}")`;
-  image.dataset.artworkState = src ? 'loading' : 'fallback';
-  image.onload = () => { if (image.dataset.artworkState !== 'fallback') image.dataset.artworkState = 'ready'; };
-  image.onerror = () => {
-    image.onerror = null; image.dataset.artworkState = 'fallback'; image.src = fallback.url;
-  };
-  image.src = src || fallback.url;
+let localStore;
+try { localStore = globalThis.localStorage; } catch { /* Storage is optional. */ }
+export const artworkResolver = createArtworkResolver({ storage: localStore });
+
+// One observer covers dynamic and virtualized lists. Dropped rows never take a network slot.
+const bindings = new WeakMap(), watching = new Set(), visible = new Set();
+let observer, active = 0;
+function drainArtwork() {
+  for (const image of visible) {
+    if (active >= 4) break;
+    if (image.closest?.('[inert]')) continue;
+    visible.delete(image); watching.delete(image); observer?.unobserve(image);
+    const load = bindings.get(image);
+    if (!load || image.isConnected === false) continue;
+    active++;
+    void load().finally(() => { active--; drainArtwork(); });
+  }
+}
+function watchArtwork(image) {
+  if (!globalThis.IntersectionObserver) { visible.add(image); queueMicrotask(drainArtwork); return; }
+  if (!observer) {
+    observer = new IntersectionObserver(entries => {
+      for (const {target, isIntersecting} of entries) {
+        if (!watching.has(target)) continue;
+        if (isIntersecting) visible.add(target); else visible.delete(target);
+      }
+      drainArtwork();
+    });
+    new MutationObserver(records => {
+      if (!watching.size) return;
+      if (records.some(record => record.removedNodes.length)) {
+        for (const target of watching) if (!target.isConnected) {
+          observer.unobserve(target); watching.delete(target); visible.delete(target);
+        }
+      }
+      if (records.some(record => record.attributeName === 'inert')) drainArtwork();
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['inert'] });
+  }
+  watching.add(image); observer.observe(image);
+}
+
+export function bindArtwork(image, song, { size = 320, url = song?.cover, resolver = artworkResolver } = {}) {
+  const track = url === song?.cover ? song : { ...song, cover: url };
+  const fallback = fallbackArtwork(track);
+  image.classList.add('cplayer-artwork'); image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
+  image.removeAttribute('crossorigin'); image.onload = image.onerror = null;
+  image.dataset.artworkState = 'loading'; image.style.backgroundImage = `url("${fallback.url}")`;
+  image.src = fallback.url;
+  async function load() {
+    const result = await resolver.resolve(track, { size }).catch(() => fallback);
+    if (bindings.get(image) !== load || image.isConnected === false) return;
+    image.dataset.artworkState = result.status;
+    if (result.status !== 'ready') return;
+    image.onerror = () => {
+      image.onerror = null; image.dataset.artworkState = 'fallback'; image.src = fallback.url;
+    };
+    image.src = result.url;
+  }
+  bindings.set(image, load); watchArtwork(image);
   return image;
 }
 

@@ -8,6 +8,13 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
   const read = (key, fallback) => { try { return JSON.parse(storage.getItem(key)) || fallback; } catch { return fallback; } };
   const songs = list => list.map(song => { try { return cleanSong(typeof song === 'object' ? song : { id: song }); } catch { return null; } }).filter(Boolean);
   return {
+    saveGuestQueue() {
+      storage.setItem('cp_guest_queue_v1', JSON.stringify(songs(player.queue())));
+    },
+    restoreGuestQueue() {
+      const saved = read('cp_guest_queue_v1', null);
+      if (Array.isArray(saved)) player.setQueue(songs(saved));
+    },
     capture({ withProgress = false } = {}) {
       const records = {};
       for (const [key, value] of read('cp_favorites_v1', [])) { try { records[`favorite:${key}`] = cleanSong(value); } catch {} }

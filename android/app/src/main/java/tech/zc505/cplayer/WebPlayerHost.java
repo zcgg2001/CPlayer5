@@ -94,6 +94,7 @@ final class WebPlayerHost {
         });
     WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
         .setDomain(Uri.parse(BuildConfig.PLAYER_ORIGIN).getHost())
+        .addPathHandler(UI_PATH + "qq-artwork/", new QqArtworkHandler())
         .addPathHandler(UI_PATH, new WebViewAssetLoader.AssetsPathHandler(service.getApplicationContext()))
         .build();
     // An earlier APK may already have installed the website's root-scoped worker.

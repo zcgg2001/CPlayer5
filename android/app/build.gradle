@@ -23,8 +23,8 @@ android {
         applicationId 'tech.zc505.cplayer'
         minSdk 26
         targetSdk 36
-        versionCode 3
-        versionName '1.9.0'
+        versionCode 4
+        versionName '1.9.1'
         buildConfigField 'String', 'PLAYER_ORIGIN', '"https://music.505zc.tech"'
     }
     buildFeatures { buildConfig true }

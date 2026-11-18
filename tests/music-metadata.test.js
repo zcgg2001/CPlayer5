@@ -50,3 +50,33 @@ test('artwork lookup recovers from an empty song cover using only its exact albu
   }});
   assert.equal((await result.json()).data.cover,base.album.picUrl);assert.equal(urls.length,2);assert.ok(urls[1].endsWith('/album/3'));
 });
+
+test('QQ artwork looks up the exact song MID and caches only the matching public album MID', async () => {
+  const mid='0039MnYb0qxYhV', albumMid='000MkMni19ClKG';
+  const query=`source=qq&id=${mid}&artwork=1`, urls=[];
+  const song={mid,name:'晴天',album:{mid:albumMid,name:'叶惠美'},file:{extra:'ignored'}};
+  const env={METADATA_FETCH:async(url,options)=>{
+    urls.push(url);assert.equal(options.redirect,'error');
+    return data({code:0,data:[{...song,mid:'004Fs2FP1EvZYc',album:{mid:'000rusYr0tlsP1'}},song]});
+  }};
+  for(let call=0;call<2;call++) {
+    const result=await worker.fetch(request(query),env);
+    assert.equal(result.status,200);assert.deepEqual(await result.json(),{code:200,data:{id:mid,albumMid}});
+  }
+  assert.deepEqual(urls,[`https://c.y.qq.com/v8/fcg-bin/fcg_play_single_song.fcg?songmid=${mid}&format=json`]);
+  for (const bad of [`source=qq&id=${mid}`,'source=qq&id=123&artwork=1','source=qq&id=..%2Ffoo&artwork=1']) {
+    assert.equal((await worker.fetch(request(bad),{METADATA_FETCH:assert.fail})).status,400);
+  }
+});
+
+test('QQ artwork distinguishes missing songs/albums from upstream errors', async () => {
+  const mid='0039MnYb0qxYhV',query=`source=qq&id=${mid}&artwork=1`;
+  for (const [response,expected] of [
+    [data({code:0,data:[]}),404], [data({code:0,data:[{mid:'004Fs2FP1EvZYc',name:'晴天',album:{mid:'000MkMni19ClKG'}}]}),404],
+    [data({code:0,data:[{mid,album:{id:'112233'}}]}),404], [data({code:-1}),502],
+    [new Response(null,{status:503}),502], [new Response('x'.repeat(128*1024+1)),502],
+  ]) {
+    const result=await worker.fetch(request(query),{METADATA_FETCH:async()=>response});
+    assert.equal(result.status,expected);assert.equal((await result.json()).data,undefined);
+  }
+});

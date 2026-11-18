@@ -29,7 +29,7 @@ import {
 import { createDownloadSession } from './download-session.js?v=22';
 import { createPlaybackController } from './playback-controller.js?v=6';
 import { createPlayerAudio } from './native-audio.js';
-import { artworkUrl, bindArtwork, fallbackArtwork, createArtworkResolver, createArtworkPresenter } from './artwork.js?v=1';
+import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtworkPresenter } from './artwork.js?v=1';
 import { createQueueStore } from './queue-store.js?v=1';
 import { initAccountPanel } from './account-panel.js?v=3';
 import { createGuestTrial } from './guest-trial.js?v=1';
@@ -133,7 +133,6 @@ function restoreLastCover() {
     void artworkPresenter.show({ cover: savedCover, name: '上次播放', artworkRestore: true });
 }
 
-const artworkResolver = createArtworkResolver();
 let playbackArtworkUrl = '';
 let artworkColorController = null;
 const artworkPresenter = createArtworkPresenter({
@@ -482,6 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDefaultPlaylist().finally(() => {
         accountPanel = initAccountPanel({
             root: document.getElementById('accountPanel'), openSettings, closeSettings, guestTrial,
+            persistGuestQueue: androidPlayer,
             refreshFavorites: () => discoveryTable?.refreshFavorites(),
             onSettings: keys => { if (keys.includes('cp_theme')) applyTheme(localStorage.getItem('cp_theme') || 'night', { persist: false }); },
             player: {
@@ -2526,32 +2526,10 @@ function createDiscoverySongRow(song, index) {
 
     const cover = document.createElement('span');
     cover.className = 'discovery-song-cover';
-    const coverUrl = normalizeMediaUrl(song.cover, { baseUrl: window.location.href });
-    if (coverUrl) {
-        const image = document.createElement('img');
-        image.alt = '';
-        image.referrerPolicy = 'no-referrer';
-        image.width = 48;
-        image.height = 48;
-        image.loading = 'lazy';
-        image.addEventListener('error', () => { image.remove(); cover.innerHTML = '<i data-lucide="Music2" aria-hidden="true"></i>'; });
-        image.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        if (song.provider === 'bilibili') {
-            const thumbnail = new URL(coverUrl);
-            thumbnail.pathname += '@480w_270h_1c.webp';
-            image.src = thumbnail.href;
-        } else {
-            window.getCachedImage(coverUrl).then(cachedSrc => {
-                if (image.isConnected && cachedSrc) image.src = cachedSrc;
-            });
-        }
-        cover.appendChild(image);
-    } else {
-        const coverIcon = document.createElement('i');
-        coverIcon.className = 'fas fa-music';
-        coverIcon.setAttribute('aria-hidden', 'true');
-        cover.appendChild(coverIcon);
-    }
+    const image = document.createElement('img');
+    image.alt = ''; image.width = image.height = 48;
+    bindArtwork(image, song, { size: 160 });
+    cover.appendChild(image);
 
     const copy = document.createElement('span');
     copy.className = 'discovery-song-copy';
@@ -3133,7 +3111,7 @@ function setCollectionDialogStatus(message, { loading = false, error = false, re
 
 function renderCollectionTrackList(tracks) {
     const fragment = document.createDocumentFragment();
-    const fallbackCover = collectionDialogState.collection?.cover || '';
+    const fallbackCover = collectionDialogState.type === 'album' ? collectionDialogState.collection?.cover : '';
 
     tracks.forEach((song, index) => {
         const row = document.createElement('div');
@@ -3223,12 +3201,7 @@ async function loadCollectionDialogTracks(version) {
         collectionDialogState.tracks = tracks;
         if (type === 'album' && tracks.length) {
             const seed = { ...tracks[0], cover: collection.cover || tracks[0].cover, album: collection.name };
-            void artworkResolver.resolve(seed, { size: 720 }).then(result => {
-                if (version !== collectionDialogState.version || !dom.collectionDialog.open) return;
-                dom.collectionDialogCover.onerror = null;
-                dom.collectionDialogCover.dataset.artworkState = result.status;
-                dom.collectionDialogCover.src = result.url;
-            }).catch(() => {});
+            bindArtwork(dom.collectionDialogCover, seed, { size: 720 });
         }
         if (!tracks.length) {
             setCollectionDialogStatus(`这个${type === 'album' ? '专辑' : '歌单'}暂时没有可播放曲目`);
@@ -3264,7 +3237,7 @@ function openCollectionDialog(collection, { type = 'playlist', opener = null } =
     document.querySelector('.collection-library-actions')?.append(savePersonal);
     dom.collectionDialogTitle.textContent = collection.name || `${typeLabel}音乐库`;
     dom.collectionDialogMeta.textContent = `${typeLabel} · ${owner} · ${declaredCount}首`;
-    bindArtwork(dom.collectionDialogCover, collection, { size: 720 });
+    bindArtwork(dom.collectionDialogCover, { name: collection.name, cover: collection.cover }, { size: 720 });
     dom.collectionDialogCover.alt = `${collection.name || typeLabel}封面`;
     dom.collectionDialog.returnValue = '';
     if (!dom.collectionDialog.open) dom.collectionDialog.showModal();
@@ -4280,6 +4253,7 @@ async function submitWelcomePlaylist() {
 }
 
 function initPlaylistView() {
+    accountPanel?.queueChanged();
     const countText = allSongsLoaded ? `(${queue.playlist.length}首)` : `(${queue.playlist.length}+首)`;
     document.getElementById('playlistCount').textContent = countText;
 
@@ -4326,6 +4300,7 @@ function queueSnapshot() {
 
 function syncQueueAfterMutation() {
     window.playlist = queue.playlist;
+    accountPanel?.queueChanged();
     playlistTotalCount = queue.playlist.length;
     setupVirtualScroll();
     mobileUI?.loadPlaylist();
@@ -4403,7 +4378,6 @@ function vsCreateItem(i) {
     const songId = typeof song === 'object' ? song.id : song;
     const songName = typeof song === 'object' ? song.name : `歌曲 ID: ${song}`;
     const songArtist = typeof song === 'object' ? song.artist : '';
-    const songCover = typeof song === 'object' ? song.cover : '';
 
     const div = document.createElement('div');
     div.className = 'playlist-item p-2 rounded-xl hover:bg-surface-container-high-color cursor-pointer flex items-center gap-3 group theme-text-on-surface';
@@ -4424,20 +4398,10 @@ function vsCreateItem(i) {
 
     const coverDiv = document.createElement('div');
     coverDiv.className = 'w-10 h-10 rounded-lg bg-surface-container-color flex-shrink-0 overflow-hidden';
-    if (songCover) {
-        const img = document.createElement('img');
-        img.className = 'w-full h-full object-cover';
-        img.loading = 'lazy';
-        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        window.getCachedImage(songCover).then(cachedSrc => {
-            if (img.isConnected) img.src = cachedSrc;
-        });
-        img.alt = songName;
-        img.onerror = () => { img.style.display = 'none'; };
-        coverDiv.appendChild(img);
-    } else {
-        coverDiv.innerHTML = '<i class="fas fa-music text-xs opacity-30 flex items-center justify-center w-full h-full"></i>';
-    }
+    const img = document.createElement('img');
+    img.className = 'w-full h-full object-cover'; img.alt = '';
+    bindArtwork(img, typeof song === 'object' ? song : { id: song }, { size: 80 });
+    coverDiv.appendChild(img);
 
     const infoDiv = document.createElement('div');
     infoDiv.className = 'flex-1 min-w-0';
@@ -4678,7 +4642,9 @@ function setupAudioContext() {
 
 // ================= 安全插入歌曲到播放列表 =================
 window.insertSongToPlaylist = function (newSong) {
-    const index = queueStore.insert(newSong);
+    const cover = artworkResolver.knownCover(newSong);
+    const index = queueStore.insert(cover ? { ...newSong, cover } : newSong);
+    accountPanel?.queueChanged();
     window.playlist = queue.playlist;
     return index;
 };
@@ -5229,7 +5195,6 @@ class MobileUIManager {
                 const song = window.playlist[actualIndex];
                 const isPlaying = actualIndex === queue.currentIndex;
                 const textClass = isPlaying ? 'text-primary-color' : '';
-                const coverSrc = song.cover || '';
 
                 const div = document.createElement('div');
                 div.className = `mobile-queue-item flex items-center gap-3 px-3 rounded-xl cursor-pointer ${isPlaying ? 'is-playing' : ''}`;
@@ -5242,11 +5207,12 @@ class MobileUIManager {
 
                 div.innerHTML = `
                     <span data-song-index class="text-xs font-mono opacity-50 w-6 text-center"></span>
-                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none" loading="lazy" crossorigin="anonymous">
+                    <img alt="" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none" loading="lazy">
                     <div class="flex-1 min-w-0">
                         <div data-song-title class="mobile-queue-title font-bold truncate text-sm ${textClass}"></div>
                         <div data-song-artist class="text-xs truncate opacity-50"></div>
                     </div>
+                    <button data-queue-library type="button" class="w-11 h-11 flex-none" aria-haspopup="dialog" title="收藏与歌单"><i data-lucide="Heart" aria-hidden="true"></i></button>
                     <button data-remove-song class="queue-remove-button" type="button"
                         aria-label="从播放队列删除歌曲" title="从队列删除">
                         <i class="fas fa-times" aria-hidden="true"></i>
@@ -5271,12 +5237,13 @@ class MobileUIManager {
                     removeSongFromPlaylist(actualIndex);
                 });
 
-                if (coverSrc) {
-                    const img = div.querySelector('img');
-                    window.getCachedImage(`${coverSrc}?param=80y80`).then(cachedSrc => {
-                        if (img.isConnected) img.src = cachedSrc;
-                    });
-                }
+                bindArtwork(div.querySelector('img'), typeof song === 'object' ? song : { id: song }, { size: 80 });
+                const libraryButton = div.querySelector('[data-queue-library]');
+                libraryButton.setAttribute('aria-label', `收藏与歌单 · ${song.name || song.id || song}`);
+                libraryButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    personalLibrary?.song(typeof song === 'object' ? song : { id: song });
+                });
                 return div;
             }
 
@@ -5434,7 +5401,7 @@ class MobileUIManager {
                 div.className = 'flex items-center gap-3 p-2 rounded-xl active:bg-white/5 transition-colors cursor-pointer';
 
                 div.innerHTML = `
-                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzMzMyIvPjwvc3ZnPg==" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy" crossorigin="anonymous">
+                    <img alt="" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy">
                     <div class="flex-1 min-w-0">
                         <div data-song-title class="font-bold truncate text-sm text-white/90"></div>
                         <div data-song-artist class="text-xs truncate opacity-50"></div>
@@ -5444,12 +5411,9 @@ class MobileUIManager {
                     </button>
                 `;
                 const targetImg = div.querySelector('img');
-                targetImg.alt = '';
-                targetImg.referrerPolicy = 'no-referrer';
                 div.querySelector('[data-song-title]').textContent = song.name || '未知歌曲';
                 div.querySelector('[data-song-artist]').textContent = song.artist || '未知艺术家';
 
-                targetImg.removeAttribute('crossorigin');
                 bindArtwork(targetImg, song, { size: 80 });
 
                 // Click entire item to add and play? Or button to add?

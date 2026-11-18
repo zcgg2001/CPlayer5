@@ -1,4 +1,4 @@
-import { bindArtwork } from './artwork.js?v=1';
+import { bindArtwork, artworkResolver } from './artwork.js?v=1';
 import { createPersonalLibraryStore, createListeningTracker } from './personal-library-store.js';
 import { cleanSong, songKey, imageURL } from './library-data.js';
 import { exportCSV, exportM3U, parseTransfer, mergeImport }  from './library-transfer.js';
@@ -12,7 +12,7 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
   const input=(value='',type='text',max=300)=>{const n=el('input');n.type=type;n.value=value;n.maxLength=max;return n;};
   const area=(value='',max=1200)=>{const n=el('textarea');n.value=value;n.maxLength=max;n.rows=3;return n;};
   const owner=()=>account.user()?.id || 'guest';
-  const store=createPersonalLibraryStore({storage,onChange(){refreshFavorites();window.dispatchEvent(new Event('cplayer:library-changed'));}});
+  const store=createPersonalLibraryStore({storage, coverForSong: song => artworkResolver.knownCover(song) || song.cover, onChange(){refreshFavorites();window.dispatchEvent(new Event('cplayer:library-changed'));}});
   const offline=createOfflineAudio({storage,getOwner:owner});musicService.offlineAudio=offline;
   musicService.offlineOnly=()=>account.isOffline();
   const tracker=createListeningTracker({audio,store,getSong,getOwner:owner,deviceId:account.library.deviceId});
@@ -36,7 +36,7 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
   function empty(title,note){const block=el('div','pl-empty');block.append(el('span','pl-empty-mark','♪'),el('h4','',title),el('p','pl-muted',note));body.append(block);}
   function art(url,name='',song={}) {
     const n=el('div','pl-art'),img=el('img');img.alt='';img.loading='lazy';
-    bindArtwork(img,{...song,cover:url,name},{size:320});n.append(img);return n;
+    bindArtwork(img,{...song,cover:url,name},{size:song.id && !song.type ? 160 : 320});n.append(img);return n;
   }
   function resetBody(root=false){sectionRoot=root;viewVersion++;body.replaceChildren();dirty=false;body.scrollTop=0;return viewVersion;}
   function guard(){return !dirty || confirm('有未保存的编辑，确定放弃吗？');}

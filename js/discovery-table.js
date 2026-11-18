@@ -1,4 +1,4 @@
-import { bindArtwork } from './artwork.js?v=1';
+import { bindArtwork, artworkResolver } from './artwork.js?v=1';
 import { groupAvailability, AVAILABILITY_LABELS } from './music-catalog.js?v=1';
 // Discovery UI uses real tracks; missing metadata stays visibly unknown.
 export function trackDuration(song) {
@@ -32,7 +32,7 @@ export function createDiscoveryTable({document, storage, list, onPlay, onQueue, 
   const save = () => { try { storage.setItem('cp_favorites_v1', JSON.stringify([...favorites])); } catch { /* In-memory favorites still work when storage is full. */ } };
   const favoriteSong = song => {
     const key = keyOf(song);
-    if (favorites.has(key)) favorites.delete(key); else favorites.set(key, {...song, url: undefined});
+    if (favorites.has(key)) favorites.delete(key); else favorites.set(key, {...song, cover: artworkResolver.knownCover(song) || song.cover, url: undefined});
     save(); sync(); if (favoritesOnly) render();
   };
   const visible = () => filterDiscoveryTracks(favoritesOnly ? [...favorites.values()] : tracks, query, sort);

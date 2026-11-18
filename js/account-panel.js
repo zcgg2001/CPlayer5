@@ -7,7 +7,7 @@ import { createOfflineDatabase } from './offline-audio.js';
 const initialAccountURL = new URL(location.href);
 const entry = createAccountEntry();
 
-export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, guestTrial }) {
+export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, guestTrial, persistGuestQueue = false }) {
   root.innerHTML = `
     <div class="account-heading"><div><p class="account-eyebrow">CPLAYER ACCOUNT</p><h3>账号与多端</h3></div><span id="accountBadge">本地模式</span></div>
     <p id="accountNotice" role="status" aria-live="polite">正在检查账号服务…</p>
@@ -78,6 +78,17 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     try { sync.capture(library.capture()); } catch (error) { notice(error.message, true); return; }
     clearTimeout(timer); timer = setTimeout(flush, 1500);
   }
+  // A search can insert a batch of songs in one event. Persist the final queue once.
+  let guestQueuePending = false;
+  function queueChanged() {
+    if (!persistGuestQueue || guestQueuePending || !entered || user || switching) return;
+    guestQueuePending = true;
+    queueMicrotask(() => {
+      guestQueuePending = false;
+      if (user || switching || storage.getItem('cp_account_owner')) return;
+      try { library.saveGuestQueue(); } catch { /* The current queue still works when storage is full. */ }
+    });
+  }
   async function flush() {
     if (!user || syncing || switching || !entered) return;
     syncing = true;
@@ -142,6 +153,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
       if (caps.enabled) { try { await request('/api/auth/sign-out', { method: 'POST', body: {} }); } catch { /* Offline guest playback does not use account endpoints. */ } }
       await window.cplayerDesktop?.signOut();
       if (user || storage.getItem('cp_account_owner')) detach();
+      if (persistGuestQueue && !entered) library.restoreGuestQueue();
       entered = true; authenticated = false; closeSettings();
     },
     desktop: () => window.cplayerDesktop.signIn(),
@@ -149,5 +161,5 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   });
   void loadCapabilities();
   window.addEventListener('pagehide', changed);
-  return { changed, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(library.capture({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, isOffline: () => offlineMode, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered, updateGuest, requireLogin() { openEntry(); entry.message('游客 50 首试听额度已用完，登录后继续播放。已试听歌曲仍可重播。', true); } };
+  return { changed, queueChanged, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(library.capture({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, isOffline: () => offlineMode, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered, updateGuest, requireLogin() { openEntry(); entry.message('游客 50 首试听额度已用完，登录后继续播放。已试听歌曲仍可重播。', true); } };
 }

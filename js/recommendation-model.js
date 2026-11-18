@@ -1,4 +1,5 @@
 import { aggregateSongs, extractMetadata, neteaseMetadataId, sourceKey, sourceBlocked } from './music-catalog.js';
+import { qqAlbumMid } from './library-data.js';
 
 export const PREFERENCE_GROUPS = Object.freeze({
   '语种': ['华语', '欧美', '日语', '韩语'], '年代': ['80s', '90s', '00s'],
@@ -26,9 +27,11 @@ export function storedSong(song) {
   const provider = str(song.provider) || 'gd';
   const info = extractMetadata(song);
   const cover = str(song.cover);
+  const albumMid = qqAlbumMid(song);
   return { id: String(song.id).slice(0, 300), sourceId: String(song.sourceId || song.id).slice(0, 300), provider,
     name: str(song.name), artist: str(song.artist) || info.artistEntities?.map(a => a.name).join(' / ') || '未知歌手',
     album: typeof song.album === 'string' ? str(song.album) : str(song.album?.name),
+    ...(albumMid ? { albumMid } : {}),
     cover: /^(https?:\/\/|\/api\/v1\/music\/cover\?)/.test(cover) ? cover : '',
     duration: info.metadata.duration, metadata: { ...info.metadata, description: '' },
     artistEntities: (info.artistEntities || []).slice(0, 10).map(a => ({ id: a.id, name: a.name })),

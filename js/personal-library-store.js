@@ -2,7 +2,7 @@ import { cleanRecords } from './account-data.js';
 import { cleanSong, cleanPlaylist, cleanEntity, cleanAnnotation, songKey, entityKey, libraryStats } from './library-data.js';
 export const LIBRARY_KEY = 'cp_personal_library_v2';
 export const personalRecord = key => /^(entity:|annotation:|history:|listen:)/.test(key);
-export function createPersonalLibraryStore({ storage, now = Date.now, onChange = () => {}, uuid = () => crypto.randomUUID() }) {
+export function createPersonalLibraryStore({ storage, coverForSong = song => song.cover, now = Date.now, onChange = () => {}, uuid = () => crypto.randomUUID() }) {
   const read = (key, fallback) => { try { return JSON.parse(storage.getItem(key)) || fallback; } catch { return fallback; } };
   const records = () => read(LIBRARY_KEY, {});
   const write = (key, value) => { storage.setItem(key, JSON.stringify(value)); onChange(); };
@@ -12,7 +12,7 @@ export function createPersonalLibraryStore({ storage, now = Date.now, onChange =
   return {
     records, lists,
     favorites: () => read('cp_favorites_v1', []).map(([,s]) => s),
-    toggleSong(song) { const clean = cleanSong(song), key = songKey(clean), all = new Map(read('cp_favorites_v1', [])); const added = !all.has(key); if (added) all.set(key, clean); else all.delete(key); write('cp_favorites_v1', [...all]); return added; },
+    toggleSong(song) { const clean = cleanSong({ ...song, cover: coverForSong(song) }), key = songKey(clean), all = new Map(read('cp_favorites_v1', [])); const added = !all.has(key); if (added) all.set(key, clean); else all.delete(key); write('cp_favorites_v1', [...all]); return added; },
     entities: type => Object.entries(records()).filter(([key,v]) => key.startsWith(`entity:${type}:`) && v).map(([key,v]) => ({ key,...v })).sort((a,b) => b.addedAt-a.addedAt),
     toggleEntity(input) { const item = cleanEntity({ ...input, addedAt: now() }), key = `entity:${item.type}:${entityKey(item)}`, added = !records()[key]; update(key, added ? item : null); return added; },
     removeEntity(key) { if (key.startsWith('entity:')) update(key,null); },

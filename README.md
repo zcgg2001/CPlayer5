@@ -35,7 +35,7 @@ CPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持�
 
 ## 最新功能
 
-- Android 8.0 及以上可安装预览版，使用触屏发现页、迷你播放器、全屏歌词和后台播放。后续更新会出现在应用内，也可在播放器设置中手动检查。[下载安装包](https://github.com/zcgg2001/CPlayer5/releases/tag/v1.9.0) · [Android 说明](docs/android.md)
+- Android 8.0 及以上可安装预览版，使用触屏发现页、迷你播放器、全屏歌词和后台播放。后续更新会出现在应用内，也可在播放器设置中手动检查。[下载安装包](https://github.com/zcgg2001/CPlayer5/releases/tag/v1.9.1) · [Android 说明](docs/android.md)
 - 主页面结构、基础样式和应用入口已分离；完整代码目录见 [代码地图](docs/CODE_MAP.md)，本轮问题与验证见 [项目检查记录](docs/project-audit-2026-11-17.md)。
 - 收藏、歌单与云同步保留选定播放源，支持编码歌曲 ID；新产生的听歌统计按设备当地日期记账。
 

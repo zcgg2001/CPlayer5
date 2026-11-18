@@ -1,33 +1,31 @@
 # 封面获取与缺图回退
 
-播放音频与封面获取独立运行。封面解析失败不会阻止音频播放或歌词加载。
+发现页、搜索、队列、收藏和播放界面共用 `js/artwork.js`。音频和歌词可以在取封面期间独立加载。
+
+## 如何找到对应的封面
+
+1. 先读取这首歌上次成功显示的封面，或使用音源给出的歌曲、专辑图片。网易云和 QQ 的公开 CDN 地址可以按显示尺寸取图，缩略图不可用时再尝试原地址。GD 和煎饼的封面接口保留各自的查询参数。
+2. 网易云歌曲缺图时，按照原始歌曲 ID 读取歌曲资料。如有必要，再按该歌曲的专辑 ID 获取图片。
+3. QQ 歌曲缺图时，使用歌曲 MID 查询单曲资料，核对返回的歌曲 MID，再用其中的专辑 MID 生成图片地址。网页版通过 `/api/v1/music/metadata` 的 `artwork=1` 模式查询。安卓版通过随包提供的 `/android-player/qq-artwork/<歌曲 MID>` 查询。
+4. 跨平台取图需要匹配歌曲、歌手、专辑和版本。同一录音出现在不同合辑时，各自保留所选发行版本的封面。所有候选均不可用时，按专辑和歌手生成稳定的占位图。
+
+## 列表和缓存
+
+列表滚入视口时才加载封面，最多同时解析四行。同一首歌的并发资料查询会合并。切歌或复用列表行后，旧请求的结果不会覆盖当前歌曲。
+
+每次解析最多尝试五个图片地址，总预算 12 秒，单张图片最多等待 3.5 秒。暂时性失败缓存 30 秒，资料接口确认缺图后缓存五分钟。设备最多保留 200 条已验证的公开封面地址，按平台和歌曲 ID 区分。收藏会保存已验证的地址，旧收藏缺图时也会按原歌曲重新补全。
+
+`/api/cover` 只代理允许的 HTTPS 图片 CDN，每次重定向都重新校验目标。单张图片限制 2 MiB，最多跟随两次重定向。服务端缓存成功图片一天，404 和 410 缓存五分钟。网页版 Service Worker 最多保留 100 张同源封面。
+
+## 安卓回归检查
+
+用游客身份搜索 GD 的《素颜》（许嵩、何曼婷）和 OP Music · QQ 音乐的《晴天》（周杰伦），逐首加入队列，再从队列的心形按钮收藏。强制停止应用并重新进入游客模式，直接打开「我喜欢」和「当前播放」，检查两首歌的封面。发现页「继续播放」中的同一首歌也应显示相同封面。
+
+《素颜》的 GD 图片 ID 为 `109951169829246225`。《晴天》的歌曲 MID 为 `0039MnYb0qxYhV`，对应《叶惠美》的专辑 MID 为 `000MkMni19ClKG`。这两个标识用于核对回归结果。
 
 ## 参考项目
 
-- [Music Assistant：元数据按需获取](https://github.com/orgs/music-assistant/discussions/543)：播放或查看详情时补全，优先已有图片，避免列表批量查询。
-- [Navidrome：封面来源优先级](https://github.com/navidrome/website/blob/master/content/en/docs/usage/configuration/options.md)：来源按优先级选择，图片缓存有容量限制。
-- [Navidrome 的 Cover Art Archive 插件](https://github.com/navidrome/discord-rich-presence-plugin/blob/main/coverart.go)：区分明确缺图和短暂网络错误，采用不同缓存时间。
-
-这里只参考设计思路，未复制这些项目的代码或引入依赖。
-
-## 当前实现
-
-`js/artwork.js` 统一提供 URL 规格化、封面候选、解析、列表回退和播放界面更新。
-
-1. 优先尝试当前歌曲、专辑及已知同一发行版本的图片；网易云和 QQ 的无签名 CDN URL 按显示尺寸请求。
-2. 图片加载失败后，按原始平台歌曲 ID 调用 `/api/v1/music/metadata?source=netease&id=…&artwork=1`。此模式只读取歌曲封面，必要时再读取同一专辑，不查询歌手介绍。
-3. QQ 已有 album mid 时可以生成专辑封面候选；不会把数字专辑 ID 当成 mid，也不会用新音频渠道的 ID 查询旧平台封面。
-4. 没有可用图片时，根据专辑和歌手生成稳定渐变占位图。桌面、手机、迷你播放器、歌词背景共同更新；锁屏使用本地通用音乐封面。
-5. 封面成功加载后才保存“上次封面”。切歌取消旧请求，并用版本号拦截忽略取消信号的延迟响应。
-
-每次解析最多尝试 4 个图片地址，总预算 12 秒；单张图片超时 3.5 秒。浏览器内成功/失败/元数据缓存各最多 200 条，暂时性错误 30 秒后可重试。服务端图片缓存一天，404/410 缺图缓存五分钟；5xx 不作长期缺图处理。
-
-`/api/cover` 最多跟随两次重定向，每一跳均验证 HTTPS、固定 CDN 域名白名单及无 URL 凭证。兼容网易云实际返回的 `image/jpg`，同时将 `image/pjpeg`、`image/x-png` 转为标准 MIME。保留 8 秒总超时、图片类型白名单和 2 MiB 大小限制。缓存读取失败仍可从上游取图。Service Worker 为同源封面保留最多 100 项，离线可使用已缓存图片。
-
-列表和个人库使用浏览器原生延迟加载与统一占位图，不为每行触发元数据请求。专辑详情只用该专辑曲目补封面。跨来源候选必须同时匹配歌曲名、歌手、专辑及版本；ISRC 不能单独决定封面。
-
-## 范围与验证
-
-此次先实现原平台补全和视觉兜底。新增全网元数据搜索、MusicBrainz/CAA 查询、用户手动选择歌曲封面及持久化映射仍属后续增强；未配置外部服务也可使用当前方案。
-
-自动测试覆盖坏图补全、原平台 ID 保留、错误匹配排除、缓存过期、取消与切歌竞争、CDN 重定向白名单、负缓存状态、轻量查询与完整详情缓存隔离。Workers 测试使用实际构建包验证重定向和缓存。视觉检查使用本地页面，并以缺图、错误 URL 和有效封面分别检查。
+- LX Music Mobile 从 QQ 单曲资料分别保留歌曲 MID 和专辑 MID。[QQ 单曲资料实现](https://github.com/lyswhut/lx-music-mobile/blob/0669d1b6d419967822ff52ec06e50b9613bfd136/src/utils/musicSdk/tx/musicInfo.js#L76-L88)
+- Music Assistant 讨论了播放或查看详情时补全元数据的策略。[元数据按需获取](https://github.com/orgs/music-assistant/discussions/543)
+- Navidrome 提供了封面来源优先级和缓存容量设置。[封面配置](https://github.com/navidrome/website/blob/master/content/en/docs/usage/configuration/options.md)
+- Navidrome 的 Cover Art Archive 插件区分确认缺图和短暂错误。[封面缓存实现](https://github.com/navidrome/discord-rich-presence-plugin/blob/main/coverart.go)
