@@ -13,12 +13,16 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 import androidx.media3.common.util.UnstableApi;
 import androidx.webkit.JavaScriptReplyProxy;
+import androidx.webkit.ServiceWorkerClientCompat;
+import androidx.webkit.ServiceWorkerControllerCompat;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import java.util.Collections;
@@ -28,16 +32,19 @@ import org.json.JSONObject;
 // second queue or discards the source-recovery iterator during background music.
 @UnstableApi
 final class WebPlayerHost {
+  private static final String UI_PATH = "/android-player/";
+  static final String START_URL = BuildConfig.PLAYER_ORIGIN + UI_PATH + "index.html?app=android";
   final WebView view;
   private final MutableContextWrapper context;
   private JavaScriptReplyProxy reply;
   private MainActivity activity;
+  private boolean lightTheme;
 
   @SuppressLint("SetJavaScriptEnabled")
   WebPlayerHost(PlaybackService service) {
     context = new MutableContextWrapper(service);
     view = new WebView(context);
-    view.setBackgroundColor(Color.rgb(21, 21, 26));
+    view.setBackgroundColor(Color.rgb(24, 22, 21));
     WebSettings settings = view.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
@@ -47,7 +54,10 @@ final class WebPlayerHost {
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setSupportMultipleWindows(false);
     settings.setJavaScriptCanOpenWindowsAutomatically(false);
-    settings.setUserAgentString(settings.getUserAgentString() + " CPlayerAndroid/1.0");
+    String appAgent = " CPlayerAndroid/" + BuildConfig.VERSION_NAME;
+    if (BuildConfig.APPLICATION_ID.endsWith(".debug"))
+      appAgent += " CPlayerPreview/" + BuildConfig.VERSION_CODE;
+    settings.setUserAgentString(settings.getUserAgentString() + appAgent);
     CookieManager.getInstance().setAcceptThirdPartyCookies(view, false);
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
     if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))
@@ -65,6 +75,11 @@ final class WebPlayerHost {
             if (body == null || body.length() > 8192) return;
             try {
               JSONObject command = new JSONObject(body);
+              if ("appearance".equals(command.optString("op"))) {
+                lightTheme = "light".equals(command.optString("theme"));
+                if (activity != null) activity.applyAppearance(lightTheme);
+                return;
+              }
               reply = proxy;
               service.command(command);
             } catch (Exception ignored) {
@@ -77,8 +92,27 @@ final class WebPlayerHost {
             if (reply != null && BridgePolicy.trusted(view.getUrl())) reply.postMessage(data);
           }
         });
+    WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
+        .setDomain(Uri.parse(BuildConfig.PLAYER_ORIGIN).getHost())
+        .addPathHandler(UI_PATH, new WebViewAssetLoader.AssetsPathHandler(service.getApplicationContext()))
+        .build();
+    // An earlier APK may already have installed the website's root-scoped worker.
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)
+        && WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_SHOULD_INTERCEPT_REQUEST)) {
+      ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+          return assets.shouldInterceptRequest(request.getUrl());
+        }
+      });
+    }
     view.setWebViewClient(
         new WebViewClient() {
+          @Override
+          public WebResourceResponse shouldInterceptRequest(WebView web, WebResourceRequest request) {
+            return assets.shouldInterceptRequest(request.getUrl());
+          }
+
           @Override
           public boolean shouldOverrideUrlLoading(WebView web, WebResourceRequest request) {
             String target = request.getUrl().toString();
@@ -131,7 +165,7 @@ final class WebPlayerHost {
           if (url.startsWith("https://")) external(Uri.parse(url));
           else Toast.makeText(context, "请在浏览器中打开网站导出文件", Toast.LENGTH_LONG).show();
         });
-    view.loadUrl(BuildConfig.PLAYER_ORIGIN + "/?app=android");
+    view.loadUrl(START_URL);
   }
 
   private void external(Uri uri) {
@@ -146,6 +180,7 @@ final class WebPlayerHost {
   void attach(MainActivity host) {
     activity = host;
     context.setBaseContext(host);
+    host.applyAppearance(lightTheme);
   }
 
   void detach(Context service) {

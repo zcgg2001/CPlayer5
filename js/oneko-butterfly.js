@@ -45,12 +45,12 @@ export function initOnekoButterfly() {
   pet.element.querySelector('.oneko-butterfly').id = 'onekoButterfly';
   const unbindSettings = bindDesktopPetSettings(document.getElementById('desktopPetSettings'), pet);
   const syncView = () => {
-    pet.setSuspended(Boolean(document.querySelector('[role="dialog"][aria-hidden="false"]:not(#desktopLayout), dialog[open]')));
+    pet.setSuspended(Boolean(document.querySelector('#mobileChartsSheet[aria-hidden="false"], [role="dialog"][aria-hidden="false"]:not(#desktopLayout), dialog[open]')));
     pet.refresh();
   };
   const observer = new MutationObserver(syncView);
   const targets = [document.documentElement, document.getElementById('mobileLyricsPage'),
-    ...document.querySelectorAll('[role="dialog"], dialog')];
+    ...document.querySelectorAll('#mobileChartsSheet, [role="dialog"], dialog')];
   targets.filter(Boolean).forEach(target => {
     observer.observe(target, { attributes: true, attributeFilter: ['class', 'aria-hidden', 'open'] });
   });

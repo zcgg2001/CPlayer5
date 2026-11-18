@@ -1,4 +1,5 @@
-export const DESKTOP_SHELL_MEDIA = '(min-width: 768px)';
+export const DESKTOP_SHELL_MEDIA = globalThis.document?.documentElement.classList.contains('android-player')
+  ? 'not all' : '(min-width: 768px)';
 
 export function initialShellState() {
   return { destination: 'library', immersiveOpen: false };

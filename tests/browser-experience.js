@@ -156,9 +156,35 @@ await page.locator('#mobileSearchResults').getByRole('button',{name:'添加并�
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentSrc)).toContain('source=op-netease');
 assert.deepEqual(attempts.slice(mobileAttempt),[{source:'op-netease',level:'hires'}]);
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
+
+// The APK opens discovery even above the ordinary desktop breakpoint. Search
+// is a modal over that screen; Android back must restore the invoking control.
+await page.setViewportSize({ width: 375, height: 667 });
+await page.emulateMedia({ reducedMotion: 'reduce' });
+await page.goto(`${origin}/?app=android&experience-test=1`, { waitUntil: 'domcontentloaded' });
+await page.locator('#entryGuest').click();
+const androidNav = page.getByRole('navigation', { name: '主导航' });
+await expect(androidNav).toBeVisible();
+await expect(page.locator('.discover-daily-card')).toBeVisible();
+const openSearch = androidNav.getByRole('button', { name: '搜索', exact: true });
+await openSearch.click();
+await expect(page.locator('#mobileSearchInput')).toBeFocused();
+assert.equal(await page.locator('#mobileChartsSheet').evaluate(el => el.inert), true);
+assert.equal(await page.evaluate(() => window.cplayerAndroidBack()), true);
+await expect(openSearch).toBeFocused();
+await androidNav.getByRole('button', { name: '我的音乐' }).click();
+await expect(page.locator('#personalLibraryDialog')).toBeVisible();
+assert.equal(await page.evaluate(() => window.cplayerAndroidBack()), true);
+await expect(page.locator('#personalLibraryDialog')).toBeHidden();
+for (const size of [{ width: 844, height: 390 }, { width: 1100, height: 800 }]) {
+  await page.setViewportSize(size);
+  await expect(androidNav).toBeVisible();
+  await expect(page.locator('#desktopApp')).toBeHidden();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+}
 assert.deepEqual(errors, []);
 await page.unrouteAll({ behavior: 'wait' });
-return { passed: true, checks: ['guest entry, mobile search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', 'no automatic ChKSz requests', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow', 'desktop search plays selected OP QQ', 'mobile search plays selected OP NetEase'], errors };
+return { passed: true, checks: ['guest entry, mobile search and import', 'loading skeletons', 'independent chart results', 'playback resolution and buffering', 'no automatic ChKSz requests', 'invalid media and quality downgrade', 'mid-playback recovery with position', 'actual audio playback', 'autoplay refusal and manual resume', 'desktop and mobile overflow', 'desktop search plays selected OP QQ', 'mobile search plays selected OP NetEase', 'Android discovery, modal return focus, landscape and tablet'], errors };
 } finally {
   resolveHot(); resolveNews(); resolveSong(); resolveAudio();
   await page.evaluate(()=>{ for(const audio of window.__testAudio||[]) { audio.pause();audio.removeAttribute('src');audio.load(); } }).catch(()=>{});

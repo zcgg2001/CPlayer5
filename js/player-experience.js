@@ -73,6 +73,9 @@ export function createPlayerExperience({ document, audio, onSearch, onDiscover, 
   render();
   return {
     statusText, get phase() { return phase; }, get song() { return song; },
+    reset() {
+      song = null; retry = null; hasResolved = false; hasStarted = false; set('idle');
+    },
     loading(selected, retryAction) {
       song = selected; retry = retryAction; errorMessage = ''; resolvingMessage = ''; hasResolved = false; hasStarted = false; set('resolving');
       document.getElementById('mobileTitle').textContent = selected?.name || '正在加载歌曲';

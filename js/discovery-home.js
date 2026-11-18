@@ -36,7 +36,13 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     return cover;
   };
   root.classList.add('discovery-home');
-  const toolbar = el('div', 'discover-home-toolbar'); toolbar.append(el('p', '', '为你的每一天，挑一些好音乐。'), button('音乐偏好', openPreferences, { glyph: 'SlidersHorizontal' })); root.append(toolbar);
+  const androidActions = document.documentElement.classList.contains('android-player') && document.querySelector('.android-app-actions');
+  const preferences = button('音乐偏好', openPreferences, { glyph: 'SlidersHorizontal' });
+  if (androidActions) androidActions.prepend(preferences);
+  else {
+    const toolbar = el('div', 'discover-home-toolbar');
+    toolbar.append(el('p', '', '为你的每一天，挑一些好音乐。'), preferences); root.append(toolbar);
+  }
   const hero = el('div', 'discover-hero');
   const dailyCard = el('section', 'discover-daily-card'), dailyCount = el('strong', 'discover-daily-count', '30'), dailyNote = el('p', '', '正在整理今日推荐…');
   dailyCard.append(el('span', 'discover-eyebrow', 'DAILY MIX'), dailyCount, el('h2', '', '每日推荐'), dailyNote);
@@ -53,6 +59,8 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
   radioActions.append(radioStart, radioNext, radioStop); radioCard.append(radioActions, radioStatus);
   const seeds = el('div', 'discover-actions'); seeds.append(button('歌曲电台', () => startRadio('song'), { glyph: 'Disc3' }), button('艺人电台', () => startRadio('artist'), { glyph: 'UserRound' })); radioCard.append(seeds);
   hero.append(dailyCard, radioCard); root.append(hero);
+  const shortcuts = androidActions && document.querySelector('.android-shortcuts');
+  if (shortcuts) dailyCard.after(shortcuts);
   const feedback = el('div', 'discover-feedback'); feedback.setAttribute('role', 'status'); root.append(feedback);
   const homeStatus = el('div', 'discover-home-status'); homeStatus.setAttribute('role', 'status'); root.append(homeStatus);
   const historyList = section('继续播放', '保留最近播放的位置', button('查看历史', () => showHistory()));
@@ -69,6 +77,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     if (!moduleHost.isConnected) root.insertBefore(moduleHost, hero);
     for (const [id, node] of Object.entries(moduleNodes)) { node.style.display = settings.modules.includes(id) ? '' : 'none'; moduleHost.append(node); }
     for (const id of settings.modules) moduleHost.append(moduleNodes[id]);
+    if (shortcuts) dailyCard.after(shortcuts);
     hero.remove();
   };
   if (globalThis.location) void runtimePolicy().then(applyModules);

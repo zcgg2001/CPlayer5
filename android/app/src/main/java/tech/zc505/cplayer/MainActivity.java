@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.webkit.ValueCallback;
@@ -26,6 +27,7 @@ public final class MainActivity extends Activity {
   private WebPlayerHost host;
   private ValueCallback<Uri[]> fileResult;
   private boolean bound;
+  private boolean resumed;
   private final ServiceConnection connection =
       new ServiceConnection() {
         @Override
@@ -37,6 +39,7 @@ public final class MainActivity extends Activity {
             if (host.view.getParent() instanceof ViewGroup parent) parent.removeView(host.view);
             root.removeAllViews();
             root.addView(host.view, new FrameLayout.LayoutParams(-1, -1));
+            notifyPlayerVisibility();
           } catch (Exception error) {
             TextView message = new TextView(MainActivity.this);
             message.setText(error.getMessage());
@@ -55,10 +58,8 @@ public final class MainActivity extends Activity {
   @Override
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
-    getWindow().setStatusBarColor(0xff15151a);
-    getWindow().setNavigationBarColor(0xff15151a);
     root = new FrameLayout(this);
-    root.setBackgroundColor(0xff15151a);
+    applyAppearance(false);
     setContentView(root);
     if (Build.VERSION.SDK_INT >= 30)
       root.setOnApplyWindowInsetsListener(
@@ -80,13 +81,24 @@ public final class MainActivity extends Activity {
             BIND_AUTO_CREATE);
   }
 
+  void applyAppearance(boolean light) {
+    int color = light ? 0xfffcf8f4 : 0xff181615;
+    root.setBackgroundColor(color);
+    getWindow().setStatusBarColor(color);
+    getWindow().setNavigationBarColor(color);
+    View decor = getWindow().getDecorView();
+    int flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+    int previous = decor.getSystemUiVisibility();
+    decor.setSystemUiVisibility(light ? previous | flags : previous & ~flags);
+  }
+
   void showLoadError() {
     Button retry = new Button(this);
     retry.setText("网络连接失败，点击重新加载");
     retry.setOnClickListener(
         view -> {
           root.removeView(retry);
-          if (host != null) host.view.loadUrl(BuildConfig.PLAYER_ORIGIN + "/?app=android");
+          if (host != null) host.view.loadUrl(WebPlayerHost.START_URL);
         });
     root.addView(retry);
   }
@@ -131,8 +143,7 @@ public final class MainActivity extends Activity {
       return;
     }
     host.view.evaluateJavascript(
-        "(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return true;}return"
-            + " false;})()",
+        "window.cplayerAndroidBack?.() === true",
         closed -> {
           if ("true".equals(closed)) return;
           if (host != null && host.view.canGoBack()) host.view.goBack();
@@ -145,6 +156,26 @@ public final class MainActivity extends Activity {
   @Override
   public void onBackPressed() {
     back();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    resumed = true;
+    notifyPlayerVisibility();
+  }
+
+  @Override
+  protected void onPause() {
+    resumed = false;
+    notifyPlayerVisibility();
+    super.onPause();
+  }
+
+  private void notifyPlayerVisibility() {
+    if (host == null || !BridgePolicy.trusted(host.view.getUrl())) return;
+    String event = resumed ? "cplayer:resume" : "cplayer:pause";
+    host.view.evaluateJavascript("window.dispatchEvent(new Event('" + event + "'))", null);
   }
 
   @Override

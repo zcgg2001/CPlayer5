@@ -1,4 +1,5 @@
 import { initI18n, t } from './i18n.js';
+import { initAndroidUpdates } from './android-updates.js';
 import { initDiagnostics } from './runtime-policy.js';
 initI18n(); initDiagnostics();
 import { DESKTOP_SHELL_MEDIA, initAppShell } from './app-shell.js?v=23';
@@ -62,6 +63,7 @@ import {
 
 const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
 const isCompactLayout = () => !desktopShellMedia.matches;
+const androidPlayer = document.documentElement.classList.contains('android-player');
 const LAST_COVER_KEY = 'cp_lastCover';
 const EDITORIAL_PLAYLISTS = Object.freeze([
     { id: '19723756', description: '捕捉今天正在上升的旋律', tone: 'violet' },
@@ -345,6 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.albumArtWrapper = document.getElementById('albumArtWrapper');
     dom.html = document.documentElement;
     initThemeControls();
+    if (androidPlayer) initAndroidUpdates(dom);
     initAnimeProgressThumbs();
     chartsController = createChartsController({
         onlineEnabled: () => navigator.onLine,
@@ -445,7 +448,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     syncDesktopPlayerAvailability();
     const initialContentView = contentViewFromHash();
-    if (initialContentView) {
+    if (androidPlayer) {
+        // Browsing is the Android app's main screen; now playing expands above it.
+        dom.mobileChartsSheet.setAttribute('role', 'region');
+        dom.mobileChartsSheet.removeAttribute('aria-modal');
+        dom.mobileLayout.append(dom.mobilePlaylistSheet);
+        dom.mobilePlaylistSheet.inert = true;
+        setMobileExploreOpen(true, { view: initialContentView || 'discovery', syncRoute: false });
+    } else if (initialContentView) {
         if (isCompactLayout()) {
             setMobileExploreOpen(true, { view: initialContentView, syncRoute: false });
         } else {
@@ -479,7 +489,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 progress: () => ({ song: playback.state.currentSong, position: audio.currentTime }),
                 isPlaying: () => !audio.paused,
                 suspend: () => {
-                    playback.stop(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
+                    playback.stop(); playerExperience?.reset(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
+                    if (androidPlayer) setMobileExploreOpen(true);
                     dom.songTitle.textContent = '请选择歌曲'; dom.artistName.textContent = '从歌单或搜索中开始播放';
                     setLyricsStatus('播放音乐以查看歌词');
                     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
@@ -547,7 +558,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ★ PWA Service Worker 注册
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && !androidPlayer) {
         const hasActiveServiceWorker = Boolean(navigator.serviceWorker.controller);
         let isReloadingForUpdate = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -642,7 +653,7 @@ function syncContentRoute(view) {
     }
 }
 
-function setMobileExploreView(view, { syncRoute = true } = {}) {
+function setMobileExploreView(view, { syncRoute = true, resetScroll = true } = {}) {
     const nextView = ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : 'discovery';
     mobileExploreView = nextView;
     const labels = {
@@ -674,7 +685,7 @@ function setMobileExploreView(view, { syncRoute = true } = {}) {
     if (nextView === 'artists') artistsController?.ensureLoaded();
     if (nextView === 'videos') videosController?.ensureLoaded();
     if (syncRoute) syncContentRoute(nextView);
-    dom.mobileExploreContent?.scrollTo?.({ top: 0, behavior: 'auto' });
+    if (resetScroll) dom.mobileExploreContent?.scrollTo?.({ top: 0, behavior: 'auto' });
 }
 
 function setMobileExploreOpen(open, { view = mobileExploreView, syncRoute = true } = {}) {
@@ -690,16 +701,26 @@ function setMobileExploreOpen(open, { view = mobileExploreView, syncRoute = true
     dom.mobileChartsBtn.setAttribute('aria-expanded', String(open));
     dom.mobileMainView.inert = open;
     document.querySelector('.mobile-control-deck').inert = open;
+    if (androidPlayer) {
+        (open ? dom.mobileExploreTabs : dom.mobileMainView).before(dom.androidUpdateBanner);
+        dom.mobileLayout.querySelector(':scope > header').inert = open;
+        dom.mobileChartsSheet.inert = !open;
+    }
     mobileUI?.syncBrowsePlayer();
 
     if (open) {
         mobileChartsOpener = document.activeElement;
-        setMobileExploreView(view, { syncRoute });
-        requestAnimationFrame(() => dom.mobileChartsClose?.focus());
+        setMobileExploreView(view, { syncRoute, resetScroll: !androidPlayer || view !== mobileExploreView });
+        requestAnimationFrame(() => {
+            if (androidPlayer) {
+                if (!document.querySelector('dialog[open]')) dom.mobileExploreTabs.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
+            } else dom.mobileChartsClose?.focus();
+        });
     } else {
         const opener = mobileChartsOpener;
         mobileChartsOpener = null;
-        if (opener?.isConnected) opener.focus();
+        if (androidPlayer) dom.androidCollapsePlayer.focus({ preventScroll: true });
+        else if (opener?.isConnected) opener.focus();
         if (syncRoute) syncContentRoute(null);
     }
 }
@@ -1196,6 +1217,19 @@ function bindProgressScrubber(container) {
 }
 
 function initEventListeners() {
+    if (androidPlayer) {
+        dom.androidCollapsePlayer.addEventListener('click', () => setMobileExploreOpen(true));
+        const actions = {
+            home: () => setMobileExploreView('discovery'),
+            search: () => openMusicSearch(),
+            theme: () => dom.mobileThemeBtn.click(),
+            settings: openSettings,
+        };
+        dom.mobileChartsSheet.querySelectorAll('[data-android-action]').forEach(button => {
+            button.addEventListener('click', actions[button.dataset.androidAction]);
+        });
+        window.cplayerAndroidBack = handleAndroidBack;
+    }
     dom.searchButton.addEventListener('click', () => searchSongs(dom.searchInput.value));
     dom.searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && searchSongs(dom.searchInput.value));
     dom.desktopDiscoveryRefresh?.addEventListener('click', loadNewSongDiscovery);
@@ -1221,7 +1255,10 @@ function initEventListeners() {
         tabs[nextIndex]?.click();
     });
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !document.querySelector('dialog[open]') && dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false') {
+        if (event.defaultPrevented) return;
+        if (event.key === 'Escape' && !activeDialog() && androidPlayer) {
+            if (handleAndroidBack()) event.preventDefault();
+        } else if (!androidPlayer && event.key === 'Escape' && !document.querySelector('dialog[open]') && dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false') {
             event.preventDefault();
             setMobileExploreOpen(false);
         }
@@ -1229,7 +1266,7 @@ function initEventListeners() {
     window.addEventListener('hashchange', () => {
         const view = contentViewFromHash();
         if (isCompactLayout()) {
-            setMobileExploreOpen(Boolean(view), { view: view || mobileExploreView, syncRoute: false });
+            setMobileExploreOpen(Boolean(view) || (androidPlayer && !playerExperience?.song), { view: view || mobileExploreView, syncRoute: false });
         } else if (view) {
             desktopShell?.navigate(view === 'discovery' ? 'library' : view);
         }
@@ -1603,6 +1640,7 @@ function applyTheme(theme, { persist = true, announce = false } = {}) {
 
     const themeColor = document.querySelector('meta[name="theme-color"]');
     themeColor?.setAttribute('content', isNight ? '#07070b' : '#eef4ff');
+    if (androidPlayer) window.CPlayerNative?.postMessage(JSON.stringify({ op: 'appearance', theme: nextTheme }));
 
     [dom.desktopThemeBtn, dom.mobileThemeBtn].filter(Boolean).forEach(button => {
         button.setAttribute('aria-pressed', String(isNight));
@@ -1801,13 +1839,31 @@ function activeDialog() {
     return dialogs[dialogs.length - 1] || null;
 }
 
+function handleAndroidBack() {
+    const modal = document.activeElement?.closest('dialog[open]') || document.querySelector('dialog[open]');
+    if (modal) {
+        if (modal.id === 'accountEntryDialog') return false;
+        if (modal.requestClose) modal.requestClose();
+        else if (modal.dispatchEvent(new Event('cancel', { cancelable: true }))) modal.close();
+        return true;
+    }
+    if (dom.welcomeModal.getAttribute('aria-hidden') === 'false') closeWelcomeModal();
+    else if (dom.settingsModal.getAttribute('aria-hidden') === 'false') closeSettings();
+    else if (dom.mobilePlaylistSheet.getAttribute('aria-hidden') === 'false') mobileUI?.closeSheet();
+    else if (dom.mobileChartsSheet.getAttribute('aria-hidden') === 'true' && mobileUI?.currentMode === 'lyrics') mobileUI.resetView();
+    else if (dom.mobileChartsSheet.getAttribute('aria-hidden') === 'true') setMobileExploreOpen(true);
+    else if (mobileExploreView !== 'discovery') setMobileExploreView('discovery');
+    else return false;
+    return true;
+}
+
 document.addEventListener('keydown', event => {
     const dialog = activeDialog();
     if (!dialog) return;
 
     if (event.key === 'Escape') {
-        if (dialog.id === 'settingsModal') closeSettings();
-        if (dialog.id === 'mobilePlaylistSheet') mobileUI?.closeSheet();
+        if (dialog.id === 'settingsModal') { event.preventDefault(); closeSettings(); }
+        if (dialog.id === 'mobilePlaylistSheet') { event.preventDefault(); mobileUI?.closeSheet(); }
         return;
     }
 
@@ -2312,7 +2368,7 @@ function useGdMusic() {
 
 function openMusicSearch(query = '') {
     if (isCompactLayout()) {
-        setMobileExploreOpen(false);
+        if (!androidPlayer) setMobileExploreOpen(false);
         mobileUI?.switchSheetTab('search');
         mobileUI?.openSheet();
         dom.mobileSearchInput.value = query;
@@ -4972,7 +5028,7 @@ class MobileUIManager {
             const toggleBtn = this.dom.sheetToggleBtn;
 
             // If sheet is open (translate-y-0)
-            if (sheet.classList.contains('translate-y-0')) {
+            if (sheet.classList.contains('translate-y-0') && !e.target.closest('[data-android-action="search"], dialog[open]')) {
                 // If click is OUTSIDE sheet and NOT on toggle button
                 if (!sheet.contains(e.target) && !toggleBtn.contains(e.target)) {
                     this.closeSheet();
@@ -4992,7 +5048,10 @@ class MobileUIManager {
 
     bindSheetEvents() {
         // Toggle Sheet
-        this.dom.sheetToggleBtn?.addEventListener('click', () => this.openSheet());
+        this.dom.sheetToggleBtn?.addEventListener('click', () => {
+            if (androidPlayer) this.switchSheetTab('playlist');
+            this.openSheet();
+        });
         this.dom.closeSheetBtn?.addEventListener('click', () => this.closeSheet());
 
         // Switch Tabs
@@ -5000,11 +5059,11 @@ class MobileUIManager {
         this.dom.tabSearch?.addEventListener('click', () => this.switchSheetTab('search'));
 
         // Search Input
-        this.dom.searchInput?.addEventListener('change', (e) => {
-            this.handleSearch(e.target.value);
-        });
-        this.dom.searchInput?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.handleSearch(e.target.value);
+        if (!androidPlayer) this.dom.searchInput?.addEventListener('change', e => this.handleSearch(e.target.value));
+        dom.mobileSearchForm.addEventListener('submit', event => {
+            event.preventDefault();
+            if (androidPlayer) this.dom.searchInput.blur();
+            this.handleSearch(this.dom.searchInput.value);
         });
 
         // ★ 拖拽关闭手势
@@ -5070,6 +5129,7 @@ class MobileUIManager {
     openSheet() {
         // ★ Fix: 打开前刷新播放列表，确保显示最新状态
         this.loadPlaylist();
+        if (androidPlayer) this.dom.sheet.inert = false;
         this.dom.sheet.classList.remove('translate-y-[110%]');
         this.dom.sheet.classList.add('translate-y-0');
         if (this.dom.sheet.getAttribute('aria-hidden') !== 'false') {
@@ -5077,17 +5137,28 @@ class MobileUIManager {
                 ? this.dom.searchInput
                 : this.dom.closeSheetBtn);
         }
+        if (androidPlayer) this.syncSheetBackground(true);
         this.syncBrowsePlayer();
     }
 
     closeSheet() {
+        if (androidPlayer) this.syncSheetBackground(false);
         if (this.dom.sheet.getAttribute('aria-hidden') === 'false') {
             deactivateDialog(this.dom.sheet);
         }
+        if (androidPlayer) this.dom.sheet.inert = true;
         this.dom.sheet.style.transform = ''; // 清除拖拽残留
         this.dom.sheet.classList.remove('translate-y-0');
         this.dom.sheet.classList.add('translate-y-[110%]');
         this.syncBrowsePlayer();
+    }
+
+    syncSheetBackground(sheetOpen) {
+        const browsing = dom.mobileChartsSheet.getAttribute('aria-hidden') === 'false';
+        dom.mobileChartsSheet.inert = sheetOpen || !browsing;
+        for (const element of [dom.mobileMainView, dom.mobileLayout.querySelector(':scope > header'), document.querySelector('.mobile-control-deck')]) {
+            element.inert = sheetOpen || browsing;
+        }
     }
 
     switchSheetTab(tab) {
@@ -5541,7 +5612,10 @@ class MobileUIManager {
             : dom.mobileChartsSheet?.getAttribute('aria-hidden') === 'false' ? dom.mobileChartsSheet : null;
         bar.hidden = !song?.id || !container;
         if (bar.hidden) return;
-        if (bar.parentElement !== container) container.append(bar);
+        if (bar.parentElement !== container) {
+            const nav = container.querySelector('.android-nav');
+            container.insertBefore(bar, nav);
+        }
         document.getElementById('mobileBrowseTitle').textContent = song.name || '未知歌曲';
         document.getElementById('mobileBrowseArtist').textContent = playerExperience?.statusText() || song.artist || '未知歌手';
         const cover = document.getElementById('mobileBrowseCover');

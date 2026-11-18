@@ -35,7 +35,7 @@ CPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持�
 
 ## 最新功能
 
-- 新增 Android APK 预览版：复用本站界面，在线音乐交给原生 Media3 服务播放，支持后台播放与系统媒体控制。Android 8.0+，构建、安装与限制见 [Android 说明](docs/android.md)。
+- Android 8.0 及以上可安装预览版，使用触屏发现页、迷你播放器、全屏歌词和后台播放。后续更新会出现在应用内，也可在播放器设置中手动检查。[下载安装包](https://github.com/zcgg2001/CPlayer5/releases/tag/v1.9.0) · [Android 说明](docs/android.md)
 - 主页面结构、基础样式和应用入口已分离；完整代码目录见 [代码地图](docs/CODE_MAP.md)，本轮问题与验证见 [项目检查记录](docs/project-audit-2026-11-17.md)。
 - 收藏、歌单与云同步保留选定播放源，支持编码歌曲 ID；新产生的听歌统计按设备当地日期记账。
 
@@ -190,7 +190,7 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 ### Android APK
 
-准备 JDK 17、Android SDK 36 后运行 `npm run android:build`。生成的可安装预览包位于 `output/android/CPlayer5-android-preview.apk`，GitHub Actions 的 **Android APK** 工作流也会提供构建产物。它使用调试签名；正式分发需固定签名密钥，详见 [Android 文档](docs/android.md)。
+从 GitHub Releases 下载 `CPlayer5-android-preview-<versionCode>.apk`。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署
 

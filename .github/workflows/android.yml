@@ -1,9 +1,9 @@
 name: Android APK
 on:
   push:
-    paths: ['android/**', 'js/native-audio.js', '.github/workflows/android.yml']
+    paths: ['android/**', 'index.html', 'manifest.json', 'css/**', 'js/**', 'webfonts/**', 'img/**', 'scripts/build_android.sh', '.github/workflows/android.yml']
   pull_request:
-    paths: ['android/**', 'js/native-audio.js', '.github/workflows/android.yml']
+    paths: ['android/**', 'index.html', 'manifest.json', 'css/**', 'js/**', 'webfonts/**', 'img/**', 'scripts/build_android.sh', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,9 +22,11 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test preview
-        run: ./android/gradlew -p android assembleDebug testDebugUnitTest lintDebug
+        run: sh scripts/build_android.sh
       - uses: actions/upload-artifact@v4
         with:
           name: CPlayer5-android-preview
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            output/android/CPlayer5-android-preview-*.apk
+            output/android/SHA256SUMS.txt
           retention-days: 30

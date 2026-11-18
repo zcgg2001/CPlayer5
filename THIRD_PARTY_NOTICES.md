@@ -22,3 +22,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 - @electron/packager 19.0.1: https://github.com/electron/packager — BSD-2-Clause, development packaging tool.
 
 Exact versions and transitive dependencies are recorded in package-lock.json. No source from other music-player repositories is copied into the account feature.
+
+## Android turntable photograph
+
+The Android entry screen and daily mix use a WebP rendition of Pexels photo 164716. [Original photograph](https://images.pexels.com/photos/164716/pexels-photo-164716.jpeg) · [Photo page](https://www.pexels.com/photo/164716/) · [Pexels License](https://www.pexels.com/license/)

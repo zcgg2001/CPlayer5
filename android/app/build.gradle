@@ -1,5 +1,21 @@
 plugins { id 'com.android.application' }
 
+// Ship the same player that is tested in the browser. Only UI assets live
+// here; account cookies, API calls and audio keep their existing HTTPS origin.
+def playerAssets = layout.buildDirectory.dir('generated/playerAssets')
+def bundlePlayer = tasks.register('bundlePlayer', Sync) {
+    from(rootProject.projectDir.parentFile) {
+        include 'manifest.json', 'css/**', 'js/**', 'webfonts/**', 'img/**'
+        exclude 'img/og*.png'
+    }
+    // playlist.js is an optional user file. Android provides its own CJK fonts.
+    from(rootProject.file('../index.html')) {
+        filteringCharset = 'UTF-8'
+        filter { line -> line.contains('src="playlist.js?') || line.contains('href="css/noto-sans-sc.css?') ? null : line }
+    }
+    into playerAssets
+}
+
 android {
     namespace 'tech.zc505.cplayer'
     compileSdk 36
@@ -7,18 +23,28 @@ android {
         applicationId 'tech.zc505.cplayer'
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName '1.0.0-preview'
+        versionCode 3
+        versionName '1.9.0'
         buildConfigField 'String', 'PLAYER_ORIGIN', '"https://music.505zc.tech"'
     }
     buildFeatures { buildConfig true }
+    sourceSets.main.assets.srcDir(playerAssets)
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     buildTypes {
         debug { applicationIdSuffix '.debug'; versionNameSuffix '-debug' }
         release { minifyEnabled false }
+        // Keep the installed preview's package and signer when distributing updates.
+        preview {
+            initWith release
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-preview'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['release']
+        }
     }
     lint { abortOnError true; disable 'ObsoleteSdkInt' }
 }
+tasks.named('preBuild').configure { dependsOn(bundlePlayer) }
 dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.11.1'
     implementation 'androidx.media3:media3-session:1.11.1'
