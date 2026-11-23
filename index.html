@@ -4,16 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CPlayer 5</title>
+    <title>ZPlayer</title>
     <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦随播放进度轻快前进。">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="CPlayer 5｜让音乐有表情">
+    <meta property="og:title" content="ZPlayer｜让音乐有表情">
     <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
-    <meta property="og:image" content="__SITE_ORIGIN__/img/og-art-direction.png">
+    <meta property="og:image" content="__SITE_ORIGIN__/img/og-zplayer.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="CPlayer 5｜让音乐有表情">
+    <meta name="twitter:title" content="ZPlayer｜让音乐有表情">
     <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
-    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-art-direction.png">
+    <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-zplayer.png">
 
     <!-- Favicon -->
     <link rel="icon" href="img/favicon.svg?v=24" type="image/svg+xml" sizes="any">
@@ -23,7 +23,7 @@
     <meta name="theme-color" content="#07070b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="CPlayer 5">
+    <meta name="apple-mobile-web-app-title" content="ZPlayer">
     <link rel="apple-touch-icon" href="img/icon.png">
 
     <!-- Fonts & Icons -->
@@ -61,7 +61,7 @@
     <link rel="stylesheet" href="./css/anime-progress-thumb.css?v=28">
     <link rel="stylesheet" href="./css/art-direction.css?v=34">
     <link rel="stylesheet" href="./css/bilibili.css?v=40">
-    <link rel="stylesheet" href="./css/studio.css?v=55">
+    <link rel="stylesheet" href="./css/studio.css?v=56">
     <link rel="stylesheet" href="./css/oneko-butterfly.css?v=45">
     <link rel="stylesheet" href="./css/desktop-pet-settings.css?v=1">
     <link rel="stylesheet" href="./css/page-scroll-spider.css?v=47">
@@ -70,6 +70,7 @@
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
     <link rel="stylesheet" href="./css/lyrics/runtime.css?v=1">
+    <link rel="stylesheet" href="./css/lyrics/share.css">
     <link rel="stylesheet" href="./css/discovery.css?v=4">
     <link rel="stylesheet" href="./css/discovery-home.css?v=2">
     <link rel="stylesheet" href="./css/player-experience.css?v=1">
@@ -87,8 +88,8 @@
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
     <dialog id="accountEntryDialog" class="account-entry" open aria-labelledby="entryTitle" aria-describedby="entrySubtitle">
         <div class="entry-layout">
-            <aside class="entry-intro" aria-label="CPlayer 5">
-                <div class="entry-brand"><span class="entry-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>CPlayer <b>5</b></span></div>
+            <aside class="entry-intro" aria-label="ZPlayer">
+                <div class="entry-brand"><span class="entry-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>ZPlayer</span></div>
                 <div class="entry-record" aria-hidden="true"><div></div></div>
                 <p class="entry-kicker">YOUR MUSIC, EVERYWHERE</p>
                 <h1>让音乐，<br>接着陪你。</h1>
@@ -653,7 +654,7 @@
                 <div class="player-controls">
                     <div class="transport-controls">
                         <button id="playModeBtn" class="player-control-button" type="button"
-                            title="播放模式" aria-label="切换播放模式">
+                            title="随机播放：打乱当前队列播放" aria-label="随机播放，点击切换播放模式">
                             <i class="fas fa-random" aria-hidden="true"></i>
                         </button>
                         <button id="prevBtn" class="player-control-button" type="button" aria-label="上一曲" disabled>
@@ -758,7 +759,7 @@
                 </div>
 
                 <div class="immersive-lyrics-pane">
-                    <div class="immersive-lyric-heading"><i data-lucide="Captions" aria-hidden="true"></i><span>随歌词，走进音乐</span><button id="desktopLyricSettingsBtn" type="button">歌词外观</button></div>
+                    <div class="immersive-lyric-heading"><i data-lucide="Captions" aria-hidden="true"></i><span>随歌词，走进音乐</span><button class="lyric-heading-action" data-lyric-lookup type="button">补全歌词</button><button class="lyric-heading-action" data-lyric-share type="button" disabled>分享</button><button id="desktopLyricSettingsBtn" type="button">歌词外观</button></div>
                     <div class="lyrics-card">
                         <p id="desktopSubtitleSource" class="subtitle-source" hidden></p>
                         <div id="lyricsScroller" class="lyrics-scroller" role="region" aria-label="同步歌词，可点击跳转播放" tabindex="0">
@@ -818,11 +819,12 @@
 
     <!-- ★ Mobile Layout (Visible < md) -->
     <div id="mobileLayout" data-player-empty="true" class="flex flex-col h-[100dvh] w-full overflow-hidden relative z-10">
+        <div class="android-only android-cover-atmosphere" aria-hidden="true"><img id="androidCoverBackdrop" alt="" decoding="async"></div>
         <div class="listening-ambient" aria-hidden="true"></div>
         <!-- 1. Header -->
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <button id="androidCollapsePlayer" class="android-only" type="button" aria-label="收起播放器"><i data-lucide="ChevronDown" aria-hidden="true"></i></button>
-            <h1 class="text-lg font-bold tracking-wider opacity-90">CPlayer 5</h1>
+            <h1 class="text-lg font-bold tracking-wider opacity-90">ZPlayer</h1>
             <span class="android-only android-playing-label">正在播放</span>
             <button id="mobileChartsBtn" type="button" aria-label="打开音乐发现"
                 aria-controls="mobileChartsSheet" aria-expanded="false">
@@ -866,6 +868,9 @@
 
                 <!-- Song Info (In Cover Mode) -->
                 <div class="text-center w-full px-6 space-y-2 flex-shrink-0 mt-2">
+                    <div id="mobileCoverCaption" class="android-only cover-carousel-caption" hidden>
+                        <span data-cover-album data-no-i18n></span><span data-cover-position></span>
+                    </div>
                     <h2 id="mobileTitle" class="font-bold truncate drop-shadow-lg"
                         style="font-size: clamp(1.3rem, 5vw, 1.8rem);">请选择歌曲</h2>
                     <p id="mobileArtist" class="opacity-70 truncate font-medium mt-0.5"
@@ -905,10 +910,17 @@
             <!-- B. Lyrics Mode (Separate Page) -->
             <div id="mobileLyricsPage"
                 class="absolute inset-0 flex flex-col items-center justify-start pt-8 pb-4 px-4 transition-all duration-500 opacity-0 z-10 overflow-hidden transform translate-x-full pointer-events-none">
-
+                <header class="lyric-page-heading">
+                    <div class="lyric-page-track"><span class="lyric-page-kicker">此刻的歌词</span><h2 id="mobileLyricTitle">每一句，都在此刻</h2><p id="mobileLyricArtist">播放歌曲后，歌词在这里展开</p></div>
+                    <div class="lyric-page-actions">
+                        <button data-lyric-lookup type="button" aria-label="补全或重试歌词"><i data-lucide="RefreshCw" aria-hidden="true"></i><span>补全</span></button>
+                        <button data-lyric-share type="button" aria-label="制作歌词分享卡片" disabled><i data-lucide="Share2" aria-hidden="true"></i><span>分享</span></button>
+                    </div>
+                </header>
+                <p id="lyricLookupStatus" class="lyric-lookup-status" role="status" aria-live="polite"></p>
                 <p id="mobileSubtitleSource" class="subtitle-source" hidden></p>
                 <!-- Lyrics Scroller -->
-                <div class="w-full h-full overflow-hidden relative mask-gradient-vertical">
+                <div class="lyric-page-body w-full h-full overflow-hidden relative mask-gradient-vertical">
                     <div id="mobileLyricsScroller"
                         class="w-full h-full overflow-y-auto text-center py-4 custom-scrollbar" role="region" aria-label="同步歌词，可点击跳转播放" tabindex="0">
                         <div class="mobile-empty-lyrics text-sm py-8">暂无歌词</div>
@@ -945,8 +957,8 @@
             <div class="flex items-center justify-between px-6 mb-6">
                 <!-- Mode Toggle (Random/Loop) -->
                 <button id="mobileModeBtn" class="p-3 opacity-70 active:scale-95 transition-transform"
-                    aria-label="切换播放模式">
-                    <i class="fas fa-random text-xl"></i>
+                    title="随机播放：打乱当前队列播放" aria-label="随机播放，点击切换播放模式">
+                    <i class="fas fa-random text-xl" aria-hidden="true"></i>
                 </button>
 
                 <!-- Prev -->
@@ -970,12 +982,6 @@
                 <button id="mobilePlaylistToggleBtn" class="p-3 opacity-70 active:scale-95 transition-transform"
                     aria-label="打开播放列表">
                     <i class="fas fa-list-ul text-xl"></i>
-                </button>
-            </div>
-
-            <div class="flex justify-center pb-3">
-                <button id="mobileViewToggle" type="button" aria-label="显示歌词" aria-controls="mobileLyricsPage" aria-pressed="false">
-                    <i data-lucide="Captions" aria-hidden="true"></i><span>歌词</span>
                 </button>
             </div>
 
@@ -1080,7 +1086,7 @@
                     <i class="fas fa-chevron-left" aria-hidden="true"></i>
                 </button>
                 <div class="mobile-charts-header-copy">
-                    <span class="android-only android-wordmark"><i data-lucide="AudioLines" aria-hidden="true"></i> CPlayer 5</span>
+                    <span class="android-only android-wordmark"><i data-lucide="AudioLines" aria-hidden="true"></i> ZPlayer</span>
                     <strong id="mobileChartsPageTitle">音乐发现</strong>
                     <span id="mobileExploreSubtitle">排行榜 · 自动更新</span>
                 </div>
@@ -1090,6 +1096,12 @@
                     <button type="button" data-android-action="settings" aria-label="打开设置"><i data-lucide="Settings" aria-hidden="true"></i></button>
                 </div>
             </header>
+
+            <div class="android-only android-search-wrap">
+                <button type="button" class="android-search-entry" data-android-action="search" aria-haspopup="dialog" aria-controls="mobilePlaylistSheet">
+                    <i data-lucide="Search" aria-hidden="true"></i><span>搜索歌曲、歌手或专辑</span><i data-lucide="ArrowUpRight" aria-hidden="true"></i>
+                </button>
+            </div>
 
             <aside id="androidUpdateBanner" class="android-only" aria-label="应用更新" hidden>
                 <strong id="androidUpdateTitle" role="status"></strong>
@@ -1305,6 +1317,7 @@
                 </div>
             </div>
             <nav class="android-only android-nav" aria-label="主导航">
+                <span class="android-rail-mark" aria-hidden="true">Z</span>
                 <button type="button" data-android-action="home" aria-current="page"><i data-lucide="Compass" aria-hidden="true"></i><span>发现</span></button>
                 <button type="button" data-android-action="search" aria-haspopup="dialog" aria-controls="mobilePlaylistSheet"><i data-lucide="Search" aria-hidden="true"></i><span>搜索</span></button>
                 <button type="button" data-open-personal-library aria-haspopup="dialog" aria-controls="personalLibraryDialog"><i data-lucide="Library" aria-hidden="true"></i><span>我的音乐</span></button>
@@ -1350,32 +1363,62 @@
             id="settingsCard">
             <div class="flex justify-between items-center mb-6">
                 <h2 id="settingsTitle" class="text-xl font-bold flex items-center">
-                    <i class="fas fa-sliders-h mr-2 theme-text-primary"></i>
+                    <i class="fas fa-sliders-h mr-2 theme-text-primary" aria-hidden="true"></i>
                     播放器设置
                 </h2>
                 <button id="closeSettingsBtn" aria-label="关闭设置"
                     class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/10 transition-colors">
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-times" aria-hidden="true"></i>
                 </button>
             </div>
 
             <!-- 歌单切换区域 -->
-            <div class="max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 mb-4 text-left space-y-3">
+            <div class="settings-scroll max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 mb-4 text-left space-y-3">
 
-                <label class="entry-language">语言 / Language <select data-language aria-label="Language"><option value="zh-CN">简体中文</option><option value="en">English</option></select></label>
+                <label class="entry-language">语言 / Language <span class="settings-language-control"><select data-language aria-label="Language"><option value="zh-CN">简体中文</option><option value="en">English</option></select><i class="android-only" data-lucide="ChevronDown" aria-hidden="true"></i></span></label>
+                <section class="android-only android-appearance" aria-labelledby="androidAppearanceTitle">
+                    <h3 id="androidAppearanceTitle">外观</h3>
+                    <p>选择适合此刻的色彩</p>
+                    <div class="android-theme-options" role="group" aria-label="明暗主题">
+                        <button type="button" data-android-theme="light" aria-pressed="false"><i data-lucide="Sun" aria-hidden="true"></i><span>浅色</span></button>
+                        <button type="button" data-android-theme="night" aria-pressed="true"><i data-lucide="Moon" aria-hidden="true"></i><span>深色</span></button>
+                    </div>
+                </section>
+                <section class="android-only android-cover-settings" aria-labelledby="androidCoverHeading">
+                    <h3 id="androidCoverHeading" data-i18n="coverAppearance">播放页封面</h3>
+                    <p data-i18n="coverAppearanceHint">选一种形状，让封面成为播放页的主角。</p>
+                    <div id="androidCoverShapes" role="group" aria-label="封面形状">
+                        <button type="button" data-cover-shape="rounded" aria-pressed="false"><span class="cover-shape-sample" aria-hidden="true"></span><span data-i18n="coverRounded">圆角</span></button>
+                        <button type="button" data-cover-shape="circle" aria-pressed="false"><span class="cover-shape-sample" aria-hidden="true"></span><span data-i18n="coverCircle">圆形</span></button>
+                        <button type="button" data-cover-shape="petal" aria-pressed="true"><span class="cover-shape-sample" aria-hidden="true"></span><span data-i18n="coverPetal">花瓣</span></button>
+                    </div>
+                    <label class="android-ambient-toggle"><span data-i18n="coverAmbient">封面氛围光</span><input id="androidCoverAmbient" type="checkbox" checked></label>
+                </section>
                 <section id="androidUpdateSettings" class="android-only" aria-labelledby="androidUpdateHeading" hidden>
                     <div class="android-update-row">
-                        <div><h3 id="androidUpdateHeading" data-i18n="appUpdates">应用更新</h3><p id="androidInstalledVersion"></p></div>
+                        <div><span class="android-update-kicker">ZPLAYER</span><h3 id="androidUpdateHeading" data-i18n="appUpdates">应用更新</h3><p id="androidInstalledVersion"></p></div>
                         <button id="androidUpdateCheck" type="button" data-i18n="checkAppUpdates">检查更新</button>
                     </div>
                     <p id="androidUpdateStatus" role="status"></p>
+                    <label class="android-update-source" for="androidUpdateSource"><span data-i18n="updateSource">更新线路</span>
+                        <select id="androidUpdateSource">
+                            <option value="auto" data-i18n="updateSourceAuto">自动选择（镜像优先）</option>
+                            <option value="mirror1">gh-proxy.com</option><option value="mirror2">gh-proxy.org</option>
+                            <option value="direct" data-i18n="updateSourceDirect">GitHub 直连</option>
+                        </select>
+                    </label>
+                    <p class="android-update-hint" data-i18n="updateRouteHint">镜像连接失败会自动切换线路，下载后校验再安装。</p>
                     <p id="androidReleaseName" data-no-i18n></p>
+                    <p id="androidUpdateDescription" data-no-i18n hidden></p>
+                    <div id="androidUpdateProgress" hidden><progress id="androidUpdateMeter" max="1" value="0" aria-label="更新下载进度"></progress><span id="androidUpdateTransfer"></span></div>
                     <div id="androidUpdateLinks" hidden>
                         <a id="androidSettingsDownload" rel="noreferrer" data-i18n="updateDownload">下载更新</a>
+                        <button id="androidUpdateCancel" type="button" data-i18n="updateCancel" hidden>取消下载</button>
+                        <button id="androidUpdateInstall" type="button" data-i18n="updateInstall" hidden>安装更新</button>
                         <a id="androidReleaseNotes" rel="noreferrer" data-i18n="updateNotes">版本说明</a>
                     </div>
                 </section>
-                <p><a href="/library">公开音乐资料</a> · <a href="/admin">运行控制台</a></p>
+                <p class="web-management-links"><a href="/library">公开音乐资料</a> · <a href="/admin">运行控制台</a></p>
                 <section id="accountPanel" class="account-panel" aria-label="账号与多端"></section>
                 <section class="lyric-settings" aria-labelledby="lyricSettingsTitle">
                     <div class="lyric-settings__heading">
@@ -1393,9 +1436,9 @@
                     <div class="lyric-settings__font">
                         <div><label for="lyricFontSize">歌词字体大小</label><p id="lyricFontHint">12–60 px · 桌面与手机同步</p></div>
                         <div class="lyric-font-stepper">
-                            <button id="lyricFontDecrease" type="button" aria-label="减小歌词字号">−</button>
+                            <button id="lyricFontDecrease" type="button" aria-label="减小歌词字号"><i data-lucide="Minus" aria-hidden="true"></i></button>
                             <input id="lyricFontSize" type="number" min="12" max="60" step="1" value="36" inputmode="numeric" aria-describedby="lyricFontHint">
-                            <button id="lyricFontIncrease" type="button" aria-label="增大歌词字号">+</button>
+                            <button id="lyricFontIncrease" type="button" aria-label="增大歌词字号"><i data-lucide="Plus" aria-hidden="true"></i></button>
                         </div>
                     </div>
                     <div class="lyric-settings__footer"><span id="lyricEffectFeedback" role="status" aria-live="polite">更改立即生效，自动保存在此浏览器</span><button id="lyricEffectReset" type="button">恢复默认</button></div>
@@ -1405,7 +1448,7 @@
                 <div id="playlistSourceCard" class="p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg bg-primary-color/15 flex items-center justify-center flex-shrink-0">
-                            <i id="sourceIconI" class="fas fa-music text-primary-color text-sm"></i>
+                            <i id="sourceIconI" class="fas fa-music text-primary-color text-sm" aria-hidden="true"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div id="sourceLabel" class="text-sm font-bold truncate">未加载歌单</div>
@@ -1457,13 +1500,28 @@
                     <p id="musicSourceHint" class="mt-2 text-[11px] opacity-45">搜索、播放与歌词免密钥；首页按主题发现音乐</p>
                 </div>
 
+                <form id="lxSourceForm" class="music-key-card lx-source-form" aria-labelledby="lxSourceTitle">
+                    <h3 id="lxSourceTitle">导入音乐源</h3>
+                    <label class="lx-source-toggle"><span>优先使用导入的音源</span>
+                        <input type="checkbox" name="lxSourceEnabled" checked></label>
+                    <p id="lxSourceHint" class="music-key-hint">支持 LX 音源脚本的 HTTPS 链接。主音源不可用时尝试备用音源，再回退到内置音源。</p>
+                    <label for="lxSourcePrimary">主音源 · 默认星澜</label>
+                    <input id="lxSourcePrimary" name="lxSourcePrimary" type="url" placeholder="https://…"
+                        aria-describedby="lxSourceHint lxSourceFeedback" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="4096">
+                    <label for="lxSourceBackup">备用音源 · 默认轻量</label>
+                    <input id="lxSourceBackup" name="lxSourceBackup" type="url" placeholder="https://…"
+                        aria-describedby="lxSourceHint lxSourceFeedback" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="4096">
+                    <div class="music-key-actions"><button name="lxSourceSave" class="is-primary" type="submit">保存音源</button></div>
+                    <p id="lxSourceFeedback" role="status" aria-live="polite"></p>
+                </form>
+
                 <p id="gdSourceCredit" class="music-key-hint" hidden>来源：<a href="https://music.gdstudio.xyz" target="_blank" rel="noopener noreferrer">GD音乐台 (music.gdstudio.xyz)</a> · 仅供非商业学习使用 · 每 5 分钟最多 50 次请求。</p>
                 <form id="musicKeyForm" class="music-key-card" novalidate>
                     <div class="music-key-heading">
                         <label for="musicApiKey">ChKSz API 密钥</label>
                         <span id="musicKeyStatus" role="status">正在读取配置…</span>
                     </div>
-                    <p class="music-key-hint">榜单、歌手、新歌与歌单统一使用 ChKSz，需要配置密钥；歌曲播放使用上方选定的接口。</p>
+                    <p class="music-key-hint">歌手和排行榜使用网易云公开榜单。选择 ChKSz 渠道时可在这里配置密钥。</p>
                     <p id="musicKeyHint" class="music-key-hint">密钥仅保存在本地服务内存中，重启服务后需重新填写。</p>
                     <div class="music-key-input-row">
                         <input id="musicApiKey" type="password" autocomplete="off" autocapitalize="none"
@@ -1480,17 +1538,20 @@
                 </form>
 
                 <!-- 在线歌单 ID 输入 -->
-                <div class="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <div class="flex gap-2">
+                <div class="playlist-import-setting bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <label for="playlistIdInput">加载在线歌单</label>
+                    <div class="settings-inline-form flex gap-2">
                         <input type="text" id="playlistIdInput" aria-label="网易云歌单 ID 或链接"
-                            placeholder="网易云歌单 ID 或链接"
+                            placeholder="歌单 ID 或链接" aria-describedby="playlistIdFeedback"
                             class="flex-1 min-w-0 bg-white/[0.06] border border-white/[0.12] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary-color/60 focus:bg-white/[0.1] transition-colors placeholder:opacity-30"
                             autocomplete="off">
                         <button id="loadPlaylistBtn"
                             class="px-4 py-2.5 rounded-xl bg-primary-color text-on-primary-color text-sm font-bold hover:opacity-90 active:scale-[0.97] transition-opacity flex-shrink-0">
-                            <i class="fas fa-download mr-1"></i>加载
+                            <i class="fas fa-download mr-1" aria-hidden="true"></i>加载
                         </button>
                     </div>
+                    <p id="playlistIdFeedback" class="mt-2 text-sm text-red-400" role="status"
+                        aria-live="polite" aria-atomic="true" hidden></p>
                 </div>
 
                 <!-- 本地歌单导入（桌面端） -->
@@ -1500,7 +1561,7 @@
                         class="p-5 rounded-2xl border-2 border-dashed border-white/10 hover:border-primary-color/40 hover:bg-white/[0.03] cursor-pointer text-center group transition-colors">
                         <input type="file" id="settingsFileInput" accept=".js,.json" class="hidden" aria-label="选择 playlist.js 或 JSON 歌单文件">
                         <div class="flex items-center justify-center gap-3 pointer-events-none">
-                            <i class="fas fa-file-import text-lg opacity-25 group-hover:opacity-50 transition-opacity"></i>
+                            <i class="fas fa-file-import text-lg opacity-25 group-hover:opacity-50 transition-opacity" aria-hidden="true"></i>
                             <span class="text-xs opacity-35 group-hover:opacity-55 transition-opacity">
                                 拖拽 playlist.js / .json 到此处，或<span class="underline">点击选择</span>
                             </span>
@@ -1509,11 +1570,11 @@
                 </div>
 
                 <!-- 关于折叠 -->
-                <details class="group">
+                <details class="settings-about group">
                     <summary class="flex items-center gap-1.5 text-[11px] opacity-30 hover:opacity-50 cursor-pointer select-none transition-opacity px-1">
-                        <i class="fas fa-info-circle"></i>
-                        关于 CPlayer 5
-                        <i class="fas fa-chevron-down text-[9px] group-open:rotate-180 transition-transform"></i>
+                        <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        关于 ZPlayer
+                        <i class="fas fa-chevron-down text-[9px] group-open:rotate-180 transition-transform" aria-hidden="true"></i>
                     </summary>
                     <div class="mt-2 p-3 rounded-xl bg-white/[0.03] border border-white/5 text-[11px] opacity-50 space-y-1">
                         <div><strong>超清母带</strong> ChKSz API · <strong>全端适配</strong> 桌面+移动 · <strong>智能缓存</strong> IndexedDB</div>
@@ -1523,7 +1584,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 text-center text-xs opacity-40 font-mono tracking-wider">
-                CPlayer 5 · v1.9.1
+                ZPlayer · v1.13.0
             </div>
         </div>
     </div>
@@ -1547,7 +1608,7 @@
                 </div>
 
                 <!-- Title -->
-                <h2 id="welcomeTitle" class="text-2xl font-bold text-center mb-2">欢迎使用 CPlayer 5</h2>
+                <h2 id="welcomeTitle" class="text-2xl font-bold text-center mb-2">欢迎使用 ZPlayer</h2>
                 <p class="text-center opacity-60 text-sm mb-8">输入你的网易云歌单 ID，即刻开始超清母带体验</p>
 
                 <!-- Input -->
@@ -1708,7 +1769,7 @@
                         <span>关闭</span>
                     </button>
                 </header>
-                <p class="liquid-choice-description">选择后立即应用到当前歌曲，并作为后续播放的默认音质。</p>
+                <p class="liquid-choice-description">每首歌默认优先无损。手动选择仅应用到当前歌曲，音质标识以实际音源为准。</p>
                 <input id="playbackQuality" type="hidden" value="lossless">
                 <div id="playbackQualityList" class="liquid-quality-menu liquid-quality-menu-static"
                     role="listbox" aria-label="播放音质" tabindex="-1"></div>
@@ -1719,6 +1780,42 @@
     </dialog>
 
     <!-- JavaScript 逻辑 -->
+    <dialog id="lyricShareDialog" class="lyric-share-dialog" aria-labelledby="lyricShareTitle" data-format="square">
+        <header class="lyric-share-header">
+            <div><p class="lyric-share-kicker">LYRIC POSTCARD</p><h2 id="lyricShareTitle">把这一句，留住</h2></div>
+            <button id="lyricShareClose" type="button" aria-label="关闭歌词卡片"><i data-lucide="X" aria-hidden="true"></i></button>
+        </header>
+        <p id="lyricShareSong" class="lyric-share-song"></p>
+        <div class="lyric-share-body">
+            <figure class="lyric-share-preview"><img id="lyricSharePreview" alt="歌词卡片预览" width="1080" height="1080"><canvas id="lyricShareCanvas" width="1080" height="1080" hidden></canvas><figcaption>图片预览 · 歌词按原曲顺序排列</figcaption></figure>
+            <fieldset id="lyricShareEditor" class="lyric-share-editor">
+                <legend class="sr-only">编辑歌词卡片</legend>
+                <div class="lyric-share-tabs" role="tablist" aria-label="卡片编辑">
+                    <button id="lyricShareLinesTab" type="button" role="tab" aria-selected="true" aria-controls="lyricShareLinesPanel" data-card-tab="lines">选歌词 <span id="lyricShareCount">0 / 6</span></button>
+                    <button id="lyricShareStyleTab" type="button" role="tab" aria-selected="false" aria-controls="lyricShareStylePanel" data-card-tab="style" tabindex="-1">卡片样式</button>
+                </div>
+                <section id="lyricShareLinesPanel" role="tabpanel" aria-labelledby="lyricShareLinesTab" data-card-panel="lines">
+                    <div class="lyric-share-line-hint"><p>点选喜欢的句子，最多 6 句</p><button id="lyricShareClear" type="button">清空</button></div>
+                    <div id="lyricShareLines" class="lyric-share-lines"></div>
+                </section>
+                <section id="lyricShareStylePanel" role="tabpanel" aria-labelledby="lyricShareStyleTab" data-card-panel="style" hidden>
+                    <fieldset class="lyric-share-choices"><legend>配色</legend>
+                        <label><input type="radio" name="lyricCardTheme" value="cover" checked><span class="card-swatch card-swatch-cover" aria-hidden="true"></span><span>封面色</span></label>
+                        <label><input type="radio" name="lyricCardTheme" value="ink"><span class="card-swatch card-swatch-ink" aria-hidden="true"></span><span>唱片黑</span></label>
+                        <label><input type="radio" name="lyricCardTheme" value="paper"><span class="card-swatch card-swatch-paper" aria-hidden="true"></span><span>暖纸笺</span></label>
+                    </fieldset>
+                    <fieldset class="lyric-share-choices"><legend>画幅</legend>
+                        <label><input type="radio" name="lyricCardFormat" value="square" checked><span>方形</span><small>1 : 1</small></label>
+                        <label><input type="radio" name="lyricCardFormat" value="story"><span>竖版</span><small>9 : 16</small></label>
+                    </fieldset>
+                </section>
+            </fieldset>
+        </div>
+        <footer class="lyric-share-footer">
+            <p id="lyricShareFeedback" role="status" aria-live="polite" aria-atomic="true"></p>
+            <div><button id="lyricShareSave" type="button" disabled><i data-lucide="Download" aria-hidden="true"></i>保存图片</button><button id="lyricShareSend" class="is-primary" type="button" disabled><i data-lucide="Share2" aria-hidden="true"></i>分享卡片</button></div>
+        </footer>
+    </dialog>
     <script type="module" src="./js/app.js"></script>
     <script type="module" src="./js/page-scroll-spider.js?v=48"></script>
     <script type="module" src="./js/oneko-butterfly.js?v=45"></script>

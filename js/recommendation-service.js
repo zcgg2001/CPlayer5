@@ -1,15 +1,23 @@
 import { requestJson } from './http.js';
+import { createChartCache } from './chart-cache.js';
 import { catalogRecord, neteaseMetadataId } from './music-catalog.js';
 import { artistNames, analyzeLibrary, canRecommend, recordingKey, rankRecommendations, storedSong, SCENES, hash, dayKey } from './recommendation-model.js';
 
 export function createRecommendationService({ musicService, profileStore, storage, fetchImpl } = {}) {
-  const memory = new Map();
+  const catalog = createChartCache({ storage, key: 'zp_discovery_catalog_v1', limit: 18,
+    fetchValue: (path, signal) => requestJson(path, { signal, fetchImpl, timeoutMs: 16_000 }),
+    validate: (_, value) => Array.isArray(value.items) || (value.collection && Array.isArray(value.tracks)),
+  });
   const get = async (action, params = {}, signal) => {
+    signal?.throwIfAborted();
     const path = `/api/v1/discovery/${action}?${new URLSearchParams(params)}`;
-    const cached = memory.get(path); if (cached?.expires > Date.now()) return cached.data;
-    const data = await requestJson(path, { signal, fetchImpl, timeoutMs: 16_000 });
-    memory.set(path, { data, expires: Date.now() + 300_000 });
-    while (memory.size > 30) memory.delete(memory.keys().next().value);
+    const cached = catalog.peek(path);
+    if (cached) {
+      if (!catalog.fresh(path)) void catalog.get(path).catch(() => {});
+      return cached;
+    }
+    const data = await catalog.get(path);
+    signal?.throwIfAborted();
     return data;
   };
   const playlist = (id, signal) => get('playlist', { id }, signal);
@@ -119,7 +127,7 @@ export function createRecommendationService({ musicService, profileStore, storag
     const data = await playlist(selected.id, signal);
     return data.tracks.map(song => ({ song: catalogRecord(song), reason: `私人电台 · ${tag}主题歌单` }));
   }
-  return { loadHome, playlist, playlists, charts, rank, add, favorites, radioBatch, categoryFor,
+  return { loadHome, playlist, playlists, charts, collection: (type,id,signal) => get(type,{id},signal), rank, add, favorites, radioBatch, categoryFor,
     newSongs: () => newSongs, pool: () => pool, context: () => context };
 }
 

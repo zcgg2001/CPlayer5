@@ -4,6 +4,12 @@ import java.net.URI;
 
 // Pure Java policy shared by navigation, bridge checks and unit tests.
 final class BridgePolicy {
+  static boolean artwork(String value) {
+    if (!trusted(value)) return false;
+    String path = URI.create(value).getPath();
+    return "/api/cover".equals(path) || "/api/v1/music/cover".equals(path);
+  }
+
   static boolean trusted(String value) {
     try {
       URI url = URI.create(value), origin = URI.create(BuildConfig.PLAYER_ORIGIN);

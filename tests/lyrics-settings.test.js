@@ -33,6 +33,7 @@ test('one recording keeps lyric preferences when playback falls back to another 
   assert.equal(key, trackKey({id:'op-netease:123',sourceId:'123',provider:'op-netease'}));
   assert.notEqual(key, trackKey({id:'123',provider:'qq'}));
   assert.notEqual(key, trackKey({id:'124',provider:'gd'}));
+  assert.equal(key, trackKey({id:'123',sourceId:'qq-mid',provider:'at38-qq',artworkSource:{id:'123',provider:'gd'}}));
 });
 test('automatic source selection rejects live/different-duration recordings before quality comparison', () => {
   const song = { id:'123',provider:'gd',name:'A song',artist:'Artist',album:'Album',duration:200 };

@@ -141,7 +141,7 @@ await expect(page.getByRole('button',{name:'加入并播放 选定音源测试',
 const desktopAttempt=attempts.length;
 await page.getByRole('button',{name:'加入并播放 选定音源测试',exact:true}).click();
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentSrc)).toContain('source=op-qq');
-assert.deepEqual(attempts.slice(desktopAttempt),[{source:'op-qq',level:'hires'}]);
+assert.deepEqual(attempts.slice(desktopAttempt),[{source:'op-qq',level:'lossless'}]);
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
 await page.evaluate(()=>window.__testAudio[0].pause());
 await page.setViewportSize({width:390,height:844});
@@ -154,7 +154,7 @@ await expect(page.locator('#mobileSearchResults')).toContainText('选定音源�
 const mobileAttempt=attempts.length;
 await page.locator('#mobileSearchResults').getByRole('button',{name:'添加并播放歌曲',exact:true}).click();
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentSrc)).toContain('source=op-netease');
-assert.deepEqual(attempts.slice(mobileAttempt),[{source:'op-netease',level:'hires'}]);
+assert.deepEqual(attempts.slice(mobileAttempt),[{source:'op-netease',level:'lossless'}]);
 await expect.poll(()=>page.evaluate(()=>window.__testAudio[0].currentTime)).toBeGreaterThan(0.1);
 
 // The APK opens discovery even above the ordinary desktop breakpoint. Search

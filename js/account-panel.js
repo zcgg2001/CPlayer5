@@ -9,7 +9,7 @@ const entry = createAccountEntry();
 
 export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, guestTrial, persistGuestQueue = false }) {
   root.innerHTML = `
-    <div class="account-heading"><div><p class="account-eyebrow">CPLAYER ACCOUNT</p><h3>账号与多端</h3></div><span id="accountBadge">本地模式</span></div>
+    <div class="account-heading"><div><p class="account-eyebrow">ZPLAYER ACCOUNT</p><h3>账号与多端</h3></div><span id="accountBadge">本地模式</span></div>
     <p id="accountNotice" role="status" aria-live="polite">正在检查账号服务…</p>
     <div id="accountLogin"><button id="accountOpenEntry" type="button">登录 / 注册账号</button><p id="accountGuestQuota" class="account-help"></p><p class="account-help">只需用户名和密码，即可保存与同步你的音乐。</p></div>
     <div id="accountSignedIn" hidden><div class="account-heading"><strong id="accountIdentityName"></strong><button id="accountSignOut" type="button">退出登录</button></div>
@@ -19,7 +19,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
       <details><summary>已登录设备</summary><button id="accountRefreshSessions" type="button">刷新设备列表</button><div id="accountSessions"></div></details>
       <details><summary>数据与账号</summary><p class="account-help">导出包含个人资料与云端音乐数据。注销立即删除账号、收藏、歌单和会话；供应商投递记录及服务备份按其保留策略处理。</p><button id="accountExport" type="button">导出账号数据 JSON</button><label>注销确认<input id="accountDeleteConfirm" placeholder="输入：删除我的账号" autocomplete="off"></label><button id="accountDelete" class="account-danger" type="button">永久注销账号</button></details>
     </div>
-    <div id="accountDevice" hidden><h4>授权桌面客户端</h4><p>只有当你刚刚在自己的 CPlayer5 桌面端发起登录，且两端验证码一致时，才允许连接。</p><label>设备验证码<input id="accountDeviceCode" maxlength="32" autocomplete="off"></label><div class="account-actions"><button id="accountDeviceApprove" type="button">允许连接</button><button id="accountDeviceDeny" type="button">拒绝</button></div></div>
+    <div id="accountDevice" hidden><h4>授权桌面客户端</h4><p>只有当你刚刚在自己的 ZPlayer 桌面端发起登录，且两端验证码一致时，才允许连接。</p><label>设备验证码<input id="accountDeviceCode" maxlength="32" autocomplete="off"></label><div class="account-actions"><button id="accountDeviceApprove" type="button">允许连接</button><button id="accountDeviceDeny" type="button">拒绝</button></div></div>
     <details id="accountPlaylists"><summary>我的歌单 <span id="accountPlaylistCount"></span></summary><div class="account-fields"><label>歌单名称<input id="accountPlaylistName" placeholder="晚间收藏" maxlength="80"></label><button id="accountSavePlaylist" type="button">将队列保存为歌单</button></div><div id="accountPlaylistList"></div></details>
     <div class="account-install"><button id="accountInstall" type="button">安装播放器</button><span id="accountInstallHint" class="account-help">安装后可从桌面打开，支持离线界面和系统媒体键。</span></div>`;
   const $ = id => root.querySelector(`#${id}`);
@@ -104,11 +104,11 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   $('accountSignOut').onclick = () => run(async () => { await flush(); if (sync.pending() && !confirm('还有未同步修改，将保留在此设备的账号分区。仍要退出？')) return; await request('/api/auth/sign-out', { method: 'POST', body: {} }); await window.cplayerDesktop?.signOut(); detach(); entered = false; closeSettings(); openEntry(); });
   $('accountExport').onclick = () => run(async () => {
     const data = await request('/api/account/export'); data.localPending = sync.records();
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'cplayer-account.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = 'zplayer-account.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   $('accountDelete').onclick = () => run(async () => { if ($('accountDeleteConfirm').value !== '删除我的账号') throw new Error('请输入“删除我的账号”确认'); await request('/api/account/delete', { method: 'POST', body: { confirmation: $('accountDeleteConfirm').value } }); let cleanupFailed = false; try { await createOfflineDatabase().clear(user.id); } catch { cleanupFailed = true; } storage.removeItem(`cp_discovery_profile_v1:${user.id}`); await window.cplayerDesktop?.signOut(); detach(true); $('accountDeleteConfirm').value = ''; notice('账号与云端资料已注销。'); entered = false; closeSettings(); openEntry('register'); entry.message(cleanupFailed ? '账号已注销，但此设备离线缓存清理失败，请在浏览器设置清除此站点数据。' : '账号已注销，可以重新注册或选择游客试听。'); });
   async function loadSessions() {
-    const sessions = await request('/api/account/sessions'); $('accountSessions').replaceChildren(...sessions.map(session => row(`${session.current ? '此设备' : '其他设备'} · ${new Date(session.createdAt).toLocaleDateString()} · ${(session.userAgent || 'CPlayer Desktop').slice(0, 80)}`, session.current ? [] : [button('退出该设备', async () => { await request('/api/account/revoke', { method: 'POST', body: { id: session.id } }); await loadSessions(); notice('已撤销该设备会话'); })])));
+    const sessions = await request('/api/account/sessions'); $('accountSessions').replaceChildren(...sessions.map(session => row(`${session.current ? '此设备' : '其他设备'} · ${new Date(session.createdAt).toLocaleDateString()} · ${(session.userAgent || 'ZPlayer Desktop').slice(0, 80)}`, session.current ? [] : [button('退出该设备', async () => { await request('/api/account/revoke', { method: 'POST', body: { id: session.id } }); await loadSessions(); notice('已撤销该设备会话'); })])));
   }
   $('accountRefreshSessions').onclick = () => run(loadSessions);
   $('accountSavePlaylist').onclick = () => run(() => { if (!player.queue().length) throw new Error('先向播放队列添加歌曲'); library.save($('accountPlaylistName').value); $('accountPlaylistName').value = ''; renderLists(); changed(); notice('歌单已保存'); });

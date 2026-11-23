@@ -6,6 +6,16 @@ import org.junit.Test;
 
 public class BridgePolicyTest {
   @Test
+  public void systemArtworkUsesOnlyThePublicCoverEndpoints() {
+    assertTrue(BridgePolicy.artwork("https://music.505zc.tech/api/cover?url=image"));
+    assertTrue(BridgePolicy.artwork("https://music.505zc.tech/api/v1/music/cover?id=101"));
+    for (String url : new String[] {
+        "", "data:image/png,body", "https://other.test/api/cover",
+        "https://music.505zc.tech/api/account", "https://music.505zc.tech.evil.test/api/cover"
+    }) assertFalse(url, BridgePolicy.artwork(url));
+  }
+
+  @Test
   public void bridgeRequiresExactHttpsOrigin() {
     assertTrue(BridgePolicy.trusted("https://music.505zc.tech/?app=android"));
     for (String url :

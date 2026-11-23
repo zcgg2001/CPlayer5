@@ -16,11 +16,12 @@ import {
   normalizeSongPayload,
 } from './music-data.js?v=41';
 import { downloadFallbackLevels } from './music-download.js';
-import { createPlaybackRouter } from './playback-router.js';
+import { createPlaybackRouter, DEFAULT_PLAYBACK_QUALITY } from './playback-router.js';
+import { createLxSources } from './lx-music-sources.js';
 
 export const MUSIC_API_BASE_URL = '/api/v1/music';
 export const NEW_SONGS_PLAYLIST_ID = '3779629';
-export const DEFAULT_QUALITY = 'jymaster';
+export const DEFAULT_QUALITY = DEFAULT_PLAYBACK_QUALITY;
 export const DEFAULT_MUSIC_SOURCE = 'gd';
 
 export const MUSIC_SOURCE_OPTIONS = Object.freeze({
@@ -81,14 +82,15 @@ export class MusicService {
     this.location = location;
     this.loadSettings();
     this.baseUrl = MUSIC_API_BASE_URL;
+    this.lxSources = createLxSources(storage);
     this.playbackRouter = createPlaybackRouter(this, { storage });
   }
 
   loadSettings() {
-    let quality = DEFAULT_QUALITY;
+    // Every new song starts lossless; old per-song choices are not a default.
+    const quality = DEFAULT_QUALITY;
     let source = DEFAULT_MUSIC_SOURCE;
     try {
-      quality = supportedQuality(this.storage?.getItem('cp_quality'));
       const initialSource = new URLSearchParams(this.location?.search || '').get('source');
       source = supportedMusicSource(initialSource || this.storage?.getItem('cp_source'));
     } catch (error) {
@@ -211,10 +213,14 @@ export class MusicService {
     if (offline) { yield offline; return; }
     if (this.offlineOnly?.()) throw new Error('离线模式只能播放此设备已保存的音频，请联网登录后重试');
     if (options.song?.provider === 'local') throw new Error('此设备没有该本地音频，请在个人库重新导入');
+    if (!options.prefetch && globalThis.document && !bilibiliVideoUrl(options.song)
+        && options.song?.provider !== 'bilibili') {
+      yield* this.lxSources.candidates(id, { ...options, defaultProvider: this.config.source });
+    }
     yield* this.playbackRouter.candidates(id, options);
   }
-  recordPlaybackSuccess(data, elapsedMs) { if (!data.offline) this.playbackRouter.success(data, elapsedMs); }
-  recordPlaybackFailure(data, error) { if (!data?.offline) this.playbackRouter.failure(data, error); }
+  recordPlaybackSuccess(data, elapsedMs) { if (!data.offline && !data.playbackSource) this.playbackRouter.success(data, elapsedMs); }
+  recordPlaybackFailure(data, error) { if (!data?.offline && !data?.playbackSource) this.playbackRouter.failure(data, error); }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     if (queueSong?.sources?.length) {

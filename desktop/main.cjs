@@ -1,7 +1,13 @@
 const { app, BrowserWindow, ipcMain, session, shell, safeStorage } = require('electron');
-const { readFileSync, writeFileSync, rmSync } = require('node:fs');
+const { readFileSync, writeFileSync, rmSync, mkdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { appOrigin, trusted, tokenRoute } = require('./policy.cjs');
+
+// The display name changes; existing tokens, cookies and local libraries stay here.
+const profilePath = join(app.getPath('appData'), 'CPlayer5');
+mkdirSync(profilePath, { recursive: true });
+app.setPath('userData', profilePath);
+app.setPath('sessionData', profilePath);
 
 const origin = appOrigin(process.env.CPLAYER_DESKTOP_URL, !app.isPackaged && process.env.CPLAYER_DESKTOP_DEV === '1');
 let window, token = null, loginGeneration = 0;
@@ -46,7 +52,7 @@ app.whenReady().then(async () => {
     if (token && details.webContentsId === window?.webContents.id && tokenRoute(details.url, origin)) headers.Authorization = `Bearer ${token}`;
     callback({ requestHeaders: headers });
   });
-  window = new BrowserWindow({ width: 1280, height: 850, minWidth: 390, minHeight: 620, title: 'CPlayer5', backgroundColor: '#15151a', webPreferences: { session: isolated, preload: join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true, allowRunningInsecureContent: false, spellcheck: false } });
+  window = new BrowserWindow({ width: 1280, height: 850, minWidth: 390, minHeight: 620, title: 'ZPlayer', backgroundColor: '#15151a', webPreferences: { session: isolated, preload: join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: true, nodeIntegration: false, webSecurity: true, allowRunningInsecureContent: false, spellcheck: false } });
   window.removeMenu();
   window.webContents.on('will-navigate', (event, url) => { if (!trusted(url, origin)) { event.preventDefault(); if (/^https:\/\//.test(url)) shell.openExternal(url); } });
   window.webContents.on('will-redirect', (event, url) => { if (!trusted(url, origin)) event.preventDefault(); });

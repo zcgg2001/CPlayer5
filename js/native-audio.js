@@ -16,7 +16,9 @@ export function createPlayerAudio({
     pending = [],
     position = 0,
     sampled = now(),
-    metadata = {};
+    metadata = {},
+    loadedMediaId = "";
+  const mediaId = song => `${song.provider || 'gd'}:${song.sourceId || song.id || ''}`;
   let state = {
     paused: true,
     playing: false,
@@ -134,6 +136,9 @@ export function createPlayerAudio({
   };
   const audio = {
     isNative: true,
+    get usesNativeSession() {
+      return native;
+    },
     addEventListener: events.addEventListener.bind(events),
     removeEventListener: events.removeEventListener.bind(events),
     dispatchEvent: events.dispatchEvent.bind(events),
@@ -147,6 +152,7 @@ export function createPlayerAudio({
       token++;
       src = value || "";
       native = !src.startsWith("blob:");
+      loadedMediaId = src ? metadata.mediaId : "";
       position = 0;
       sampled = now();
       state = {
@@ -266,12 +272,25 @@ export function createPlayerAudio({
       audio.currentTime = value;
     },
     setMetadata(song) {
+      // Stage metadata for the next load. The previous source may still be active.
       metadata = {
+        mediaId: mediaId(song),
         title: song.name || "",
         artist: song.artist || "",
         album: song.album || "",
+        ...(song.playbackSource ? { importedAudio: true } : {}),
       };
-      if (native) send("metadata", metadata);
+    },
+    setArtwork(song, cover) {
+      if (!native || !src || song.url !== src || mediaId(song) !== loadedMediaId) return;
+      let artworkUri = "";
+      try {
+        if (cover) {
+          const url = new URL(cover, globalThis.location?.href);
+          if (url.protocol === "https:") artworkUri = url.href;
+        }
+      } catch { /* Missing covers retain the system's music icon. */ }
+      send("artwork", { mediaId: loadedMediaId, artworkUri });
     },
   };
   return audio;

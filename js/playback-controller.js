@@ -130,7 +130,8 @@ export function createPlaybackController({
                     const generation = ++mediaGeneration;
                     const isMediaCurrent = () => isCurrent() && generation === mediaGeneration;
                     if (!url) throw new Error('Invalid media URL');
-                    firstProvider ||= data.provider;
+                    const audioProvider = data.playbackSource || data.provider;
+                    firstProvider ||= audioProvider;
                     const coverOptions = { baseUrl, allowDataImage: true };
                     const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
                         || normalizeMediaUrl(data.cover, coverOptions) || '';
@@ -159,12 +160,12 @@ export function createPlaybackController({
                     if (!isCurrent()) return;
                     if (!blocked && active.wantsPlay) musicService.recordPlaybackSuccess?.(data, Date.now()-began+(data.routing?.resolveMs||0));
                     const fromProvider = previousProvider || firstProvider;
-                    switched = Boolean(fromProvider && data.provider && fromProvider !== data.provider);
+                    switched = Boolean(fromProvider && audioProvider && fromProvider !== audioProvider);
                     const notifyStarted = () => {
                         if (!isMediaCurrent()) return;
                         reportEvent('playback_started', data.provider);
-                        if (switched) { view.onSourceSwitched?.({ from: fromProvider, to: data.provider }); reportEvent('source_switched', data.provider); }
-                        previousProvider = data.provider;
+                        if (switched) { view.onSourceSwitched?.({ from: fromProvider, to: audioProvider }); reportEvent('source_switched', audioProvider); }
+                        previousProvider = audioProvider;
                     };
                     if (!blocked && active.wantsPlay) notifyStarted();
                     else audio.addEventListener?.('playing', notifyStarted, { once: true, signal: session.signal });

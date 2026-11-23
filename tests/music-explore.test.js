@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  createArtistsController,
   fetchArtistsPayload,
   formatReleaseDate,
   normalizeArtistsPayload,
@@ -41,6 +42,8 @@ test('normalizes artist cards and preserves playable chart tracks', () => {
   assert.equal(result.items[0].name, '歌手甲');
   assert.equal(result.items[0].featuredTrack.playbackId, '101');
   assert.equal(result.items[0].tracks[0].playable, true);
+  assert.equal(result.items[0].tracks[0].provider, 'gd');
+  assert.equal(result.items[0].tracks[0].sourceId, '101');
 });
 
 
@@ -53,7 +56,7 @@ test('rejects artist payloads without playable track identities', () => {
   );
 });
 
-test('aggregates ChKSz chart tracks into ranked artist cards', () => {
+test('aggregates public chart tracks into ranked artist cards', () => {
   const result = normalizeDirectArtistsPayload([
     {
       chart: { key: 'hot' },
@@ -84,45 +87,67 @@ test('aggregates ChKSz chart tracks into ranked artist cards', () => {
   ], { scope: 'trending' });
 
   assert.equal(result.collection.key, 'trending');
-  assert.equal(result.collection.sourceName, 'ChKSz 国内榜单 · 安全代理');
+  assert.equal(result.collection.sourceName, '网易云公开榜单');
   assert.equal(result.items[0].name, '歌手甲');
   assert.equal(result.items[0].chartCount, 2);
   assert.equal(result.items[0].tracks.length, 2);
 });
 
-test('keeps the API key behind the secure proxy when opened from a local file', async () => {
+const chartPayload = {
+  collection: { name: '热歌榜' },
+  tracks: [{ id: '101', sourceId: '101', provider: 'gd', name: '第一首', artist: '歌手甲',
+    album: '专辑一', cover: 'https://p1.music.126.net/song.jpg', duration: 180 }],
+};
+
+test('loads public artist feeds and preserves playback identity after saving', async () => {
   const requestedUrls = [];
-  const payload = {
-    data: {
-      id: '3778678',
-      name: '热歌榜',
-      tracks: [{
-        id: 101,
-        name: '第一首',
-        ar: [{ name: '歌手甲' }],
-        al: {
-          name: '专辑一',
-          picUrl: 'https://p1.music.126.net/song.jpg',
-        },
-      }],
-    },
-  };
-  const fetchImpl = async url => {
-    requestedUrls.push(String(url));
-    return {
-      ok: true,
-      json: async () => payload,
-    };
-  };
-
-  const result = await fetchArtistsPayload(fetchImpl, 'trending', {
-    locationProtocol: 'file:',
-  });
-
+  const result = await fetchArtistsPayload(async url => {
+    requestedUrls.push(url);
+    return Response.json(chartPayload);
+  }, 'trending');
   assert.equal(result.items[0].name, '歌手甲');
-  assert.equal(requestedUrls.length, 2);
-  assert.ok(requestedUrls.every(url => url.startsWith('/api/v1/music/playlist')));
-  assert.ok(requestedUrls.every(url => !url.includes('/api/v1/artists')));
+  assert.deepEqual(requestedUrls, [
+    '/api/v1/discovery/playlist?id=3778678', '/api/v1/discovery/playlist?id=19723756',
+  ]);
+  const track = normalizeArtistsPayload(JSON.parse(JSON.stringify(result))).items[0].featuredTrack;
+  assert.equal(track.provider, 'gd');
+  assert.equal(track.sourceId, '101');
+  assert.equal(track.duration, 180);
+});
+
+test('keeps available artist charts when one feed fails and reports total failure', async () => {
+  const partial = await fetchArtistsPayload(async url => url.includes('3778678')
+    ? Response.json({ error: { message: '榜单暂不可用' } }, { status: 502 })
+    : Response.json(chartPayload));
+  assert.equal(partial.items[0].chartCount, 1);
+  await assert.rejects(fetchArtistsPayload(async () =>
+    Response.json({ error: { message: '榜单暂不可用' } }, { status: 502 })), /榜单暂不可用/);
+});
+
+test('switching artist tabs cancels stale loads and persisted snapshots work offline', async t => {
+  const oldDocument = globalThis.document;
+  globalThis.document = { getElementById: () => null };
+  t.after(() => { globalThis.document = oldDocument; });
+  const requests = [], saved = new Map();
+  const storage = { getItem: key => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+  const controller = createArtistsController({ storage, fetchImpl: (url, { signal }) =>
+    new Promise(resolve => requests.push({ url, signal, resolve })) });
+  const first = controller.select('new');
+  const second = controller.select('original');
+  const third = controller.select('new');
+  assert.equal(requests[0].signal.aborted, true);
+  assert.equal(requests[1].signal.aborted, true);
+  requests[2].resolve(Response.json(chartPayload));
+  await third;
+  requests[0].resolve(Response.json({ ...chartPayload, tracks: [{ ...chartPayload.tracks[0], artist: '旧内容' }] }));
+  requests[1].resolve(Response.json(chartPayload));
+  await Promise.all([first, second]);
+  assert.equal(controller.current(), 'new');
+  const offline = createArtistsController({ storage, onlineEnabled: () => false,
+    fetchImpl: () => { throw Error('Offline must not fetch'); } });
+  const cached = await offline.select('new');
+  assert.equal(cached.items[0].name, '歌手甲');
+  assert.equal(cached.items[0].featuredTrack.provider, 'gd');
 });
 
 

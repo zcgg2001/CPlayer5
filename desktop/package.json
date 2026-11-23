@@ -1,8 +1,8 @@
 {
   "name": "cplayer5-desktop",
-  "productName": "CPlayer5",
+  "productName": "ZPlayer",
   "version": "1.8.1",
-  "description": "CPlayer5 desktop player",
+  "description": "ZPlayer desktop player",
   "main": "main.cjs",
   "author": "CPlayer5 contributors",
   "license": "MIT"

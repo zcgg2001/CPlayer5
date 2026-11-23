@@ -1,3 +1,13 @@
+export function findQueueSongIndex(playlist, song, preferredIndex = -1) {
+    const selected = song?.artworkSource || song;
+    const id = selected?.id ?? selected;
+    if (id == null) return -1;
+    const matches = item => item != null && String(item?.id ?? item) === String(id)
+        && (!item?.provider || !selected?.provider || item.provider === selected.provider);
+    // Preserve repeated occurrences and the selected source when playback resolves elsewhere.
+    return matches(playlist[preferredIndex]) ? preferredIndex : playlist.findIndex(matches);
+}
+
 // Queue state is independent of the audio element: clearing it does not stop playback.
 export function createQueueStore({ random = Math.random } = {}) {
     const state = { playlist: [], currentIndex: -1, playMode: 'random', shuffledOrder: [], undoSnapshot: null };
@@ -18,7 +28,7 @@ export function createQueueStore({ random = Math.random } = {}) {
         if (state.playMode === 'random') shuffle();
     }
 
-    function neighbor(direction) {
+    function neighbor(direction, { manual = false } = {}) {
         const count = state.playlist.length;
         if (!count) return -1;
         if (state.playMode === 'random') {
@@ -27,7 +37,7 @@ export function createQueueStore({ random = Math.random } = {}) {
             return state.shuffledOrder[position < 0 ? 0 : (position + direction + count) % count];
         }
         if (state.currentIndex < 0 || state.currentIndex >= count) return 0;
-        if (state.playMode === 'single') return state.currentIndex;
+        if (state.playMode === 'single' && !manual) return state.currentIndex;
         return (state.currentIndex + direction + count) % count;
     }
 
@@ -83,7 +93,8 @@ export function createQueueStore({ random = Math.random } = {}) {
 
     return {
         state, shuffle, resetOrder, snapshot, restore, remove, clear, insert,
-        next: () => neighbor(1), previous: () => neighbor(-1),
+        select(song) { state.currentIndex = findQueueSongIndex(state.playlist, song, state.currentIndex); return state.currentIndex; },
+        next: options => neighbor(1, options), previous: options => neighbor(-1, options),
         displayOrder: () => state.playMode === 'random' && state.shuffledOrder.length === state.playlist.length
             ? state.shuffledOrder : state.playlist.map((_, index) => index),
     };

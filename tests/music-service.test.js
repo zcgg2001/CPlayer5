@@ -29,6 +29,20 @@ test('music service restores and validates preferences at its module boundary', 
   assert.equal(supportedMusicSource('missing'), 'gd');
 });
 
+test('new playback prefers lossless even with a quality saved by an older version', async () => {
+  assert.equal(DEFAULT_QUALITY, 'lossless');
+  for (const previous of [undefined, 'standard', 'hires', 'jymaster']) {
+    const service = new MusicService({ storage: storage(previous ? {cp_quality:previous} : {}), location:{search:''} });
+    const requests=[];
+    await service.getSong('1', {fetchImpl:async value => {
+      requests.push(new URL(value, 'https://player.test').searchParams.get('level'));
+      return Response.json({code:200,data:{id:'1',url:'https://audio.test/1.flac',level:'lossless'}});
+    }});
+    assert.equal(service.config.quality, 'lossless');
+    assert.deepEqual(requests, ['lossless']);
+  }
+});
+
 test('music service builds source-aware search requests', async () => {
   const requests = [];
   const service = new MusicService({ storage: storage(), location: { search: '' } });

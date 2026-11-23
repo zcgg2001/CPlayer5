@@ -1,5 +1,6 @@
 import { initI18n, t } from './i18n.js';
 import { initAndroidUpdates } from './android-updates.js';
+import { initPlayerAppearance } from './player-appearance.js';
 import { initDiagnostics } from './runtime-policy.js';
 initI18n(); initDiagnostics();
 import { DESKTOP_SHELL_MEDIA, initAppShell } from './app-shell.js?v=23';
@@ -8,7 +9,7 @@ import {
     createArtistsController,
     createVideosController,
     formatReleaseDate
-} from './music-explore.js?v=32';
+} from './music-explore.js?v=33';
 import { normalizeMediaUrl } from './security.js?v=35';
 import {
     RequestCancelledError,
@@ -27,10 +28,11 @@ import {
     saveAudioBlob
 } from './music-download.js?v=39';
 import { createDownloadSession } from './download-session.js?v=22';
-import { createPlaybackController } from './playback-controller.js?v=6';
+import { createPlaybackController } from './playback-controller.js?v=7';
 import { createPlayerAudio } from './native-audio.js';
 import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtworkPresenter } from './artwork.js?v=1';
 import { createQueueStore } from './queue-store.js?v=1';
+import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
 import { initAccountPanel } from './account-panel.js?v=3';
 import { createGuestTrial } from './guest-trial.js?v=1';
 const guestTrial = createGuestTrial(localStorage);
@@ -39,6 +41,7 @@ let personalLibrary = null;
 import { initPersonalLibrary } from './personal-library.js';
 import { createCacheStore } from './cache-store.js?v=1';
 import { createMusicKeySettings } from './music-key-settings.js?v=4';
+import { bindLxSettings, lxSourceLabel } from './lx-music-sources.js';
 import { isMusicChannel } from './music-channels.js?v=1';
 import { createMusicSourceTabs } from './music-source-tabs.js?v=5';
 import { createCatalogBrowser } from './catalog-browser.js?v=2';
@@ -59,7 +62,7 @@ import {
     qualityDetails,
     supportedMusicSource,
     supportedQuality
-} from './music-service.js?v=11';
+} from './music-service.js?v=12';
 
 const desktopShellMedia = window.matchMedia(DESKTOP_SHELL_MEDIA);
 const isCompactLayout = () => !desktopShellMedia.matches;
@@ -137,7 +140,7 @@ let playbackArtworkUrl = '';
 let artworkColorController = null;
 const artworkPresenter = createArtworkPresenter({
     resolver: artworkResolver,
-    images: () => [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover, document.getElementById('mobileBrowseCover')],
+    images: () => [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover, document.getElementById('mobileBrowseCover'), dom.androidCoverBackdrop],
     onChange(result, song) {
         playbackArtworkUrl = result.url;
         artworkColorController?.abort();
@@ -151,7 +154,7 @@ const artworkPresenter = createArtworkPresenter({
             fluidBg.setColors(result.colors);
             fluidBg.render();
         }
-        if (!song.artworkRestore) updateMediaSessionMetadata({ ...song, cover: result.status === 'ready' ? result.url : './img/artwork-fallback.svg' });
+        if (!song.artworkRestore) updateMediaSessionMetadata({ ...song, cover: result.status === 'ready' ? result.url : '' });
     },
 });
 
@@ -231,10 +234,10 @@ window.getCachedImage = cacheStore.getImage;
 function shufflePlaylist() { return queueStore.shuffle(); }
 
 // 获取下一首歌曲的索引
-function getNextSongIndex() { return queueStore.next(); }
+function getNextSongIndex() { return queueStore.next({ manual: true }); }
 
 // 获取上一首歌曲的索引
-function getPreviousSongIndex() { return queueStore.previous(); }
+function getPreviousSongIndex() { return queueStore.previous({ manual: true }); }
 
 // ================= 无缝播放：预加载下一首 =================
 function preloadNextSong() { return playback.preloadNext(); }
@@ -259,13 +262,14 @@ function getQualityBadge(url, bitrate, level) {
 
 function syncPlaybackQualityDisplay(level) {
     const source = musicService.sourceForSong(playback.state.currentSong);
+    const imported = Boolean(playback.state.currentSong?.playbackSource);
     const isOffline = Boolean(playback.state.currentSong?.offline);
     const isBilibili = source.provider === 'bilibili';
-    const levels = isMusicChannel(source.provider) ? source.qualities
+    const levels = imported ? Object.keys(QUALITY_DETAILS) : isMusicChannel(source.provider) ? source.qualities
         : source.provider === 'gd' ? ['standard', 'exhigh', 'lossless', 'hires'] : Object.keys(QUALITY_DETAILS);
     const requestedLevel = supportedQuality(level);
     const resolvedLevel = !playback.state.currentSong && levels.length && !levels.includes(requestedLevel) ? levels.at(-1) : requestedLevel;
-    const fixedQuality = isMusicChannel(source.provider) && !source.qualities.length;
+    const fixedQuality = !imported && isMusicChannel(source.provider) && !source.qualities.length;
     const detail = isOffline ? { name: '离线', className: 'quality-standard' } : fixedQuality ? { name: String(playback.state.currentSong?.format || '自动').toUpperCase(), className: 'quality-standard' } : isBilibili
         ? { name: 'AAC', className: 'quality-standard' }
         : qualityDetails(resolvedLevel);
@@ -346,7 +350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.albumArtWrapper = document.getElementById('albumArtWrapper');
     dom.html = document.documentElement;
     initThemeControls();
-    if (androidPlayer) initAndroidUpdates(dom);
+    if (androidPlayer) { initAndroidUpdates(dom); initPlayerAppearance(dom); }
     initAnimeProgressThumbs();
     chartsController = createChartsController({
         onlineEnabled: () => navigator.onLine,
@@ -355,7 +359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         onAdd: song => addChartSong(song, { playNow: false }),
     });
     artistsController = createArtistsController({
-        onlineEnabled: () => musicService.config.source === 'chksz',
+        onlineEnabled: () => navigator.onLine,
         onSearch: () => openMusicSearch(),
         onPlay: song => addChartSong(song, {
             playNow: true,
@@ -475,6 +479,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDownloadControls();
     initDiscoveryTable();
     initEventListeners();
+    bindLxSettings(musicService.lxSources);
     initSettingsUI();
     initMusicSourceControl();
     setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
@@ -903,7 +908,7 @@ function createQualitySelector({ picker, trigger, list, valueInput, valueLabel, 
 }
 
 function initDownloadControls() {
-    const savedDownloadQuality = readSavedQuality('cp_download_quality');
+    const savedDownloadQuality = readSavedQuality('cp_download_quality', 'jymaster');
     downloadQualitySelector = createQualitySelector({
         picker: dom.downloadQualityPicker,
         trigger: dom.downloadQualityTrigger,
@@ -932,22 +937,20 @@ function saveDownloadQuality(level) {
     }
 }
 
-function savePlaybackQuality(level) {
-    musicService.saveSettings('quality', supportedQuality(level));
-}
-
 function openPlaybackQualityDialog(opener) {
     if (playback.state.currentSong?.offline) return showToast('正在播放本地保存的音频');
     playbackQualityOpener = opener;
     const source = musicService.sourceForSong(playback.state.currentSong);
-    const isGd = source.provider === 'gd';
-    const levels = isMusicChannel(source.provider) ? source.qualities : isGd ? ['standard', 'exhigh', 'lossless', 'hires'] : Object.keys(QUALITY_DETAILS);
+    const imported = Boolean(playback.state.currentSong?.playbackSource);
+    const isGd = !imported && source.provider === 'gd';
+    const levels = !imported && isMusicChannel(source.provider) ? source.qualities : isGd ? ['standard', 'exhigh', 'lossless', 'hires'] : Object.keys(QUALITY_DETAILS);
     if (!levels.length) return showToast('此渠道按实际返回音质播放');
     dom.playbackQualityList.querySelectorAll('[data-quality]').forEach(option => { option.hidden = !levels.includes(option.dataset.quality); });
-    playbackQualitySelector.setValue(levels.includes(musicService.config.quality) ? musicService.config.quality : levels.at(-1));
+    const selectedLevel = supportedQuality(playback.state.currentSong?.level, DEFAULT_QUALITY);
+    playbackQualitySelector.setValue(levels.includes(selectedLevel) ? selectedLevel : levels.at(-1));
     dom.playbackQualityStatus.textContent = playback.state.currentSong?.id
-        ? '默认自动换源并尝试最高可用音质；本次选择将保留进度，下一首恢复最高音质。'
-        : '每首歌默认尝试最高可用音质，失败后自动降级或换源。';
+        ? '每首歌优先尝试无损音质，不可用时自动降级或换源。本次选择保留进度，下一首仍优先无损。'
+        : '每首歌优先尝试无损音质，不可用时自动降级或换源；开始播放后可手动切换。';
     if (isGd) dom.playbackQualityStatus.textContent += ' GD 最高为 Hi-Res，实际音质以返回结果为准。';
     if (!dom.playbackQualityDialog.open) dom.playbackQualityDialog.showModal();
     requestAnimationFrame(() => playbackQualitySelector.focusSelected());
@@ -956,20 +959,19 @@ function openPlaybackQualityDialog(opener) {
 async function applyPlaybackQuality(level) {
     if (playback.state.currentSong?.provider === 'bilibili') return;
     const requestedLevel = supportedQuality(level);
-    savePlaybackQuality(requestedLevel);
-    playbackQualitySelector.setValue(requestedLevel);
-
     if (playback.state.quality.songLoading) {
-        dom.playbackQualityStatus.textContent = '默认音质已保存，请等待当前歌曲加载完成。';
+        playbackQualitySelector.setValue(supportedQuality(playback.state.currentSong?.level, DEFAULT_QUALITY));
+        dom.playbackQualityStatus.textContent = '歌曲加载中，请稍后切换音质；新歌曲默认优先无损。';
         return;
     }
 
     if (!playback.state.currentSong?.id) {
-        syncPlaybackQualityDisplay(requestedLevel);
-        dom.playbackQualityStatus.textContent = `已将 ${qualityDetails(requestedLevel).name} 设为默认播放音质。`;
+        playbackQualitySelector.setValue(DEFAULT_QUALITY);
+        dom.playbackQualityStatus.textContent = '请先播放歌曲，再切换当前歌曲的音质；新歌曲默认优先无损。';
         return;
     }
 
+    playbackQualitySelector.setValue(requestedLevel);
     return playback.changeQuality(requestedLevel, {
         replaceAudioSource: typeof replaceAudioSource === 'function' ? replaceAudioSource : undefined,
         onStart() {
@@ -978,6 +980,7 @@ async function applyPlaybackQuality(level) {
         },
         onSuccess(data) {
             const resolvedLevel = supportedQuality(data.level, requestedLevel);
+            playbackQualitySelector.setValue(resolvedLevel);
             syncPlaybackQualityDisplay(resolvedLevel);
             dom.playbackQualityStatus.textContent = resolvedLevel === requestedLevel
                 ? `已切换为${qualityDetails(resolvedLevel).name}，播放进度已保留。`
@@ -1333,6 +1336,8 @@ function initEventListeners() {
     dom.prevBtn.addEventListener('click', playPreviousSong);
     dom.nextBtn.addEventListener('click', playNextSong);
     dom.playModeBtn.addEventListener('click', togglePlayMode);
+    syncPlayModeUI();
+    window.addEventListener('cplayer:locale', syncPlayModeUI);
 
     [dom.desktopProgressBarContainer, dom.mobileProgressBarContainer]
         .forEach(bindProgressScrubber);
@@ -1639,7 +1644,13 @@ function applyTheme(theme, { persist = true, announce = false } = {}) {
     }
 
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    themeColor?.setAttribute('content', isNight ? '#07070b' : '#eef4ff');
+    themeColor?.setAttribute('content', androidPlayer ? (isNight ? '#141218' : '#fdf7ff') : (isNight ? '#07070b' : '#eef4ff'));
+    document.querySelectorAll('[data-android-theme]').forEach(button => {
+        button.setAttribute('aria-pressed', String(button.dataset.androidTheme === nextTheme));
+    });
+    document.querySelectorAll('[data-android-action="theme"]').forEach(button => {
+        button.setAttribute('aria-label', isNight ? '切换到浅色主题' : '切换到深色主题');
+    });
     if (androidPlayer) window.CPlayerNative?.postMessage(JSON.stringify({ op: 'appearance', theme: nextTheme }));
 
     [dom.desktopThemeBtn, dom.mobileThemeBtn].filter(Boolean).forEach(button => {
@@ -1665,6 +1676,9 @@ function initThemeControls() {
     };
     dom.desktopThemeBtn?.addEventListener('click', toggleTheme);
     dom.mobileThemeBtn?.addEventListener('click', toggleTheme);
+    document.querySelectorAll('[data-android-theme]').forEach(button => {
+        button.addEventListener('click', () => applyTheme(button.dataset.androidTheme, { announce: true }));
+    });
 
     window.addEventListener('storage', event => {
         if (event.key === 'cp_theme' && (event.newValue === 'light' || event.newValue === 'night')) {
@@ -1683,7 +1697,6 @@ function initSettingsUI() {
                 scheduleMusicCollections();
             }
             if (contentViewFromHash() === 'charts') chartsController?.refresh();
-            if (contentViewFromHash() === 'artists') artistsController?.refresh();
         },
     });
 }
@@ -1800,7 +1813,6 @@ function initMusicSourceControl() {
                 loadNewSongDiscovery();
                 if (nextSource !== 'bilibili') scheduleMusicCollections();
                 if (nextSource !== 'chksz' || contentViewFromHash() === 'charts') chartsController?.refresh();
-                if (nextSource !== 'chksz' || contentViewFromHash() === 'artists') artistsController?.refresh();
             }
             showToast(`已切换音乐源：${musicSourceOption(nextSource).label}`);
         });
@@ -1949,7 +1961,7 @@ function syncPlaybackControls(playing = Boolean(audio.src && !audio.paused && !a
     mobileUI?.updatePlayState(isPlaying);
 
     if ('mediaSession' in navigator) {
-        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+        navigator.mediaSession.playbackState = audio.usesNativeSession ? 'none' : isPlaying ? 'playing' : 'paused';
     }
 }
 
@@ -1985,6 +1997,7 @@ function setDesktopPlayIcon(iconName) {
 
 function playbackDetailText(data, level) {
     if (data?.offline) return data.provider === 'local' ? '本地音频 · 离线播放' : '离线缓存 · 本机播放';
+    if (data?.playbackSource) return [data.source, qualityDetails(level).name, data.format?.toUpperCase()].filter(Boolean).join(' · ');
     const resolvedLevel = supportedQuality(level);
     const bitrate = Number(data?.br ?? data?.bitrate);
     if (data?.provider === 'bilibili') return `Bilibili · ${Math.round(bitrate / 1000)} kbps · AAC`;
@@ -3314,7 +3327,13 @@ function addCollectionTracks(tracks, { label, playNow, source }) {
 
 // ★ Helper for MediaSession
 function updateMediaSessionMetadata(data) {
+    audio.setArtwork?.(data, data.cover);
     if (!('mediaSession' in navigator)) return;
+    if (audio.usesNativeSession) {
+        navigator.mediaSession.metadata = null;
+        navigator.mediaSession.playbackState = 'none';
+        return;
+    }
 
     const artwork = [];
     if (data.cover) {
@@ -3325,7 +3344,7 @@ function updateMediaSessionMetadata(data) {
     navigator.mediaSession.metadata = new MediaMetadata({
         title: data.name || '未知歌曲',
         artist: data.artist || '未知艺术家',
-        album: data.album || 'CPlayer 5',
+        album: data.album || 'ZPlayer',
         artwork: artwork
     });
 }
@@ -3342,6 +3361,8 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
     discoveryHome?.beforePlay(songOverride);
     return playback.load(id, songOverride, {
         onLoading() {
+            queueStore.select(songOverride || { id });
+            mobileUI?.syncCoverCarousel({ song: songOverride || { id }, loading: true });
             artworkPresenter.reset(songOverride || { id });
             playerExperience?.loading(songOverride || { id }, () => loadAndPlaySong(id, songOverride, { position }));
             discoveryLoadingSong = songOverride;
@@ -3365,14 +3386,16 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
 
         },
         onAttempt(info) {
-            const label = musicSourceOption(info.provider).label;
+            const label = lxSourceLabel(info.provider) || musicSourceOption(info.provider).label;
             playerExperience?.recovering(info.stage === 'matching' ? `正在查找同一版本 · ${label}` : `正在尝试 ${label} · ${qualityDetails(info.level).name}`);
         },
         onRecovering(info) { playerExperience?.recovering(info.reason); },
-        onSourceSwitched(info) { showToast(t('sourceSwitched', { source: musicSourceOption(info.to).label })); },
+        onSourceSwitched(info) { showToast(t('sourceSwitched', { source: lxSourceLabel(info.to) || musicSourceOption(info.to).label })); },
         onResolved(data, playbackData) {
+            mobileUI?.syncCoverCarousel({ song: playbackData });
             audio.setMetadata?.(playbackData);
             playerExperience?.resolved(playbackData);
+            syncQueueActions();
             discoveryLoadingSong = null;
             discoveryTable?.sync();
             syncDesktopPlayerAvailability();
@@ -3396,11 +3419,6 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
                 if (audio.readyState >= 1) resume();
                 else audio.addEventListener('loadedmetadata', resume, {once:true,signal:session.signal});
             }
-        // Show Source
-        if (data.source) {
-            dom.sourceTag.textContent = data.source.toUpperCase() + ' API';
-        }
-
         // Show ID
         dom.songIdTag.textContent = `ID: ${data.id}`;
 
@@ -3414,8 +3432,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
         // Artwork resolves asynchronously; audio and lyrics never wait for it.
         void artworkPresenter.show(playbackData, session);
 
-        if (queue.playlist.some(p => String(p.id || p) === String(id))) {
-            queue.currentIndex = queue.playlist.findIndex(p => String(p.id || p) === String(id));
+        if (queueStore.select(songOverride || { id }) >= 0) {
             highlightCurrentSong();
         }
 
@@ -3466,6 +3483,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
         }
         },
         onSettled() {
+            mobileUI?.syncCoverCarousel({ loading: false });
             discoveryLoadingSong = null;
             dom.desktopPlayerBar?.classList.remove('is-buffering');
             discoveryTable?.sync();
@@ -4023,20 +4041,38 @@ function handleImportedFile(file) {
 function setupPlaylistIdLoader() {
     const btn = document.getElementById('loadPlaylistBtn');
     const input = document.getElementById('playlistIdInput');
+    const feedback = document.getElementById('playlistIdFeedback');
 
     if (btn && input) {
+        const clearError = () => {
+            input.removeAttribute('aria-invalid');
+            if (feedback) {
+                feedback.hidden = true;
+                feedback.textContent = '';
+            }
+        };
         btn.onclick = () => {
             const id = extractPlaylistId(input.value);
             if (id) {
+                clearError();
                 loadPlaylistById(id);
                 closeSettings();
             } else {
-                showToast('请输入有效的歌单 ID（至少5位数字）', true);
+                input.setAttribute('aria-invalid', 'true');
+                if (feedback) {
+                    feedback.hidden = false;
+                    feedback.textContent = '请输入至少 5 位数字的网易云歌单 ID，或包含歌单 ID 的链接。';
+                }
+                input.focus();
             }
         };
 
-        input.onkeypress = (e) => {
-            if (e.key === 'Enter') btn.click();
+        input.oninput = clearError;
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                btn.click();
+            }
         };
     }
 
@@ -4278,6 +4314,9 @@ let vsScrollRAF = null;      // 防抖 requestAnimationFrame
 let vsNodeMap = new Map();   // displayIndex -> DOM node
 
 function syncQueueActions() {
+    const selectedSong = mobileUI?.coverSong || playback.state.currentSong;
+    if (selectedSong) queueStore.select(selectedSong);
+    mobileUI?.syncCoverCarousel();
     const count = queue.playlist.length;
     const badge = document.getElementById('playerQueueCount');
     if (badge) badge.textContent = count;
@@ -4537,6 +4576,7 @@ function highlightCurrentSong() {
 }
 
 function playNextSong() {
+    mobileUI?.coverCarousel?.expectDirection(1);
     if (discoveryHome?.radio.active()) return discoveryHome.advanceRadio();
     if (!queue.playlist.length) return;
     // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
@@ -4555,6 +4595,7 @@ function playNextSong() {
 }
 
 function playPreviousSong() {
+    mobileUI?.coverCarousel?.expectDirection(-1);
     discoveryHome?.radio.stop();
     if (!queue.playlist.length) return;
     // ★ Fix: 首次播放时（currentIndex === -1），直接从第一首开始
@@ -4587,22 +4628,29 @@ function handleSongEnd() {
     });
 }
 
+function syncPlayModeUI() {
+    const modes = {
+        sequence: { icon: 'ListOrdered', label: 'playModeSequence', hint: 'playModeSequenceHint' },
+        random: { icon: 'Shuffle', label: 'playModeRandom', hint: 'playModeRandomHint' },
+        single: { icon: 'Repeat1', label: 'playModeSingle', hint: 'playModeSingleHint' },
+    };
+    const mode = modes[queue.playMode] || modes.random;
+    const message = `${t(mode.label)}：${t(mode.hint)}`;
+    for (const button of [dom.playModeBtn, dom.mobileModeBtn].filter(Boolean)) {
+        button.innerHTML = `<i data-lucide="${mode.icon}" class="text-xl" aria-hidden="true"></i>`;
+        button.dataset.playMode = queue.playMode;
+        button.dataset.lucideTooltip = 'false';
+        button.setAttribute('title', message);
+        button.setAttribute('aria-label', `${t(mode.label)}，${t('switchPlayMode')}`);
+    }
+    return message;
+}
+
 function togglePlayMode() {
     const modes = ['sequence', 'random', 'single'];
-    const icons = ['fa-list-ol', 'fa-random', 'fa-repeat'];
-    let idx = modes.indexOf(queue.playMode);
-    idx = (idx + 1) % modes.length;
-    queue.playMode = modes[idx];
-    if (queue.playMode === 'random') {
-        shufflePlaylist();
-    }
-    dom.playModeBtn.innerHTML = `<i class="fas ${icons[idx]} text-xl"></i>`;
-    dom.playModeBtn.style.opacity = '1';
-
-    // ★ 同步移动端模式按钮图标
-    if (mobileUI && mobileUI.dom.modeBtn) {
-        mobileUI.dom.modeBtn.innerHTML = `<i class="fas ${icons[idx]} text-xl"></i>`;
-    }
+    queue.playMode = modes[(modes.indexOf(queue.playMode) + 1) % modes.length];
+    if (queue.playMode === 'random') shufflePlaylist();
+    showToast(syncPlayModeUI(), false, { duration: 3200 });
 
     // 立即重绘列表以反映打乱或恢复顺序的UI
     renderAllPlaylistItems();
@@ -4909,7 +4957,6 @@ class MobileUIManager {
 
             // Controls
             playBtn: document.getElementById('mobilePlayBtn'),
-            viewToggle: document.getElementById('mobileViewToggle'),
             progressBar: document.getElementById('mobileProgressBar'),
             progressContainer: document.getElementById('mobileProgressBarContainer'),
             currentTime: document.getElementById('mobileCurrentTime'),
@@ -4923,6 +4970,23 @@ class MobileUIManager {
     }
 
     init() {
+        if (androidPlayer) {
+            this.coverCarousel = createCoverCarousel({
+                host: this.dom.vinylContainer,
+                caption: document.getElementById('mobileCoverCaption'),
+                getSnapshot: () => {
+                    const snapshot = coverQueueWindow(queue, this.coverSong || playback.state.currentSong);
+                    // Radio chooses its next recording asynchronously; don't preview a queued song it won't play.
+                    if (discoveryHome?.radio.active()) {
+                        snapshot.entries = snapshot.entries.filter(entry => entry.slot === 0);
+                        snapshot.position = snapshot.total = 0;
+                    }
+                    return { ...snapshot, loading: Boolean(this.coverLoading) };
+                },
+                onNavigate: direction => direction > 0 ? playNextSong() : playPreviousSong(),
+                onLyrics: () => this.toggleView(),
+            });
+        }
         this.bindEvents();
         this.bindSheetEvents();
         // 延迟执行 initial resize 以确保 DOM就绪
@@ -4947,7 +5011,6 @@ class MobileUIManager {
     }
 
     bindEvents() {
-        this.dom.viewToggle?.addEventListener('click', () => this.toggleView());
         document.getElementById('mobileBrowseOpen').addEventListener('click', () => { this.closeSheet(); setMobileExploreOpen(false); });
         document.getElementById('mobileBrowsePlay').addEventListener('click', event => { event.stopPropagation(); togglePlayPause(); });
         document.getElementById('mobileBrowseNext').addEventListener('click', event => { event.stopPropagation(); playNextSong(); });
@@ -4955,6 +5018,8 @@ class MobileUIManager {
         // Swipe Logic
         let touchStartX = 0;
         let touchEndX = 0;
+        let touchStartY = 0;
+        let coverGesture = false;
 
         const handleSwipe = () => {
             const SWIPE_THRESHOLD = 50;
@@ -4970,15 +5035,19 @@ class MobileUIManager {
 
         const mainView = document.getElementById('mobileMainView');
         mainView?.addEventListener('touchstart', (e) => {
+            coverGesture = androidPlayer && Boolean(e.target.closest('.cover-carousel'));
             touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
         mainView?.addEventListener('touchend', (e) => {
+            if (coverGesture || Math.abs(e.changedTouches[0].screenY - touchStartY) >= Math.abs(e.changedTouches[0].screenX - touchStartX)) return;
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         });
 
         // Click Vinyl to Toggle View (ONLY if sheet is closed)
         this.dom.vinylContainer?.addEventListener('click', (e) => {
+            if (androidPlayer) return; // The carousel owns cover taps and drags.
             e.stopPropagation(); // Prevent bubbling
             if (!this.dom.sheet.classList.contains('translate-y-0')) {
                 this.toggleView();
@@ -5176,7 +5245,7 @@ class MobileUIManager {
                 return;
             }
 
-            const MH = 64;  // item height，包含 44px 删除按钮
+            const MH = androidPlayer ? 72 : 64; // Match the row height used by virtualization.
             const MB = 20;  // buffer
             const totalHeight = displayOrder.length * MH;
 
@@ -5398,7 +5467,7 @@ class MobileUIManager {
 
             results.forEach(song => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-3 p-2 rounded-xl active:bg-white/5 transition-colors cursor-pointer';
+                div.className = 'mobile-search-item flex items-center gap-3 p-2 rounded-xl active:bg-white/5 transition-colors cursor-pointer';
 
                 div.innerHTML = `
                     <img alt="" class="w-10 h-10 rounded-lg object-cover bg-white/5 flex-none shadow-md" loading="lazy">
@@ -5484,8 +5553,6 @@ class MobileUIManager {
     // View Toggles
     toggleView() {
         this.currentMode = this.currentMode === 'cover' ? 'lyrics' : 'cover';
-        this.dom.viewToggle?.setAttribute('aria-pressed', String(this.currentMode === 'lyrics'));
-        this.dom.viewToggle?.setAttribute('aria-label', this.currentMode === 'lyrics' ? '显示封面' : '显示歌词');
         this.dom.mobileLyricsContainer.inert = this.currentMode !== 'lyrics';
         this.dom.mobileCoverContainer.inert = this.currentMode !== 'cover';
 
@@ -5513,6 +5580,12 @@ class MobileUIManager {
     }
 
     // Updates - 带过渡动画
+    syncCoverCarousel({ song, loading } = {}) {
+        if (song) this.coverSong = song;
+        if (loading !== undefined) this.coverLoading = loading;
+        this.coverCarousel?.update();
+    }
+
     updateInfo(title, artist, cover, { signal } = {}) {
         clearTimeout(this.infoTransitionTimer);
         const elements = [this.dom.title, this.dom.artist].filter(Boolean);

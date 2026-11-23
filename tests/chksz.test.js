@@ -49,7 +49,7 @@ for (const status of [401, 402, 403, 429, 503]) {
   test(`charts and artists do not make fallback requests after ${status}`, async () => {
     for (const load of [
       fetchImpl => fetchChartPayload(fetchImpl, 'hot'),
-      fetchImpl => fetchArtistsPayload(fetchImpl, 'trending', { locationProtocol: 'http:' }),
+      fetchImpl => fetchArtistsPayload(fetchImpl, 'trending'),
     ]) {
       let calls = 0;
       await assert.rejects(load(async () => {

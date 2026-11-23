@@ -13,6 +13,8 @@ test('queue store owns navigation order and preserves single mode', () => {
     assert.equal(queue.previous(), 0);
     queue.state.playMode = 'single';
     assert.equal(queue.next(), 1);
+    assert.equal(queue.next({ manual: true }), 2);
+    assert.equal(queue.previous({ manual: true }), 0);
 });
 
 test('queue mutations support insert, remove, clear and undo snapshots', () => {
@@ -32,4 +34,16 @@ test('queue mutations support insert, remove, clear and undo snapshots', () => {
     assert.equal(queue.state.playlist.length, 0);
     assert.equal(queue.restore(cleared, 'a'), true);
     assert.equal(queue.state.currentIndex, 0);
+});
+
+test('selection keeps the queued provider and repeated occurrence through audio source changes', () => {
+    const queue = createQueueStore();
+    const qq = { id: 'a', provider: 'qq' }, netease = { id: 'a', provider: 'netease' };
+    queue.state.playlist = [netease, qq, netease, song('b')];
+    queue.state.playMode = 'sequence';
+    queue.state.currentIndex = 2;
+    assert.equal(queue.select(netease), 2);
+    assert.equal(queue.next({ manual: true }), 3);
+    assert.equal(queue.select({ ...qq, provider: 'gd', artworkSource: qq }), 1);
+    assert.equal(queue.select({ id: 'missing' }), -1);
 });

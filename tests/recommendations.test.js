@@ -74,7 +74,8 @@ test('home publishes each chart before a slower chart completes', async () => {
   });
   const pending = service.loadHome(new AbortController().signal, state => updates.push(state));
   assert.equal(updates[0].loading, true);
-  requests.get('3779629')(Response.json({ tracks: [song(2)] }));
+  await new Promise(resolve => setImmediate(resolve));
+  requests.get('3779629')(Response.json({ collection: { name: '新歌榜' }, tracks: [song(2)] }));
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(service.newSongs()[0].id, '2');
   assert.equal(service.rank()[0].song.id, '2');
@@ -96,6 +97,7 @@ test('imported recommendations are available before any network result', async (
   const pending = service.loadHome(new AbortController().signal, state => updates.push(state));
   assert.equal(service.rank()[0].song.id, '77');
   assert.equal(updates[0].loading, true);
+  await new Promise(resolve => setImmediate(resolve));
   requests.forEach(resolve => resolve(Response.json({}, { status: 502 })));
   await pending;
   assert.equal(updates.at(-1).loading, false);
@@ -109,10 +111,11 @@ test('an obsolete home load cannot mutate the pool or publish late chart results
   });
   const first = service.loadHome(new AbortController().signal, state => oldUpdates.push(state));
   const second = service.loadHome(new AbortController().signal, state => newUpdates.push(state));
-  requests[2](Response.json({ tracks: [song(20)] })); requests[3](Response.json({ tracks: [song(21)] }));
-  await second;
-  requests[0](Response.json({ tracks: [song(1)] })); requests[1](Response.json({ tracks: [song(2)] }));
-  await first;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.length, 2, 'both views share the same two public chart requests');
+  requests[0](Response.json({ collection: { name: '热歌榜' }, tracks: [song(20)] }));
+  requests[1](Response.json({ collection: { name: '新歌榜' }, tracks: [song(21)] }));
+  await Promise.all([first, second]);
   assert.deepEqual(service.pool().map(track => track.id).sort(), ['20', '21']);
   assert.equal(service.newSongs()[0].id, '21');
   assert.equal(oldUpdates.length, 1);

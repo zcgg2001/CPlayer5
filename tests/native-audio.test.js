@@ -86,6 +86,7 @@ test("late native messages cannot replace a new song, pause rejects waiting play
 test("blob audio uses the browser and forwards its events", async () => {
   const f = fixture();
   f.audio.src = "blob:https://music.test/local";
+  assert.equal(f.audio.usesNativeSession, false);
   let plays = 0;
   f.audio.addEventListener("playing", () => plays++);
   await f.audio.play();
@@ -96,6 +97,36 @@ test("blob audio uses the browser and forwards its events", async () => {
     f.calls.some((c) => c.op === "load"),
     false,
   );
+});
+
+test("native metadata belongs to its load and late artwork cannot repaint another source", () => {
+  const f = fixture();
+  const first = { id: '101', provider: 'gd', name: 'First', url: 'https://media.test/first' };
+  const second = { id: '102', provider: 'gd', name: 'Second', url: 'https://media.test/second' };
+  f.audio.setMetadata(first);
+  f.audio.src = first.url;
+  assert.equal(f.audio.usesNativeSession, true);
+  f.audio.setArtwork(first, 'https://music.test/api/cover?url=first');
+  assert.equal(f.calls.at(-1).op, 'artwork');
+  const before = f.calls.length;
+  f.audio.setMetadata(second);
+  assert.equal(f.calls.length, before);
+  f.audio.src = second.url;
+  assert.equal(f.calls.at(-1).mediaId, 'gd:102');
+  assert.equal(f.calls.at(-1).title, 'Second');
+  const loaded = f.calls.length;
+  f.audio.setArtwork(first, 'https://music.test/api/cover?url=first');
+  f.audio.setArtwork({ ...second, provider: 'qq' }, 'https://music.test/api/cover?url=wrong');
+  assert.equal(f.calls.length, loaded);
+  f.audio.setArtwork(second, 'https://music.test/api/cover?url=second');
+  assert.equal(f.calls.at(-1).mediaId, 'gd:102');
+  assert.equal(f.calls.at(-1).token, 2);
+  f.audio.setArtwork(second, 'data:image/svg+xml,invalid');
+  assert.equal(f.calls.at(-1).artworkUri, '');
+  f.audio.removeAttribute('src');
+  const stopped = f.calls.length;
+  f.audio.setArtwork(second, 'https://music.test/api/cover?url=late');
+  assert.equal(f.calls.length, stopped);
 });
 test("native failure packets retain position for source recovery", () => {
   const f = fixture();

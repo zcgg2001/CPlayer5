@@ -1,3 +1,6 @@
+import { bindArtwork } from './artwork.js?v=1';
+import { fetchChartPayload } from './charts-page.js?v=33';
+
 const ARTIST_SCOPES = Object.freeze({
   trending: '趋势歌手',
   new: '新声力量',
@@ -22,13 +25,6 @@ const ARTIST_SCOPE_FEEDS = Object.freeze({
     description: '汇总热歌、新歌、飙升与原创榜中的活跃音乐人。',
     chartKeys: Object.freeze(['hot', 'new', 'soaring', 'original']),
   }),
-});
-
-const CHKSZ_CHART_IDS = Object.freeze({
-  hot: '3778678',
-  new: '3779629',
-  soaring: '19723756',
-  original: '2884035',
 });
 
 const VIDEO_CATEGORIES = Object.freeze({
@@ -59,16 +55,6 @@ function safeHttpsUrl(value, allowedHosts = null) {
   } catch {
     return '';
   }
-}
-
-function imageVariant(value, width, height = width) {
-  const safe = safeHttpsUrl(value);
-  if (!safe) return '';
-  const url = new URL(safe);
-  if (url.hostname === 'music.126.net' || url.hostname.endsWith('.music.126.net')) {
-    url.searchParams.set('param', `${width}y${height}`);
-  }
-  return url.href;
 }
 
 function createIcon(className) {
@@ -105,6 +91,10 @@ function normalizeTrack(item) {
   return {
     id: text(item?.id, id),
     playbackId: id,
+    sourceId: text(item.sourceId, id),
+    provider: text(item.provider, 'gd'),
+    source: text(item.source),
+    duration: Number(item.duration) || null,
     name: text(item?.name, '未知歌曲'),
     artist: text(item?.artist, '未知艺术家'),
     album: text(item?.album),
@@ -237,48 +227,6 @@ async function requestJson(url, fetchImpl) {
   }
 }
 
-function providerTracks(payload) {
-  if (Array.isArray(payload?.data?.tracks)) return payload.data.tracks;
-  if (Array.isArray(payload?.playlist?.tracks)) return payload.playlist.tracks;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
-}
-
-function providerArtistText(item) {
-  const artists = item?.artists ?? item?.artist ?? item?.ar;
-  if (typeof artists === 'string') return text(artists, '未知艺术家');
-  if (Array.isArray(artists)) {
-    const names = artists
-      .map(artist => typeof artist === 'string' ? artist : artist?.name)
-      .map(name => text(name))
-      .filter(Boolean);
-    if (names.length) return names.join('/');
-  }
-  if (artists && typeof artists === 'object') {
-    return text(artists.name, '未知艺术家');
-  }
-  return '未知艺术家';
-}
-
-function providerAlbumText(item) {
-  const album = item?.album ?? item?.al;
-  return typeof album === 'string' ? text(album) : text(album?.name);
-}
-
-function providerCover(item) {
-  for (const candidate of [
-    item?.picUrl,
-    item?.cover,
-    item?.coverImgUrl,
-    item?.album?.picUrl,
-    item?.al?.picUrl,
-  ]) {
-    const value = text(candidate);
-    if (value) return value;
-  }
-  return '';
-}
-
 function stableTextId(value, prefix) {
   let hash = 2166136261;
   for (const character of text(value).toLowerCase()) {
@@ -286,27 +234,6 @@ function stableTextId(value, prefix) {
     hash = Math.imul(hash, 16777619);
   }
   return `${prefix}-${(hash >>> 0).toString(36)}`;
-}
-
-function normalizeDirectChartPayload(payload, chartKey) {
-  const tracks = providerTracks(payload);
-  if (!tracks.length) throw new Error('国内榜单没有返回歌曲');
-  const items = tracks
-    .filter(item => text(item?.id))
-    .slice(0, 100)
-    .map((item, index) => ({
-      rank: index + 1,
-      id: text(item.id),
-      playbackId: text(item.id),
-      name: text(item.name, '未知歌曲'),
-      artist: providerArtistText(item),
-      album: providerAlbumText(item),
-      cover: providerCover(item),
-      chart: chartKey,
-      playable: true,
-    }));
-  if (!items.length) throw new Error('国内榜单没有返回可播放歌曲');
-  return { chart: { key: chartKey }, items };
 }
 
 function splitArtistNames(value) {
@@ -355,17 +282,7 @@ export function normalizeDirectArtistsPayload(
         if (!artist.cover && item.cover) artist.cover = item.cover;
         const trackId = text(item.playbackId || item.id);
         if (trackId && !artist.tracks.has(trackId)) {
-          artist.tracks.set(trackId, {
-            id: text(item.id, trackId),
-            playbackId: trackId,
-            name: text(item.name, '未知歌曲'),
-            artist: text(item.artist, name),
-            album: text(item.album),
-            cover: text(item.cover),
-            chart: chartKey,
-            rank,
-            playable: item.playable !== false,
-          });
+          artist.tracks.set(trackId, normalizeTrack({ ...item, chart: chartKey, rank }));
         }
       }
     }
@@ -399,7 +316,7 @@ export function normalizeDirectArtistsPayload(
       key: resolvedScope,
       name: ARTIST_SCOPES[resolvedScope],
       description: definition.description,
-      sourceName: 'ChKSz 国内榜单 · 安全代理',
+      sourceName: '网易云公开榜单',
       artistCount: items.length,
       fetchedAt,
     },
@@ -407,47 +324,23 @@ export function normalizeDirectArtistsPayload(
   });
 }
 
-async function fetchProxyArtists(fetchImpl, scope) {
-  const chartKeys = ARTIST_SCOPE_FEEDS[scope].chartKeys;
+export async function fetchArtistsPayload(fetchImpl = globalThis.fetch, scope = 'trending', { signal } = {}) {
+  const resolved = Object.hasOwn(ARTIST_SCOPE_FEEDS, scope) ? scope : 'trending';
   const charts = [];
-  for (const chartKey of chartKeys) {
-    const url = `/api/v1/music/playlist?id=${encodeURIComponent(CHKSZ_CHART_IDS[chartKey])}`;
-    const payload = await requestJson(url, fetchImpl);
-    charts.push(normalizeDirectChartPayload(payload, chartKey));
-  }
-  if (!charts.length) throw new Error('ChKSz 国内歌手数据源暂时不可用');
-  return normalizeDirectArtistsPayload(charts, { scope, limit: 24 });
-}
-
-export async function fetchArtistsPayload(
-  fetchImpl = globalThis.fetch?.bind(globalThis),
-  scope = 'trending',
-  {
-    locationProtocol = globalThis.location?.protocol,
-  } = {},
-) {
-  if (typeof fetchImpl !== 'function') throw new Error('当前浏览器不支持获取歌手数据');
-  const resolvedScope = Object.hasOwn(ARTIST_SCOPE_FEEDS, scope) ? scope : 'trending';
-  let endpointError = null;
-
-  if (locationProtocol !== 'file:') {
+  let failure;
+  for (const key of ARTIST_SCOPE_FEEDS[resolved].chartKeys) {
+    signal?.throwIfAborted();
     try {
-      const payload = await requestJson(
-        `/api/v1/artists?scope=${encodeURIComponent(resolvedScope)}&limit=24`,
-        fetchImpl,
-      );
-      return normalizeArtistsPayload(payload);
+      const chart = await fetchChartPayload(fetchImpl, key, { signal });
+      if (chart.items.length) charts.push(chart);
     } catch (error) {
-      if ([401, 402, 403, 429, 503].includes(error.status)) throw error;
-      endpointError = error;
+      if (signal?.aborted) throw error;
+      failure = error;
+      if ([401, 402, 403, 429, 503].includes(error.status)) break;
     }
   }
-
-  try {
-    return await fetchProxyArtists(fetchImpl, resolvedScope);
-  } catch (error) {
-    throw endpointError || error;
-  }
+  if (!charts.length) throw failure || new Error('公开榜单暂未提供歌手作品');
+  return normalizeDirectArtistsPayload(charts, { scope: resolved });
 }
 
 function syncTabs(tabLists, dataName, currentKey) {
@@ -517,6 +410,13 @@ function createTrackAction(track, action, iconName, label) {
   return button;
 }
 
+function artistArtwork(artist, size) {
+  const image = document.createElement('img');
+  image.alt = '';
+  image.width = image.height = size;
+  return bindArtwork(image, artist.featuredTrack, { size: size * 2 });
+}
+
 function renderArtistDetail(surface, artist, { onPlay, onAdd }) {
   if (!surface.detail) return;
   surface.detail.replaceChildren();
@@ -525,19 +425,7 @@ function renderArtistDetail(surface, artist, { onPlay, onAdd }) {
 
   const portrait = document.createElement('span');
   portrait.className = 'artist-detail-portrait';
-  const imageUrl = imageVariant(artist.cover, 240);
-  if (imageUrl) {
-    const image = document.createElement('img');
-    image.src = imageUrl;
-    image.alt = '';
-    image.width = 72;
-    image.height = 72;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    portrait.appendChild(image);
-  } else {
-    portrait.appendChild(createIcon('fa-user'));
-  }
+  portrait.appendChild(artistArtwork(artist, 72));
 
   const copy = document.createElement('div');
   const kicker = document.createElement('span');
@@ -598,19 +486,7 @@ function createArtistCard(artist, { onSelect, onPlay }) {
   main.setAttribute('aria-label', `查看 ${artist.name} 的精选作品`);
   const portrait = document.createElement('span');
   portrait.className = 'artist-card-portrait';
-  const imageUrl = imageVariant(artist.cover, 360);
-  if (imageUrl) {
-    const image = document.createElement('img');
-    image.src = imageUrl;
-    image.alt = artist.name;
-    image.width = 180;
-    image.height = 180;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    portrait.appendChild(image);
-  } else {
-    portrait.appendChild(createIcon('fa-user'));
-  }
+  portrait.appendChild(artistArtwork(artist, 180));
   const rank = document.createElement('span');
   rank.className = 'artist-card-rank';
   rank.textContent = `#${artist.rank}`;
@@ -786,17 +662,18 @@ export function createArtistsController({
   const state = {
     scope: 'trending',
     payloads: new Map(),
-    loading: new Map(),
-    version: 0,
+    request: null,
   };
 
   const load = async (scope = state.scope, { force = false } = {}) => {
     const resolved = Object.hasOwn(ARTIST_SCOPES, scope) ? scope : 'trending';
+    if (state.scope !== resolved || !onlineEnabled()) {
+      state.request?.controller.abort();
+      state.request = null;
+    }
     state.scope = resolved;
     syncTabs(surfaces.map(surface => surface.tabs), 'data-artist-scope', resolved);
     if (!onlineEnabled()) {
-      state.version++;
-      state.loading.clear();
       const cached = state.payloads.get(resolved)
         || readSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, normalizeArtistsPayload);
       surfaces.forEach(surface => {
@@ -807,7 +684,7 @@ export function createArtistsController({
           surface.grid.replaceChildren();
           surface.detail?.replaceChildren();
           surface.title.textContent = ARTIST_SCOPES[resolved];
-          surface.description.textContent = '歌手榜单需要 ChKSz；你仍可搜索歌手名字查找作品。';
+          surface.description.textContent = '连接网络后可查看歌手和上榜作品。';
           surface.source.textContent = '实时更新已暂停';
           surface.count.textContent = '暂无缓存';
           surface.updated.textContent = '';
@@ -830,29 +707,32 @@ export function createArtistsController({
       surfaces.forEach(surface => renderArtists(surface, state.payloads.get(resolved), { onPlay, onAdd }));
       return state.payloads.get(resolved);
     }
-    if (state.loading.has(resolved)) return state.loading.get(resolved);
-    const version = ++state.version;
-
+    if (state.request) return state.request.pending;
+    const controller = new AbortController();
+    const cached = state.payloads.get(resolved)
+      || readSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, normalizeArtistsPayload);
     surfaces.forEach(surface => {
+      if (cached) renderArtists(surface, cached, { onPlay, onAdd });
+      else {
+        surface.title.textContent = ARTIST_SCOPES[resolved];
+        surface.description.textContent = ARTIST_SCOPE_FEEDS[resolved].description;
+        surface.source.textContent = '网易云公开榜单';
+        surface.count.textContent = surface.updated.textContent = '';
+        surface.detail?.replaceChildren();
+        renderArtistSkeleton(surface);
+      }
       setSurfaceBusy(surface, true);
-      renderArtistSkeleton(surface);
     });
-    const cached = readSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, normalizeArtistsPayload);
-    if (cached && !force) {
-      state.payloads.set(resolved, cached);
-      surfaces.forEach(surface => renderArtists(surface, cached, { onPlay, onAdd }));
-    }
-
-    const pending = fetchArtistsPayload(fetchImpl, resolved)
+    const pending = fetchArtistsPayload(fetchImpl, resolved, { signal: controller.signal })
       .then(payload => {
-        if (version !== state.version) return null;
+        if (controller.signal.aborted) return null;
         state.payloads.set(resolved, payload);
         writeSnapshot(storage, ARTIST_CACHE_PREFIX, resolved, payload);
         surfaces.forEach(surface => renderArtists(surface, payload, { onPlay, onAdd }));
         return payload;
       })
       .catch(error => {
-        if (version !== state.version) return null;
+        if (controller.signal.aborted) return null;
         if (cached) {
           surfaces.forEach(surface => {
             renderArtists(surface, cached, { onPlay, onAdd });
@@ -872,9 +752,9 @@ export function createArtistsController({
         throw error;
       })
       .finally(() => {
-        if (state.loading.get(resolved) === pending) state.loading.delete(resolved);
+        if (state.request?.controller === controller) state.request = null;
       });
-    state.loading.set(resolved, pending);
+    state.request = { controller, pending };
     return pending;
   };
 
@@ -945,7 +825,7 @@ export function createVideosController({
         throw error;
       })
       .finally(() => state.loading.delete(resolved));
-    state.loading.set(resolved, pending);
+    state.request = { controller, pending };
     return pending;
   };
 

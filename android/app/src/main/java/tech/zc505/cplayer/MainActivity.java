@@ -28,6 +28,9 @@ public final class MainActivity extends Activity {
   private ValueCallback<Uri[]> fileResult;
   private boolean bound;
   private boolean resumed;
+  private boolean cardResultReady;
+  private int cardResult;
+  private Uri cardUri;
   private final ServiceConnection connection =
       new ServiceConnection() {
         @Override
@@ -36,6 +39,10 @@ public final class MainActivity extends Activity {
           try {
             host = service.webHost();
             host.attach(MainActivity.this);
+            if (cardResultReady) {
+              host.lyricShare.saveResult(cardResult, cardUri);
+              cardResultReady = false; cardUri = null;
+            }
             if (host.view.getParent() instanceof ViewGroup parent) parent.removeView(host.view);
             root.removeAllViews();
             root.addView(host.view, new FrameLayout.LayoutParams(-1, -1));
@@ -82,7 +89,7 @@ public final class MainActivity extends Activity {
   }
 
   void applyAppearance(boolean light) {
-    int color = light ? 0xfffcf8f4 : 0xff181615;
+    int color = light ? 0xfffdf7ff : 0xff141218;
     root.setBackgroundColor(color);
     getWindow().setStatusBarColor(color);
     getWindow().setNavigationBarColor(color);
@@ -124,6 +131,11 @@ public final class MainActivity extends Activity {
   @Override
   protected void onActivityResult(int request, int result, Intent data) {
     super.onActivityResult(request, result, data);
+    if (request == LyricShareBridge.SAVE_REQUEST) {
+      Uri uri = data == null ? null : data.getData();
+      if (host != null) host.lyricShare.saveResult(result, uri);
+      else { cardResultReady = true; cardResult = result; cardUri = uri; }
+    }
     if (request == 10 && fileResult != null) {
       ArrayList<Uri> files = new ArrayList<>();
       if (result == RESULT_OK && data != null) {

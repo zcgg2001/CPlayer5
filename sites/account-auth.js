@@ -47,7 +47,7 @@ export function authOptions(env) {
       if (!caps.email || type !== 'sign-in') throw new Error('邮箱登录尚未开通');
       if (email.endsWith('.invalid')) throw new Error('请输入可收件的邮箱');
       if (env.ACCOUNT_DELIVER_EMAIL) return env.ACCOUNT_DELIVER_EMAIL({ email, otp });
-      await providerJSON(env, 'https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, to: [email], subject: 'CPlayer5 登录验证码', text: `你的登录验证码是 ${otp}，5 分钟内有效。请勿向他人提供验证码。` }) });
+      await providerJSON(env, 'https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json' }, body: JSON.stringify({ from: env.AUTH_EMAIL_FROM, to: [email], subject: 'ZPlayer 登录验证码', text: `你的登录验证码是 ${otp}，5 分钟内有效。请勿向他人提供验证码。` }) });
     },
   }), phoneNumber({
     phoneNumberValidator: phone => /^\+[1-9]\d{7,14}$/.test(phone), expiresIn: 300, allowedAttempts: 5,
@@ -58,7 +58,7 @@ export function authOptions(env) {
   plugins.push(username({ displayUsername: false, minUsernameLength: 3, maxUsernameLength: 24, usernameValidator: value => /^[a-zA-Z0-9_]{3,24}$/.test(value), immutableUsername: true }));
   if (caps.wechat) plugins.push(genericOAuth({ config: [wechatProvider(env)] }));
   return {
-    appName: 'CPlayer5', baseURL: caps.origin, basePath: '/api/auth', secret: env.AUTH_SECRET, database: env.ACCOUNTS_DB,
+    appName: 'ZPlayer', baseURL: caps.origin, basePath: '/api/auth', secret: env.AUTH_SECRET, database: env.ACCOUNTS_DB,
     trustedOrigins: [caps.origin], plugins, logger: { disabled: true },
     emailAndPassword: { enabled: true, requireEmailVerification: false, minPasswordLength: 8, maxPasswordLength: 128 },
     session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 86400, freshAge: 300, cookieCache: { enabled: false } },

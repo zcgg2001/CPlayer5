@@ -10,9 +10,13 @@ fi
 mkdir -p output/android
 preview_dir=android/app/build/outputs/apk/preview
 version_code=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["elements"][0]["versionCode"])' "$preview_dir/output-metadata.json")
-release_apk="CPlayer5-android-preview-$version_code.apk"
+release_apk="ZPlayer-android-preview-$version_code.apk"
+legacy_apk="CPlayer5-android-preview-$version_code.apk"
 cp "$preview_dir/app-preview.apk" "output/android/$release_apk"
 cd output/android
+cp "$release_apk" ZPlayer-android-preview.apk
+# Existing installs recognize only the CPlayer5 attachment name.
+cp "$release_apk" "$legacy_apk"
 cp "$release_apk" CPlayer5-android-preview.apk
-shasum -a 256 "$release_apk" > SHA256SUMS.txt
+shasum -a 256 "$release_apk" "$legacy_apk" > SHA256SUMS.txt
 cat SHA256SUMS.txt

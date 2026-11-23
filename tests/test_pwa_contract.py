@@ -120,6 +120,6 @@ class PwaContractTests(unittest.TestCase):
             "css/art-direction.css?v=34",
             "./app-shell.js?v=23",
             "./charts-page.js?v=33",
-            "./music-explore.js?v=32",
+            "./music-explore.js?v=33",
         ):
             self.assertIn(versioned_asset, index_source)

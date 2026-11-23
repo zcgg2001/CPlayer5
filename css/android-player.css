@@ -1,30 +1,68 @@
 /* The APK and its ?app=android browser preview share this layout. */
 html:not(.android-player) .android-only { display: none !important; }
+/* Material 3 color roles. Component aliases keep the shared web player in sync. */
 html.android-player {
-  --studio-bg: #181615;
-  --studio-surface: #23201e;
-  --studio-raised: #322c28;
-  --studio-ink: #fff6ef;
-  --studio-muted: #c3b6aa;
-  --studio-line: #494039;
-  --studio-accent: #ffb288;
-  --studio-accent-ink: #372014;
-  --android-tint: #473027;
-  --android-gutter: clamp(16px, 5vw, 32px);
-  --android-width: 800px;
-  --android-photo: url('../img/turntable.webp');
+  color-scheme: dark;
+  --md-primary: #d0bcff;
+  --md-on-primary: #381e72;
+  --md-primary-container: #4f378b;
+  --md-on-primary-container: #eaddff;
+  --md-secondary: #ccc2dc;
+  --md-secondary-container: #4a4458;
+  --md-on-secondary-container: #e8def8;
+  --md-tertiary: #efb8c8;
+  --md-tertiary-container: #633b48;
+  --md-on-tertiary-container: #ffd8e4;
+  --md-surface: #141218;
+  --md-surface-low: #1d1b20;
+  --md-surface-container: #211f26;
+  --md-surface-high: #2b2930;
+  --md-surface-highest: #36343b;
+  --md-on-surface: #e6e0e9;
+  --md-on-surface-variant: #cac4d0;
+  --md-outline: #938f99;
+  --md-outline-variant: #49454f;
+  --md-error: #ffb4ab;
+  --md-scrim: #0009;
+  --md-radius-small: 12px;
+  --md-radius-medium: 16px;
+  --md-radius-large: 28px;
+  --md-ease: cubic-bezier(.2, 0, 0, 1);
+  --studio-bg: var(--md-surface);
+  --studio-surface: var(--md-surface-container);
+  --studio-raised: var(--md-surface-high);
+  --studio-ink: var(--md-on-surface);
+  --studio-muted: var(--md-on-surface-variant);
+  --studio-line: var(--md-outline-variant);
+  --studio-accent: var(--md-primary);
+  --studio-accent-ink: var(--md-on-primary);
+  --android-tint: var(--md-secondary-container);
+  --android-gutter: clamp(16px, 4vw, 32px);
+  --android-width: 1120px;
   --cplayer-font: Roboto, system-ui, sans-serif;
 }
 html.android-player[data-theme='light'] {
-  --studio-bg: #fcf8f4;
-  --studio-surface: #fffdfa;
-  --studio-raised: #f1e9e2;
-  --studio-ink: #29231f;
-  --studio-muted: #695c52;
-  --studio-line: #d9ccc0;
-  --studio-accent: #91451e;
-  --studio-accent-ink: #fffaf5;
-  --android-tint: #f9e3d4;
+  color-scheme: light;
+  --md-primary: #6750a4;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #eaddff;
+  --md-on-primary-container: #4f378b;
+  --md-secondary: #625b71;
+  --md-secondary-container: #e8def8;
+  --md-on-secondary-container: #4a4458;
+  --md-tertiary: #7d5260;
+  --md-tertiary-container: #ffd8e4;
+  --md-on-tertiary-container: #633b48;
+  --md-surface: #fdf7ff;
+  --md-surface-low: #f7f2fa;
+  --md-surface-container: #f3edf7;
+  --md-surface-high: #ece6f0;
+  --md-surface-highest: #e6e0e9;
+  --md-on-surface: #1d1b20;
+  --md-on-surface-variant: #49454f;
+  --md-outline: #79747e;
+  --md-outline-variant: #cac4d0;
+  --md-error: #b3261e;
 }
 html.android-player body { background: var(--studio-bg); font-family: var(--cplayer-font); }
 html.android-player #desktopApp, html.android-player #fluidBg, html.android-player #fluidNoise { display: none !important; }
@@ -34,7 +72,14 @@ html.android-player #mobileLayout {
   --room-base: var(--studio-bg); --room-ink: var(--studio-ink); --room-muted: var(--studio-muted);
 }
 html.android-player :focus-visible { outline: 2px solid var(--studio-accent); outline-offset: -2px; }
-html.android-player #mobileLayout button:active:not(:disabled) { opacity: .78; }
+html.android-player :is(button, [role='button']) { touch-action: manipulation; }
+html.android-player button { transition: opacity 120ms var(--md-ease), background-color 160ms var(--md-ease), color 160ms var(--md-ease), border-radius 240ms var(--md-ease); }
+html.android-player button:active:not(:disabled) { opacity: .8 !important; transform: none; }
+html.android-player :is(button, [role='button'], input, select, textarea):focus-visible { outline: 3px solid var(--md-primary); outline-offset: 2px; }
+html.android-player :is(input, select, textarea) { accent-color: var(--md-primary); }
+html.android-player :is(#mobileLayout, dialog, #settingsCard) { --discovery-hover: var(--md-surface-high); --discovery-accent-weak: var(--md-secondary-container); }
+html.android-player :is(#mobileLayout, dialog, #settingsCard) button { min-width: 48px; min-height: 48px; }
+
 html.android-player #mobileLayout button:disabled { opacity: .5; }
 
 /* Sign-in keeps its existing form, guest quota and offline entry. */
@@ -44,12 +89,12 @@ html.android-player #mobileLayout button:disabled { opacity: .5; }
 .android-player .entry-layout { display: block; width: min(100%, 520px); margin: auto; background: var(--studio-bg); border: 0; border-radius: 0; box-shadow: none; }
 .android-player .entry-intro {
   display: flex; align-items: flex-end; min-height: clamp(96px, 18dvh, 172px); padding: 20px var(--android-gutter);
-  color: white; background: linear-gradient(90deg, #170f0de0, #17100e14), var(--android-photo) center 48% / cover, #37231a;
+  color: var(--md-on-primary-container); background: var(--md-primary-container); border-radius: 0 0 40px 40px;
 }
 .android-player .entry-brand { font: 650 26px/1.2 Roboto, sans-serif; letter-spacing: -.035em; }
-.android-player .entry-brand b { color: #ffbb97; }
-.android-player .entry-mark { background: #3a211a; border-color: #d5916e; }
-.android-player .entry-mark i { background: #ffbb97; }
+.android-player .entry-brand b { color: var(--md-on-primary-container); }
+.android-player .entry-mark { background: var(--md-primary); border: 0; border-radius: 50%; width: 48px; height: 48px; }
+.android-player .entry-mark i { background: var(--md-on-primary); }
 .android-player .entry-intro :is(.entry-record, h1, p), .android-player .entry-footnote { display: none; }
 .android-player .entry-card { position: relative; padding: 16px var(--android-gutter) 22px; }
 .android-player .entry-card .entry-language { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--studio-muted); font-size: .75rem; }
@@ -57,13 +102,13 @@ html.android-player #mobileLayout button:disabled { opacity: .5; }
 .android-player .entry-modes { background: var(--studio-raised); border-radius: 100px; padding: 3px; }
 .android-player .entry-modes button { min-height: 44px; border-radius: 100px; color: var(--studio-muted); }
 .android-player .entry-modes [aria-pressed='true'] { color: var(--studio-ink); background: var(--studio-surface); }
-.android-player .entry-card h2 { margin-top: 16px; font-size: 1.65rem; font-weight: 730; }
+.android-player .entry-card h2 { margin-top: 16px; font-size: 1.65rem; font-weight: 500; }
 .android-player #entrySubtitle { margin: 4px 0 14px; color: var(--studio-muted); }
 .android-player .entry-card label { color: var(--studio-ink); margin: 10px 0 5px; }
-.android-player .entry-card input { color: var(--studio-ink); border-color: var(--studio-line); background: var(--studio-surface); font-size: 1rem; }
+.android-player .entry-card input { color: var(--studio-ink); border-color: var(--md-outline); background: var(--md-surface-high); border-radius: 12px 12px 0 0; min-height: 56px; font-size: 1rem; }
 .android-player .entry-card input::placeholder, .android-player :is(#entryShowPassword, #entryGuestQuota, #entryStatus, .entry-divider) { color: var(--studio-muted); }
 .android-player #entryStatus:empty { display: none; }
-.android-player #entryStatus.is-error { color: var(--studio-ink); }
+.android-player #entryStatus.is-error { color: var(--md-error); }
 .android-player .entry-card .entry-primary { min-height: 48px; margin-top: 18px; background: var(--studio-accent); color: var(--studio-accent-ink); border-radius: 100px; }
 .android-player .entry-card .entry-guest { min-height: 48px; border-color: var(--studio-line); color: var(--studio-ink); border-radius: 100px; }
 .android-player .entry-divider { margin: 12px 0; }
@@ -75,22 +120,24 @@ html.android-player #mobileLayout #mobileChartsSheet {
   display: flex; inset: 0; height: 100%; min-height: 0; padding: 0; border: 0 !important; border-radius: 0;
   box-shadow: none !important; background: var(--studio-bg) !important; color: var(--studio-ink);
   --shell-text: var(--studio-ink); --shell-muted: var(--studio-muted); --shell-active: var(--android-tint);
+  --shell-bg: var(--studio-bg); --shell-surface: var(--studio-surface); --shell-surface-soft: var(--studio-raised);
+  --shell-border: var(--studio-line); --shell-accent: var(--studio-accent); --shell-accent-strong: var(--studio-accent);
 }
 .android-player #mobileChartsSheet[aria-hidden='true'], .android-player #mobilePlaylistSheet[aria-hidden='true'] { visibility: hidden; pointer-events: none; }
 .android-player #mobileChartsSheet :is(#mobileChartsClose, .mobile-charts-spacer, #mobileExploreSubtitle) { display: none; }
 html.android-player #mobileChartsSheet .mobile-charts-header {
-  max-width: var(--android-width); width: 100%; margin: 0 auto; padding: 14px var(--android-gutter) 4px;
+  max-width: var(--android-width); width: 100%; margin: 0 auto; padding: 20px var(--android-gutter) 12px;
   min-height: 66px; height: auto; flex: none; background: none; border: 0; box-shadow: none;
 }
 .android-player .mobile-charts-header-copy { gap: 5px; }
 .android-player #mobileChartsSheet .android-wordmark { display: flex; align-items: center; gap: 5px; color: var(--studio-accent); font-size: .77rem; font-weight: 700; }
 .android-player .android-wordmark i { display: flex; font-size: 16px; }
-.android-player #mobileChartsPageTitle { color: var(--studio-ink); font-size: clamp(1.65rem, 6vw, 2rem); letter-spacing: -.045em; line-height: 1.22; font-weight: 750; }
+.android-player #mobileChartsPageTitle { color: var(--studio-ink); font-size: clamp(1.75rem, 6vw, 2rem); letter-spacing: -.025em; line-height: 1.25; font-weight: 500; }
 .android-player .android-app-actions { display: flex; align-items: center; }
 html.android-player #mobileLayout #mobileChartsSheet :is(.android-app-actions button, .mobile-explore-tab, .android-nav button, .android-shortcuts button) {
   border: 0; box-shadow: none; background: transparent !important; color: var(--studio-muted); min-height: 48px;
 }
-.android-player .android-app-actions button { display: grid; place-items: center; width: 48px; border-radius: 50%; font-size: 21px; }
+.android-player .android-app-actions button { display: grid; place-items: center; width: 48px; border-radius: 50%; font-size: 24px; }
 .android-player .android-app-actions .discover-button { padding: 0; }
 .android-player .android-app-actions .discover-button span { display: none; }
 .android-player #androidUpdateBanner:not([hidden]) {
@@ -105,59 +152,76 @@ html.android-player #mobileLayout #androidUpdateDismiss { display: grid; place-i
 .android-player .android-update-row { justify-content: space-between; }
 .android-player #androidUpdateSettings h3 { font-weight: 700; }
 .android-player #androidUpdateSettings p { color: var(--studio-muted); font-size: .85rem; }
-.android-player #androidUpdateCheck { min-height: 48px; padding-inline: 14px; border-radius: 24px; background: var(--android-tint); color: var(--studio-accent); font-weight: 650; }
-.android-player #mobileExploreTabs { align-self: center; justify-content: flex-start; width: 100%; max-width: var(--android-width); gap: 7px; padding: 6px var(--android-gutter) 8px; }
-html.android-player #mobileLayout #mobileExploreTabs .mobile-explore-tab { position: relative; flex: 0 0 auto; padding: 8px 13px; border-radius: 0; font-size: .9rem; font-weight: 550; }
+.android-player #androidUpdateCheck { min-height: 48px; padding-inline: 14px; border-radius: 24px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 650; }
+.android-player #androidUpdateSettings { padding: 20px; border: 0; border-radius: 24px; background: var(--md-surface-container); }
+.android-player .android-update-kicker { font-size: .6875rem; letter-spacing: .15em; color: var(--md-primary); font-weight: 700; }
+.android-player #androidUpdateStatus { margin-block: 16px; min-height: 1.5em; line-height: 1.5; }
+.android-player .android-update-source { display: grid; gap: 8px; font-size: .875rem; }
+.android-player #androidUpdateSource { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid var(--md-outline); border-radius: 12px; background: var(--md-surface); color: var(--md-on-surface); font-size: .875rem; }
+.android-player #androidUpdateSettings .android-update-hint { font-size: .75rem; margin-top: 8px; line-height: 1.5; }
+.android-player #androidReleaseName { margin-top: 16px; font-weight: 600; }
+.android-player #androidUpdateDescription { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 12rem; overflow-y: auto; padding: 12px; border-radius: 12px; background: var(--md-surface-low); line-height: 1.6; }
+.android-player #androidUpdateProgress { margin-block: 16px; }
+.android-player #androidUpdateMeter { display: block; width: 100%; height: 8px; accent-color: var(--md-primary); }
+.android-player #androidUpdateTransfer { display: block; margin-top: 8px; font-size: .75rem; color: var(--md-on-surface-variant); font-variant-numeric: tabular-nums; }
+.android-player #androidUpdateLinks { flex-wrap: wrap; margin-top: 12px; gap: 8px 16px; }
+.android-player #androidUpdateLinks button { border: 0; border-radius: 24px; padding-inline: 16px; color: var(--md-on-primary); background: var(--md-primary); }
+.android-player #androidUpdateLinks button[hidden] { display: none; }
+.android-player #androidUpdateLinks [aria-disabled='true'] { opacity: .5; cursor: wait; }
+.android-player #mobileExploreTabs { align-self: center; justify-content: flex-start; width: 100%; max-width: var(--android-width); gap: 0; padding: 0 var(--android-gutter) 16px; }
+html.android-player #mobileLayout #mobileExploreTabs .mobile-explore-tab { position: relative; flex: 1; padding: 12px 8px; border-radius: 0; font-size: .875rem; font-weight: 500; }
 .android-player .mobile-explore-tab i { display: none; }
-html.android-player #mobileLayout #mobileExploreTabs [aria-selected='true'] { color: var(--studio-ink); font-weight: 750; }
-.android-player #mobileExploreTabs [aria-selected='true']::after { content: ''; position: absolute; bottom: 3px; inset-inline: 28%; height: 3px; border-radius: 3px; background: var(--studio-accent); }
+html.android-player #mobileLayout #mobileExploreTabs [aria-selected='true'] { color: var(--md-primary); font-weight: 600; }
+.android-player #mobileExploreTabs [aria-selected='true']::after { content: ''; position: absolute; bottom: 3px; inset-inline: calc(50% - 16px); height: 3px; border-radius: 3px; background: var(--studio-accent); }
 html.android-player #mobileChartsSheet #mobileExploreContent { width: 100%; max-width: var(--android-width); margin: 0 auto; padding: 0 var(--android-gutter) 20px; overscroll-behavior: contain; }
 .android-player #mobileExploreDiscoveryPane .discovery-home { display: flex; flex-direction: column; padding: 0; margin: 0; color: var(--studio-ink); font-family: inherit; }
-.android-player .discover-eyebrow, .android-player .discover-daily-count { display: none; }
+.android-player .discover-eyebrow { color: var(--md-on-primary-container); font-size: .75rem; letter-spacing: .12em; }
+.android-player .discover-daily-count, .android-player .discover-radio-card .discover-eyebrow { display: none; }
 .android-player #mobileExploreContent :is(.discover-hero, .discover-module-host) { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .android-player #mobileExploreContent .discover-daily-card {
-  position: relative; isolation: isolate; min-height: clamp(188px, 53vw, 256px); justify-content: flex-end; gap: 5px;
-  padding: 22px; border: 0; border-radius: 20px; background: #35261e; color: #fff;
+  position: relative; isolation: isolate; min-height: 236px; justify-content: flex-end; gap: 8px;
+  padding: 24px; border: 0; border-radius: 32px; background: var(--md-primary-container); color: var(--md-on-primary-container);
 }
-.android-player .discover-daily-card::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #160e0cf2, #21151091 54%, #24181222), var(--android-photo) center 45% / cover; }
-.android-player #mobileExploreContent .discover-daily-card h2 { font-size: clamp(1.8rem, 7vw, 2.4rem); font-weight: 750; letter-spacing: -.04em; }
-.android-player .discover-daily-card > p { font-size: .85rem; color: #ffeadc; max-width: 25em; }
+.android-player .discover-daily-card::before { content: ''; position: absolute; width: 168px; height: 168px; right: -24px; top: -40px; z-index: -1; border: 28px solid currentColor; border-radius: 50%; opacity: .09; }
+.android-player .discover-daily-card::after { content: ''; position: absolute; width: 88px; height: 88px; right: 16px; top: 0; z-index: -1; border: 20px solid currentColor; border-radius: 50%; opacity: .09; }
+.android-player #mobileExploreContent .discover-daily-card h2 { font-size: clamp(2rem, 7vw, 2.75rem); font-weight: 500; letter-spacing: -.03em; }
+.android-player .discover-daily-card > p { font-size: .875rem; color: var(--md-on-primary-container); max-width: 25em; }
 .android-player .discover-daily-card .discover-actions { margin-top: 8px; padding: 0; gap: 6px; }
-html.android-player #mobileLayout #mobileChartsSheet .discover-daily-card button { min-height: 48px; border-radius: 40px; padding: 10px 14px; background: #261d19c4 !important; color: #fff5ed; border: 1px solid #ffeed455; box-shadow: none; }
-html.android-player #mobileLayout #mobileChartsSheet .discover-daily-card button.is-primary { background: #ffe2ce !important; color: #392316; border-color: transparent; font-weight: 700; }
+html.android-player #mobileLayout #mobileChartsSheet .discover-daily-card button { min-height: 48px; border-radius: 40px; padding: 10px 14px; background: transparent !important; color: var(--md-on-primary-container); border: 1px solid currentColor; box-shadow: none; }
+html.android-player #mobileLayout #mobileChartsSheet .discover-daily-card button.is-primary { background: var(--md-primary) !important; color: var(--md-on-primary); border-color: transparent; font-weight: 600; }
 .android-player #mobileLayout .discover-daily-card button:disabled { opacity: .7; }
 .android-player .android-shortcuts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
-html.android-player #mobileLayout #mobileChartsSheet .android-shortcuts button { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; color: var(--studio-ink); background: var(--studio-surface) !important; border: 1px solid var(--studio-line); border-radius: 14px; font-size: .83rem; font-weight: 600; text-align: start; }
+html.android-player #mobileLayout #mobileChartsSheet .android-shortcuts button { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; color: var(--studio-ink); background: var(--md-surface-container) !important; border: 0; border-radius: 20px; font-size: .875rem; font-weight: 600; text-align: start; }
 .android-player .android-shortcuts i { color: var(--studio-accent); font-size: 21px; }
-.android-player #mobileExploreContent .discover-radio-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 4px 10px; padding: 16px 18px; border-radius: 16px; background: var(--android-tint); border: 0; }
-.android-player .discover-radio-card > i { grid-column: 1; color: var(--studio-accent); font-size: 22px; }
+.android-player #mobileExploreContent .discover-radio-card { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 4px 10px; padding: 16px 18px; border-radius: 24px; background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); border: 0; }
+.android-player .discover-radio-card > i { grid-column: 1; color: inherit; font-size: 24px; }
 .android-player .discover-radio-card h2 { grid-column: 1; font-size: 1.2rem; }
 .android-player .discover-radio-card > p:not([role='status']) { display: none; }
 .android-player .discover-radio-card .discover-actions:first-of-type { grid-area: 1 / 2 / 3 / 3; justify-content: flex-end; }
-.android-player .discover-radio-card .discover-radio-status { grid-column: 1 / -1; min-height: 0; color: var(--studio-muted); font-size: .8rem; }
+.android-player .discover-radio-card .discover-radio-status { grid-column: 1 / -1; min-height: 0; color: inherit; font-size: .8125rem; }
 .android-player .discover-radio-card .discover-actions:last-child { grid-column: 1 / -1; gap: 12px; }
-html.android-player #mobileLayout #mobileChartsSheet .discover-radio-card button { min-height: 48px; padding: 6px 10px; color: var(--studio-ink); box-shadow: none; border: 0; background: transparent !important; }
-html.android-player #mobileLayout #mobileChartsSheet .discover-radio-card .is-primary { border-radius: 32px; color: var(--studio-accent-ink); background: var(--studio-accent) !important; }
-.android-player .discover-section { margin-top: 8px; }
+html.android-player #mobileLayout #mobileChartsSheet .discover-radio-card button { min-height: 48px; padding: 6px 10px; color: inherit; box-shadow: none; border: 0; background: transparent !important; }
+html.android-player #mobileLayout #mobileChartsSheet .discover-radio-card .is-primary { border-radius: 32px; color: var(--md-tertiary-container); background: var(--md-on-tertiary-container) !important; }
+.android-player .discover-section { margin-top: 16px; }
 .android-player .discover-tracks { grid-template-columns: minmax(0,1fr); }
 html.android-player #mobileLayout #mobileChartsSheet .discover-track button { min-height: 48px; border: 0; box-shadow: none; background: transparent !important; color: var(--studio-ink); }
-.android-player .android-nav { display: flex; flex: none; justify-content: center; gap: clamp(4px, 3vw, 24px); background: var(--studio-surface); border-top: 1px solid var(--studio-line); padding: 4px 12px max(4px,env(safe-area-inset-bottom)); }
-.android-player .android-nav button { display: grid; flex: 1; max-width: 168px; justify-items: center; align-content: center; gap: 2px; min-width: 0; font-size: .75rem; }
-.android-player .android-nav i { display: grid; place-items: center; width: 58px; height: 28px; border-radius: 20px; font-size: 20px; }
-.android-player .android-nav [aria-current='page'] i { background: var(--android-tint); color: var(--studio-accent); }
-.android-player .android-nav [aria-current='page'] span { color: var(--studio-ink); font-weight: 700; }
+.android-player .android-nav { display: flex; flex: none; justify-content: center; gap: clamp(4px, 3vw, 24px); background: var(--md-surface-container); border: 0; padding: 8px 12px max(8px,env(safe-area-inset-bottom)); min-height: 72px; }
+.android-player .android-nav button { display: grid; flex: 1; max-width: 168px; justify-items: center; align-content: center; gap: 4px; min-width: 0; font-size: .75rem; border-radius: 24px; }
+.android-player .android-nav i { display: grid; place-items: center; width: 64px; height: 32px; border-radius: 20px; font-size: 20px; }
+.android-player .android-nav [aria-current='page'] i { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.android-player .android-nav [aria-current='page'] span { color: var(--md-secondary); font-weight: 600; }
 
 /* Queue/search can sit over either browse or the expanded player. */
-html.android-player #mobileLayout #mobilePlaylistSheet { z-index: 80; left: 0; right: 0; width: min(100%,var(--android-width)); margin: 0 auto; height: min(90dvh, 780px); border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom); }
-.android-player #mobileLayout:has(> #mobilePlaylistSheet[aria-hidden='false'])::after { content: ''; position: absolute; inset: 0; z-index: 78; background: #100c0980; }
+html.android-player #mobileLayout #mobilePlaylistSheet { z-index: 80; left: 0; right: 0; width: min(100%,var(--android-width)); margin: 0 auto; height: min(90dvh, 780px); border: 0 !important; background: var(--md-surface-low) !important; border-radius: 28px 28px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+.android-player #mobileLayout:has(> #mobilePlaylistSheet[aria-hidden='false'])::after { content: ''; position: absolute; inset: 0; z-index: 78; background: var(--md-scrim); }
 .android-player #mobilePlaylistSheet #sheetDragHandle > div { background: var(--studio-muted); }
-.android-player #mobileSearchInput { color: var(--studio-ink); background: var(--studio-raised); min-height: 48px; padding-inline-end: 52px; font-size: 1rem; }
+html:root.android-player #mobileLayout #mobileSearchInput { color: var(--studio-ink); background: var(--md-surface-high) !important; box-shadow: none !important; min-height: 56px; padding-inline: 20px 56px; border-radius: 28px !important; border: 0 !important; font-size: 1rem; }
 .android-player #mobileSearchInput::placeholder { color: var(--studio-muted); }
 html.android-player #mobileLayout #mobileSearchForm .android-submit-search { position: absolute; inset-inline-end: 0; top: 0; display: grid; place-items: center; min-width: 48px; height: 100%; border: 0; box-shadow: none; border-radius: 24px; color: var(--studio-accent); background: transparent !important; font-size: 21px; }
-html.android-player #mobileLayout #mobileBrowsePlayer:not([hidden]) { display: flex; flex: none; align-items: center; gap: 4px; position: relative; inset: auto; width: min(calc(100% - 24px), 750px); height: auto; min-height: 60px; margin: 4px auto 6px; padding: 6px 8px; color: var(--studio-ink); border: 1px solid var(--studio-line); border-radius: 15px; box-shadow: none; background: var(--studio-raised); }
+html.android-player #mobileLayout #mobileBrowsePlayer:not([hidden]) { display: flex; flex: none; align-items: center; gap: 4px; position: relative; inset: auto; width: min(calc(100% - 24px), 750px); height: auto; min-height: 72px; margin: 8px auto; padding: 8px; color: var(--md-on-secondary-container); border: 0; border-radius: 24px; box-shadow: none; background: var(--md-secondary-container); }
 html.android-player #mobileLayout #mobileBrowsePlayer :is(#mobileBrowseOpen, #mobileBrowsePlay, #mobileBrowseNext) { display: flex; align-items: center; justify-content: center; min-width: 48px; min-height: 48px; padding: 0; box-shadow: none; border: 0; background: transparent !important; color: var(--studio-ink); }
 html.android-player #mobileLayout #mobileBrowsePlayer #mobileBrowseOpen { justify-content: flex-start; text-align: start; flex: 1; min-width: 0; gap: 10px; }
-.android-player #mobileBrowseOpen img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+.android-player #mobileBrowseOpen img { width: 48px; height: 48px; border-radius: 16px; object-fit: cover; }
 .android-player #mobileBrowseOpen span { min-width: 0; display: grid; }
 .android-player #mobileBrowseOpen :is(strong,small) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .android-player #mobileBrowseOpen small { color: var(--studio-muted); }
@@ -173,25 +237,333 @@ html.android-player #mobileLayout #androidCollapsePlayer { display: grid; place-
 html.android-player #mobileLayout #mobileMainView { min-height: 0; width: 100%; margin: 0; }
 html.android-player #mobileCoverContainer { display: grid; grid-template-rows: minmax(0,1fr) auto; place-items: center; gap: 12px; width: min(100%, 540px); height: 100%; margin: auto; padding: 8px var(--android-gutter); }
 html.android-player #mobileCoverContainer #mobileVinylContainer { width: auto; height: 100%; max-width: 100%; max-height: min(85vw, 440px); margin: 0; aspect-ratio: 1; }
-html.android-player #mobileLayout #mobileAlbumArtWrapper { width: 100%; height: 100%; border-radius: 14px; transform: none; }
+html.android-player #mobileLayout #mobileAlbumArtWrapper { width: 100%; height: 100%; border-radius: 32px; transform: none; border: 0; box-shadow: none; }
+/* Queue-linked cover carousel: only the selected cover and its two neighbors stay mounted. */
+html.android-player #mobileCoverContainer #mobileVinylContainer.has-cover-carousel { position: relative; display: block; width: calc(100% + 2 * var(--android-gutter)); max-width: none; height: 100%; min-height: 0; max-height: none; aspect-ratio: auto; }
+.android-player .has-cover-carousel > #mobileAlbumArtWrapper { display: none; }
+.android-player .cover-carousel { position: absolute; inset: 0; overflow: hidden; overflow: clip; isolation: isolate; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
+html.android-player #mobileLayout .cover-carousel-card { position: absolute; left: 50%; top: 50%; width: var(--carousel-size); height: var(--carousel-size); padding: 0; border: 1px solid var(--md-outline-variant); border-radius: clamp(16px, 5vw, 28px); overflow: hidden; background: var(--md-surface-high); box-shadow: 0 12px 28px #0003; touch-action: pan-y pinch-zoom; cursor: pointer; transition: transform 380ms var(--md-ease), opacity 300ms var(--md-ease); will-change: transform; -webkit-tap-highlight-color: transparent; }
+.android-player .cover-carousel-card img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; border-radius: inherit; }
+html.android-player #mobileLayout .cover-carousel-card:focus-visible { outline-offset: -4px; }
+html.android-player #mobileLayout .cover-carousel.is-dragging .cover-carousel-card { transition: none; cursor: grabbing; }
+.android-player .cover-carousel-spinner { position: absolute; right: 16px; bottom: 16px; display: none; width: 28px; height: 28px; border: 3px solid var(--md-outline-variant); border-top-color: var(--md-primary); border-radius: 50%; background: var(--md-surface); box-shadow: 0 0 0 6px var(--md-surface); animation: rotateArt 1s linear infinite; }
+.android-player .cover-carousel.is-loading [data-slot='0'] .cover-carousel-spinner { display: block; }
+.android-player .cover-carousel-caption { display: flex; align-items: baseline; gap: 16px; min-width: 0; margin-bottom: 8px; color: var(--md-on-surface-variant); font-size: .75rem; line-height: 1.5; }
+.android-player .cover-carousel-caption [data-cover-album] { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.android-player .cover-carousel-caption [data-cover-position] { flex: none; font-variant-numeric: tabular-nums; }
+.android-player .cover-carousel-caption[hidden] { display: none; }
+/* One blurred artwork layer gives the page its album colors without reading cross-origin pixels. */
+.android-player .android-cover-atmosphere { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.android-player .android-cover-atmosphere img { position: absolute; width: 120%; height: 100%; left: -10%; top: -8%; object-fit: cover; filter: blur(48px) saturate(.85); opacity: .32; }
+.android-player .android-cover-atmosphere img:not([src]) { visibility: hidden; }
+.android-player .android-cover-atmosphere::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent, var(--md-surface) 94%); }
+.android-player[data-theme='light'] .android-cover-atmosphere img { opacity: .18; }
+.android-player[data-cover-ambient='false'] .android-cover-atmosphere { display: none; }
+html.android-player #mobileLayout .cover-carousel-card { box-shadow: 0 16px 32px #0003; }
+html.android-player[data-cover-shape='circle'] #mobileLayout .cover-carousel-card { border-radius: 50%; }
+html.android-player[data-cover-shape='petal'] #mobileLayout .cover-carousel-card { border: 0; background: transparent; box-shadow: none; overflow: visible; }
+.android-player[data-cover-shape='petal'] .cover-carousel-card img { border-radius: 0; mask: url('../img/cover-petal.svg') center / contain no-repeat; -webkit-mask: url('../img/cover-petal.svg') center / contain no-repeat; }
+html.android-player[data-cover-shape='petal'] #mobileLayout .cover-carousel-card:focus-visible { outline-offset: -8px; }
+.android-player .android-cover-settings { padding: 16px; border-radius: 20px; background: var(--md-surface-container); }
+.android-player .android-cover-settings h3 { font-size: 1rem; font-weight: 650; }
+.android-player .android-cover-settings p { font-size: .8125rem; color: var(--md-on-surface-variant); margin-block: 4px 16px; }
+.android-player #androidCoverShapes { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+html:root.android-player #settingsCard #androidCoverShapes button { display: grid; justify-items: center; gap: 8px; padding: 12px 4px; border: 1px solid var(--md-outline-variant); border-radius: 16px; background: transparent; color: var(--md-on-surface-variant); font-size: .8125rem; }
+html:root.android-player #settingsCard #androidCoverShapes [aria-pressed='true'] { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 2px solid var(--md-primary); padding: 11px 3px; }
+.android-player .cover-shape-sample { width: 36px; height: 36px; background: currentColor; border-radius: 10px; }
+.android-player [data-cover-shape='circle'] .cover-shape-sample { border-radius: 50%; }
+.android-player [data-cover-shape='petal'] .cover-shape-sample { mask: url('../img/cover-petal.svg') center / contain no-repeat; -webkit-mask: url('../img/cover-petal.svg') center / contain no-repeat; }
+.android-player .android-ambient-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin-top: 8px; font-size: .875rem; }
+.android-player #androidCoverAmbient { width: 20px; height: 20px; flex: none; }
 .android-player #mobileCoverContainer > .text-center { padding: 0; margin: 0; width: 100%; text-align: start; }
-html.android-player #mobileLayout #mobileTitle { font-size: clamp(1.5rem, 6.2vw, 2rem) !important; font-weight: 720; line-height: 1.24; color: var(--studio-ink); }
+html.android-player #mobileLayout #mobileTitle { font-size: clamp(1.5rem, 6.2vw, 2rem) !important; font-weight: 500; line-height: 1.24; color: var(--studio-ink); }
 html.android-player #mobileLayout #mobileArtist { opacity: 1; color: var(--studio-muted); font-size: 1rem !important; }
 .android-player #mobileMetaContainer { justify-content: flex-start; margin-top: 0; }
 html.android-player #mobileLayout .mobile-control-deck { width: min(100%, 540px); margin: 0 auto; padding: 4px var(--android-gutter) max(6px,env(safe-area-inset-bottom)) !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
 .android-player .mobile-control-deck > .flex { margin-bottom: 0; }
 .android-player .mobile-control-deck > .justify-between { padding: 0 4px; }
-.android-player .mobile-control-deck > .justify-center { padding-bottom: 0; }
 .android-player .mobile-control-deck button { min-width: 48px; min-height: 48px; }
-html.android-player #mobileLayout #mobilePlayBtn { width: 68px; height: 58px; border-radius: 23px; }
+html.android-player #mobileLayout #mobilePlayBtn { width: 80px; height: 72px; border-radius: 24px; }
 .android-player #mobileProgressBarContainer { height: 48px; }
 .android-player #mobileDoraemonThumb { display: none; }
 .android-player #mobileProgressBar { border-radius: inherit; }
-.android-player #mobileProgressBarContainer:not([aria-disabled='true']) #mobileProgressBar::after { content: ''; position: absolute; top: 50%; right: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--studio-accent); transform: translateY(-50%); }
-.android-player #mobileLayout > .listening-ambient { opacity: .28; pointer-events: none; }
+.android-player #mobileProgressBarContainer:not([aria-disabled='true']) #mobileProgressBar::after { content: ''; position: absolute; top: 50%; right: -2px; width: 4px; height: 32px; border: 2px solid var(--md-surface); box-sizing: content-box; border-radius: 8px; background: var(--studio-accent); transform: translateY(-50%); }
+.android-player #mobileLayout > .listening-ambient { display: none; }
 .android-player #personalLibraryDialog { --pl-bg: var(--studio-bg); --pl-card: var(--studio-surface); --pl-text: var(--studio-ink); --pl-muted: var(--studio-muted); --pl-border: var(--studio-line); --pl-accent: var(--studio-accent); }
 .android-player .pl-eyebrow { display: none; }
 .android-player .personal-library .pl-button.is-primary { color: var(--studio-accent-ink); }
+
+/* A quiet, readable lyric page with its own metadata and direct sharing actions. */
+html.android-player #mobileLyricsPage { width: min(100%, 800px); margin-inline: auto; padding: 8px var(--android-gutter) 4px; }
+html.android-player #mobileLayout .lyric-page-heading { display: flex !important; border: 0; margin-bottom: 4px; }
+html:root.android-player #mobileLayout #mobileLyricsPage .lyric-page-actions button { background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); box-shadow: none; border: 0; border-radius: 20px; font-size: .75rem; }
+.android-player .lyric-page-track h2 { font-size: clamp(1.125rem, 5vw, 1.5rem); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.android-player #mobileLyricsPage .lyric-page-body { mask-image: none; -webkit-mask-image: none; }
+html.android-player #mobileLyricsScroller { mask-image: linear-gradient(transparent, #000 8%, #000 88%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 8%, #000 88%, transparent); scrollbar-width: none; }
+html.android-player #mobileLyricsPage .lyric-surface #mobileLyricsScroller { height: calc(100% - 28px); }
+.android-player #mobileLyricsPage .lyric-stage { bottom: 28px; }
+html:root.android-player #mobileLyricsPage .lyric-surface #mobileLyricsScroller .lrc-line { padding: 16px 8px; min-height: 48px; opacity: 1; filter: none; transform: none; color: var(--studio-muted); }
+html.android-player .lyric-surface #mobileLyricsScroller .lrc-line .lrc-text { font-size: min(var(--lyric-size, 36px), 8.2vw); font-weight: 600; line-height: var(--lyric-line-height, 1.6); }
+html.android-player .lyric-surface #mobileLyricsScroller .lrc-line:not(.active) .lyric-timed-word { background: none; color: var(--studio-muted); }
+html:root.android-player #mobileLyricsPage .lyric-surface #mobileLyricsScroller .lrc-line.active { color: var(--md-primary); }
+html.android-player .lyric-surface #mobileLyricsScroller .lrc-line.active .lrc-text { font-weight: 650; color: var(--md-primary); }
+.android-player .lyric-surface #mobileLyricsScroller .lrc-line.active .lyric-timed-word { --room-ink: var(--md-primary); }
+.android-player .lyric-source-badge { color: var(--studio-muted); opacity: 1; font-size: .6875rem; letter-spacing: 0; bottom: 4px; }
+.android-player .lyric-plain { font-size: 1rem; color: var(--studio-muted); line-height: 1.9; padding: 24px 8px; }
+html.android-player #mobileLyricsPage .lyrics-resume { min-height: 48px; background: var(--studio-raised); color: var(--studio-ink); border: 1px solid var(--studio-line); bottom: 24px; }
+/* Search bar, tonal cards, chips and list rows use the same component roles. */
+.android-player .android-search-wrap { flex: none; width: 100%; max-width: var(--android-width); margin: 0 auto; padding: 0 var(--android-gutter) 8px; }
+html:root.android-player #mobileLayout .android-search-entry { display: flex; align-items: center; width: 100%; min-height: 56px; gap: 16px; padding: 12px 20px; border: 0; border-radius: 32px; background: var(--md-surface-high) !important; color: var(--md-on-surface-variant); box-shadow: none; text-align: start; font-size: 1rem; }
+.android-player .android-search-entry span { flex: 1; }
+.android-player .android-search-entry svg { width: 24px; height: 24px; flex: none; }
+.android-player .android-search-entry i:last-child { color: var(--md-primary); }
+html:root.android-player #mobileLayout :is(.discover-button, .discover-scene, .content-filter-tab, .chart-category-button, .chart-source-tab) { color: var(--md-on-surface); background: var(--md-surface-container) !important; border: 0; border-radius: 20px; box-shadow: none; }
+html:root.android-player #mobileLayout :is(.content-filter-tab, .chart-category-button, .chart-source-tab) { min-height: 48px; padding: 8px 16px; border: 1px solid var(--md-outline); border-radius: 12px; font-size: .875rem; }
+html:root.android-player #mobileLayout :is(.content-filter-tab, .chart-category-button, .chart-source-tab)[aria-selected='true'] { color: var(--md-on-secondary-container); background: var(--md-secondary-container) !important; border-color: transparent; }
+.android-player :is(.discover-section-heading h2, .content-section-heading h2) { font-size: 1.375rem; font-weight: 500; }
+.android-player .discover-section-heading p { font-size: .75rem; }
+.android-player .discover-track { border: 0; border-radius: 16px; padding: 4px 0; }
+.android-player .discover-track-copy strong { font-size: 1rem; font-weight: 500; }
+.android-player .discover-track-copy > span { font-size: .875rem; }
+.android-player .discover-track-copy small { font-size: .75rem; }
+.android-player .discover-cover { width: 56px; height: 56px; flex-basis: 56px; border-radius: 16px; }
+html:root.android-player #mobileLayout .discover-scene { padding: 20px; border-radius: 24px; }
+.android-player :is(.artist-card, .video-card, .chart-card, .gd-topic-card, .collection-card, .artist-detail, .content-section) { border-radius: 24px; border-color: var(--md-outline-variant); box-shadow: none; background: var(--md-surface-container); }
+.android-player :is(.artist-card-copy strong, .video-card-copy strong) { font-size: 1rem; font-weight: 500; }
+.android-player .artist-card-main { padding: 16px; }
+.android-player :is(.artist-card-play, .artist-track-action) { opacity: 1; border-radius: 50%; }
+html:root.android-player #mobileLayout :is(.artist-card-play, .content-primary-action) { background: var(--md-primary) !important; color: var(--md-on-primary); border: 0; border-radius: 24px; }
+.android-player .artist-card-portrait { border-radius: 50%; }
+.android-player .artist-card-rank { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.android-player :is(.content-filter-tabs, .chart-category-tabs) { gap: 8px; }
+html:root.android-player #mobileLayout :is(.mobile-search-item, .mobile-queue-item) { min-height: 72px; gap: 12px; border: 0; border-radius: 16px; color: var(--md-on-surface) !important; background: transparent !important; box-shadow: none; }
+.android-player :is(.mobile-search-item, .mobile-queue-item) img { width: 48px; height: 48px; border-radius: 12px; box-shadow: none; }
+.android-player :is(.mobile-search-item, .mobile-queue-item) [data-song-title] { color: var(--md-on-surface); font-size: 1rem; font-weight: 500; }
+.android-player :is(.mobile-search-item, .mobile-queue-item) [data-song-artist] { color: var(--md-on-surface-variant); opacity: 1; font-size: .8125rem; }
+html:root.android-player #mobileLayout .mobile-queue-item.is-playing { background: var(--md-secondary-container) !important; }
+html:root.android-player #mobileLayout .mobile-search-item button { color: var(--md-on-secondary-container); background: var(--md-secondary-container) !important; border: 0; border-radius: 50%; }
+html:root.android-player #mobileLayout :is(.mobile-queue-item button, #closeSheetBtn) { color: var(--md-on-surface-variant); background: transparent !important; border: 0; border-radius: 50%; box-shadow: none; }
+.android-player #mobilePlaylistSheet > .relative { padding-inline: 16px 64px; }
+.android-player #mobilePlaylistSheet [role='tablist'] { gap: 0; }
+html:root.android-player #mobileLayout #mobilePlaylistSheet [role='tab'] { flex: 1; border: 0; min-height: 48px; border-radius: 24px; color: var(--md-on-surface-variant); background: transparent !important; box-shadow: none; font-size: .875rem; font-weight: 500; opacity: 1; }
+html:root.android-player #mobileLayout #mobilePlaylistSheet [role='tab'][aria-selected='true'] { background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); }
+.android-player #mobileSearchForm { margin-bottom: 16px; }
+.android-player .mobile-music-source { padding: 0 4px 12px; }
+.android-player #mobileMusicSourceHint { font-size: .75rem; opacity: 1; color: var(--md-on-surface-variant); }
+html:root.android-player #mobileMusicSourceSelect { background: var(--md-surface-high) !important; color: var(--md-on-surface); border: 1px solid var(--md-outline); border-radius: 12px; min-height: 48px; font-size: .875rem; }
+html:root.android-player #mobileLayout #mobileBrowsePlay { background: var(--md-primary) !important; color: var(--md-on-primary); border-radius: 50%; }
+.android-player #mobileBrowseOpen strong { font-weight: 500; font-size: .9375rem; }
+.android-player #mobileBrowseOpen small { color: var(--md-on-secondary-container); font-size: .75rem; }
+html:root.android-player #mobileLayout .mobile-progress-track { height: 12px; background: var(--md-secondary-container) !important; border-radius: 8px; }
+html:root.android-player #mobileProgressBarContainer { margin-inline: 4px; }
+html:root.android-player #mobileProgressBuffer { background: var(--md-outline); opacity: .4; }
+.android-player :is(#mobileCurrentTime, #mobileDuration) { font-size: .75rem; opacity: 1; font-family: inherit; font-variant-numeric: tabular-nums; }
+html:root.android-player #mobileLayout #mobilePlayBtn[aria-pressed='true'] { border-radius: 50%; }
+html:root.android-player #mobileLayout :is(#mobilePrevBtn, #mobileNextBtn) { background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container) !important; border-radius: 50%; width: 56px; height: 56px; }
+html:root.android-player #mobileLayout :is(#mobileModeBtn, #mobilePlaylistToggleBtn, #mobileSettingsBtn) { border-radius: 50%; opacity: 1; }
+.android-player #mobileMetaContainer { gap: 12px; }
+.android-player #mobileSongIdTag { display: none; }
+html:root.android-player #mobileLayout #mobilePlaybackQualityBtn { font-size: .75rem; color: var(--md-on-surface-variant); min-height: 48px; padding-inline: 12px; border-radius: 24px; }
+html:root.android-player #mobileLayout .lrc-line.active .lrc-text { color: var(--md-primary); }
+
+/* Browse collections adapt independently from the page navigation. */
+html.android-player #mobileChartsSheet :is(.content-workspace,.charts-workspace) { background: transparent; border: 0; border-radius: 24px; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+html.android-player #mobileChartsSheet :is(.content-overview,.chart-overview) { background: var(--md-surface-container); border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+html.android-player #mobileChartsSheet :is(.content-overview-copy h2,.chart-overview-copy h2) { font-size: 1.5rem; font-weight: 500; }
+html.android-player #mobileChartsSheet :is(.content-meta,.chart-meta) { font-size: .75rem; }
+html.android-player #mobileChartsSheet :is(.content-filter-tabs,.chart-tabs) { padding: 0 0 16px; border: 0; }
+html:root.android-player #mobileLayout #mobileChartsSheet :is(.content-refresh,.chart-refresh) { min-height: 48px; width: auto; justify-self: start; padding: 8px 20px; border-radius: 24px; border: 0; box-shadow: none; color: var(--md-on-secondary-container); background: var(--md-secondary-container) !important; }
+html.android-player #mobileChartsSheet .artist-grid { grid-template-columns: repeat(2,minmax(0,1fr)); padding: 0; gap: 12px; }
+html.android-player #mobileChartsSheet .artist-card { border: 1px solid transparent; border-radius: 24px; background: var(--md-surface-container); }
+html.android-player #mobileChartsSheet .artist-card.is-selected { border-color: var(--md-primary); background: var(--md-secondary-container); }
+html.android-player #mobileChartsSheet .artist-card-main { padding: 16px 12px 64px; justify-items: center; text-align: center; box-shadow: none; border: 0; }
+html.android-player #mobileChartsSheet .artist-card-portrait { width: min(100%,128px); border-radius: 50%; background: var(--md-surface-high); }
+html.android-player #mobileChartsSheet .artist-card-rank { top: 4px; left: 4px; font-weight: 500; backdrop-filter: none; }
+html.android-player #mobileChartsSheet .artist-card-copy { width: 100%; gap: 4px; }
+html.android-player #mobileChartsSheet .artist-card-copy span { font-size: .75rem; }
+html.android-player #mobileChartsSheet .artist-card-play { bottom: 8px; right: calc(50% - 24px); box-shadow: none; }
+html.android-player #mobileChartsSheet .artist-detail { margin: 16px 0; border: 0; border-radius: 24px; background: var(--md-surface-container); padding: 20px; }
+html.android-player #mobileChartsSheet .video-grid { padding: 0; gap: 16px; }
+html.android-player #mobileChartsSheet .video-card { border-radius: 24px; background: var(--md-surface-container); border: 0; box-shadow: none; }
+html.android-player #mobileChartsSheet .chart-track-row { grid-template-columns: 28px minmax(0,1fr) 48px; padding-inline: 0; }
+html.android-player #mobileChartsSheet .chart-action { width: 48px; height: 48px; border-radius: 24px; }
+html:root.android-player #mobileLayout #mobileChartsSheet :is(.artist-track-action,.chart-action,.chart-tab) { box-shadow: none; background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); border: 0; }
+html:root.android-player #mobileLayout #mobileChartsSheet .chart-tab { min-height: 48px; border-radius: 12px; padding-inline: 16px; }
+html:root.android-player #mobileLayout #mobileChartsSheet .chart-tab[aria-selected='true'] { background: var(--md-primary) !important; color: var(--md-on-primary); }
+html:root.android-player #mobileLayout #mobileChartsSheet .chart-cover-tab { padding: 8px; border-radius: 24px; background: var(--md-surface-container) !important; color: var(--md-on-surface); border: 2px solid transparent; }
+html:root.android-player #mobileLayout #mobileChartsSheet .chart-cover-tab[aria-selected='true'] { border-color: var(--md-primary); background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); }
+html.android-player #mobileChartsSheet .chart-cover-rail { padding: 4px 0 20px; }
+html.android-player #mobileChartsSheet .chart-directory-heading { padding: 0 0 12px; }
+html.android-player #mobileChartsSheet .chart-directory-heading button { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border: 0; }
+@media (min-width: 600px) {
+  html.android-player #mobileChartsSheet .artist-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  html.android-player #mobileChartsSheet .video-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html.android-player #mobileChartsSheet .content-overview { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+}
+@media (min-width: 1000px) {
+  html.android-player #mobileChartsSheet .artist-content-layout { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 16px; align-items: start; }
+  html.android-player #mobileChartsSheet .artist-detail { margin: 0; position: sticky; top: 0; }
+}
+
+/* Full-screen compact settings and rounded larger dialogs. */
+html:root.android-player :is(#settingsCard, #welcomeCard, .collection-dialog-card, .download-dialog-card, .liquid-choice-card, .video-preview-shell) { background: var(--md-surface-high) !important; border: 0 !important; border-radius: 28px; box-shadow: 0 8px 32px #0003 !important; }
+html.android-player :is(dialog, .modal-backdrop)::backdrop { background: var(--md-scrim); backdrop-filter: none; }
+html.android-player .modal-backdrop { background: var(--md-scrim); backdrop-filter: none; }
+html.android-player :is(.discovery-dialog, .personal-library, .lyric-share-dialog, .catalog-dialog) { font-family: var(--cplayer-font); border: 0; border-radius: 28px; box-shadow: 0 8px 32px #0003; }
+html.android-player #settingsCard { --settings-icon-sm: 16px; --settings-icon-md: 20px; --settings-icon-lg: 24px; display: flex; flex-direction: column; max-height: calc(100dvh - 48px); padding: 24px; width: min(680px,calc(100% - 48px)); max-width: 680px; margin: auto; }
+.android-player #settingsCard > .flex:first-child { flex: none; margin-bottom: 24px; }
+.android-player #settingsTitle { min-width: 0; gap: 8px; font-size: 1.5rem; font-weight: 500; }
+/* Icon artwork has its own square size, independent of text and touch targets. */
+html.android-player #settingsCard i:is([data-lucide], [class*="fa-"]) { --settings-icon-size: var(--settings-icon-md); display: inline-grid; place-items: center; flex: 0 0 auto; width: var(--settings-icon-size); min-width: var(--settings-icon-size); height: var(--settings-icon-size); font-size: var(--settings-icon-size); line-height: 1; vertical-align: middle; }
+html.android-player #settingsCard i > .lucide-glyph { width: 100%; height: 100%; }
+html.android-player #settingsCard :is(#settingsTitle, #closeSettingsBtn) > i { --settings-icon-size: var(--settings-icon-lg); }
+html.android-player #settingsCard summary > .fa-chevron-down { --settings-icon-size: var(--settings-icon-sm); margin-inline-start: auto; }
+.android-player #settingsTitle > i { margin: 0; }
+.android-player #settingsCard #loadPlaylistBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.android-player #settingsCard #loadPlaylistBtn > i { margin: 0; }
+.android-player #settingsCard .lyric-font-stepper > button { display: inline-grid; place-items: center; padding: 0; flex: 0 0 48px; width: 48px; height: 48px; }
+.android-player #settingsCard .music-source-scroll { flex-basis: 48px; width: 48px; height: 48px; padding: 0; }
+.android-player #settingsCard .music-source-scroll > svg { flex: none; width: var(--settings-icon-md); height: var(--settings-icon-md); stroke-linecap: round; stroke-linejoin: round; }
+.android-player .settings-scroll { max-height: none; flex: 1; min-height: 0; padding: 2px; }
+.android-player #settingsCard > :last-child { flex: none; color: var(--md-on-surface-variant); opacity: 1; font-size: .75rem; border-color: var(--md-outline-variant); }
+html:root.android-player #settingsCard :is(section, .music-source-setting, #playlistSourceCard, #musicKeyForm, #lxSourceForm) { background: var(--md-surface-low) !important; border: 0; border-radius: 20px; padding: 20px; }
+.android-player .android-appearance h3 { font-size: 1rem; font-weight: 500; }
+.android-player .android-appearance p { color: var(--md-on-surface-variant); font-size: .875rem; margin: 4px 0 16px; }
+.android-player .android-theme-options { display: flex; border: 1px solid var(--md-outline); border-radius: 28px; overflow: hidden; }
+html:root.android-player #settingsCard .android-theme-options button { display: flex; align-items: center; justify-content: center; flex: 1; gap: 8px; border: 0; border-radius: 0; background: transparent !important; color: var(--md-on-surface-variant); font-size: .875rem; }
+html:root.android-player #settingsCard .android-theme-options [aria-pressed='true'] { background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); }
+html:root.android-player :is(#settingsCard, .discovery-dialog) :where(input:not([type='checkbox']):not([type='range']), select, textarea) { min-height: 48px; color: var(--md-on-surface); background: var(--md-surface-highest) !important; border: 1px solid var(--md-outline) !important; border-radius: 12px; font-size: 1rem; max-width: 100%; }
+html:root.android-player :is(#settingsCard, .discovery-dialog) button { border-radius: 24px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); box-shadow: none; border: 0; font-size: .875rem; }
+html:root.android-player :is(#settingsCard, .discovery-dialog) :is(.is-primary, #musicKeySave, #loadPlaylistBtn) { background: var(--md-primary); color: var(--md-on-primary); }
+html:root.android-player #settingsCard #closeSettingsBtn { display: grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; color: var(--md-on-surface-variant); background: transparent; border-radius: 50%; }
+.android-player #settingsCard :is(p, summary, .lyric-settings__description, .account-help, .music-key-hint) { color: var(--md-on-surface-variant); opacity: 1; line-height: 1.6; }
+.android-player #settingsCard :is(summary, .entry-language) { min-height: 48px; font-size: .875rem; }
+.android-player #settingsCard .entry-language { gap: 8px; }
+.android-player #settingsCard .settings-language-control { position: relative; display: inline-flex; flex: none; align-items: center; min-height: 48px; }
+.android-player #settingsCard .settings-language-control::before { content: ''; position: absolute; inset: 6px 0; border: 1px solid var(--md-outline-variant); border-radius: 10px; background: var(--md-surface-low); pointer-events: none; }
+html:root.android-player #settingsCard .entry-language .settings-language-control select { position: relative; appearance: none; -webkit-appearance: none; min-height: 48px; padding: 0 30px 0 10px; font-size: .875rem; line-height: 1.4; background: transparent !important; border: 0 !important; border-radius: 10px; cursor: pointer; }
+html.android-player #settingsCard .settings-language-control > i { --settings-icon-size: var(--settings-icon-sm); position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%); color: var(--md-on-surface-variant); pointer-events: none; }
+.android-player #settingsCard :is(.account-error, .account-danger) { color: var(--md-error); }
+.android-player #settingsCard :is(#desktopPetSettings, .scroll-spider-setting, .discovery-skin-setting, .web-management-links) { display: none; }
+.android-player .android-update-row { flex-wrap: wrap; gap: 8px; }
+.android-player .lyric-settings__heading { flex-wrap: wrap; }
+.android-player .lyric-font-stepper { flex: none; }
+
+/* Settings controls keep readable labels and distinct selection states. */
+.android-player #settingsCard button:disabled { opacity: .45; cursor: not-allowed; }
+.android-player #settingsCard .lyric-mode-grid { gap: 8px; padding-block: 8px 12px; }
+html:root.android-player #settingsCard .lyric-mode-card { flex: 0 0 auto; min-width: 72px; min-height: 48px !important; padding: 10px 16px; white-space: nowrap; line-height: 1.4; }
+html:root.android-player #settingsCard :is(.lyric-mode-card, .music-platform-tabs button, .music-source-tab) { border: 1px solid var(--md-outline-variant); border-radius: 12px; background: transparent; color: var(--md-on-surface-variant); }
+html:root.android-player #settingsCard :is(.lyric-mode-card[aria-pressed='true'], .music-platform-tabs [aria-checked='true'], .music-source-tab[aria-checked='true']) { border-color: var(--md-primary); background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-weight: 600; }
+html:root.android-player #settingsCard .music-source-scroll { background: transparent; color: var(--md-on-surface-variant); }
+.android-player #settingsCard .music-platform-tabs { background: transparent; padding: 0; gap: 8px; }
+.android-player #settingsCard .lyric-control-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 16px; }
+.android-player #settingsCard .lyric-control { gap: 6px; font-size: .875rem; line-height: 1.5; }
+html:root.android-player #settingsCard .lyric-control :is(select, input:not([type='checkbox']):not([type='range']):not([type='color'])) { width: 100%; min-width: 0; }
+html:root.android-player #settingsCard .lyric-settings select { font-size: .875rem; }
+.android-player #settingsCard .lyric-settings__heading { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+html:root.android-player #settingsCard #lyricEffectSelect { width: 100%; }
+.android-player #settingsCard .lyric-control:has(input[type='range']) > span { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.android-player #settingsCard .lyric-control output { float: none; flex: none; color: var(--md-on-surface-variant); opacity: 1; }
+html:root.android-player #settingsCard .lyric-control input[type='range'] { min-height: 48px; height: 48px; padding: 0; margin: 0; background: transparent !important; border: 0; border-radius: 0; box-shadow: none; }
+.android-player #settingsCard .lyric-control:has(input[type='checkbox']) { grid-column: 1 / -1; min-height: 48px; gap: 16px; justify-content: space-between; cursor: pointer; }
+.android-player #settingsCard .lyric-control:has(input[type='checkbox']) > span { min-width: 0; flex: 1; }
+html:root.android-player #settingsCard .lyric-control input[type='checkbox'] { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; }
+html:root.android-player #settingsCard .lyric-control input[type='color'] { width: 72px; height: 48px; padding: 8px; }
+html:root.android-player #settingsCard .lyric-font-stepper { border: 1px solid var(--md-outline-variant); border-radius: 12px; background: var(--md-surface-container); }
+html:root.android-player #settingsCard .lyric-font-stepper button { border-radius: 0; background: transparent; }
+html:root.android-player #settingsCard #lyricFontSize { width: 52px; border: 0 !important; border-radius: 0; background: transparent !important; }
+.android-player #settingsCard .lyric-settings__footer { flex-wrap: wrap; gap: 8px 16px; }
+.android-player #settingsCard .lyric-settings__footer > span { flex: 1 1 160px; }
+.android-player #settingsCard :is(.lyric-settings-extra, .account-panel) summary { display: flex; align-items: center; gap: 8px; list-style: none; }
+.android-player #settingsCard :is(.lyric-settings-extra, .account-panel) summary::-webkit-details-marker { display: none; }
+.android-player #settingsCard :is(.lyric-settings-extra, .account-panel) summary::after { content: ''; flex: 0 0 8px; width: 8px; height: 8px; margin-inline: auto 4px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.android-player #settingsCard :is(.lyric-settings-extra, .account-panel) details[open] > summary::after { transform: rotate(225deg); }
+html:root.android-player #settingsCard .playlist-import-setting { padding: 20px; border: 0; border-radius: 20px; background: var(--md-surface-low) !important; }
+.android-player #settingsCard .playlist-import-setting > label { display: block; margin-bottom: 8px; font-size: .875rem; font-weight: 500; }
+.android-player #settingsCard .settings-inline-form { display: flex; flex-wrap: wrap; gap: 8px; }
+.android-player #settingsCard .settings-inline-form input { flex: 1 1 180px; }
+.android-player #settingsCard .settings-inline-form button { flex: 1 0 auto; }
+.android-player #settingsCard #playlistIdInput::placeholder { color: var(--md-on-surface-variant); opacity: 1; font-size: .875rem; }
+html:root.android-player #settingsCard #playlistIdInput[aria-invalid='true'] { border-color: var(--md-error) !important; }
+html:root.android-player #settingsCard #playlistIdFeedback { color: var(--md-error); font-size: .875rem; }
+html:root.android-player #settingsCard #lxSourceFeedback[data-error='true'] { color: var(--md-error); }
+html:root.android-player #settingsCard .settings-about > div { padding: 16px; border: 0; border-radius: 16px; background: var(--md-surface-low) !important; color: var(--md-on-surface-variant) !important; font-size: .875rem; line-height: 1.6; opacity: 1; }
+.android-player .discover-dialog-head { border: 0; background: var(--md-surface-container); }
+.android-player .discover-dialog-head h2 { font-size: 1.5rem; font-weight: 500; }
+html.android-player #personalLibraryDialog { --pl-bg: var(--md-surface); --pl-card: var(--md-surface-container); --pl-text: var(--md-on-surface); --pl-muted: var(--md-on-surface-variant); --pl-border: var(--md-outline-variant); --pl-accent: var(--md-primary); }
+.android-player .pl-header h2 { font-weight: 500; }
+.android-player .pl-section-heading h3 { font-weight: 500; }
+.android-player :is(.pl-button, .pl-close) { border: 0; border-radius: 28px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); min-height: 48px; }
+.android-player :is(.pl-button:hover, .pl-close:hover) { background: var(--md-surface-highest); }
+.android-player .pl-button.is-primary { background: var(--md-primary); color: var(--md-on-primary); }
+.android-player :is(.pl-button.is-danger, .pl-status.is-error) { color: var(--md-error); }
+.android-player .pl-filter { min-height: 48px; border-color: var(--md-outline); border-radius: 12px; }
+.android-player .pl-filter[aria-pressed='true'] { color: var(--md-on-secondary-container); background: var(--md-secondary-container); border-color: transparent; }
+.android-player .pl-card { border-radius: 24px; }
+.android-player .pl-art { border-radius: 16px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.android-player .pl-track { border-color: var(--md-outline-variant); }
+.android-player .pl-smart-lists button { border-radius: 24px; font-weight: 500; }
+.android-player .pl-smart-heart { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+.android-player .pl-smart-recent { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.android-player .pl-field :is(input,textarea,select) { min-height: 48px; border-color: var(--md-outline); }
+.android-player .pl-field input::placeholder { color: var(--md-on-surface-variant); }
+.android-player .lyric-share-dialog button { border-radius: 24px; }
+.android-player .lyric-share-header h2 { font-weight: 500; }
+.android-player .lyric-share-tabs { gap: 0; border: 1px solid var(--md-outline); border-radius: 28px; padding: 0; }
+.android-player .lyric-share-tabs button[aria-selected='true'] { background: var(--md-secondary-container); color: var(--md-on-secondary-container); box-shadow: none; }
+.android-player :is(.lyric-share-line, .lyric-share-choices label) { border-radius: 16px; }
+.android-player :is(.lyric-share-line, .lyric-share-choices label):has(input:checked) { background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.android-player .lyric-share-preview { border-radius: 24px; }
+html:root.android-player :is(#copyToast, #toast) { width: max-content; max-width: min(440px,calc(100% - 32px)); background: var(--md-on-surface) !important; color: var(--md-surface); border: 0 !important; border-radius: 12px; box-shadow: 0 4px 16px #0003 !important; }
+.android-player #copyToast > i { color: inherit; flex: none; }
+
+
+html:root.android-player #mobileLayout #mobilePlaylistSheet .music-platform-tabs { border-radius: 16px; background: var(--md-surface-high); }
+html:root.android-player #mobileLayout #mobilePlaylistSheet .music-platform-tabs button { border-radius: 12px; }
+html:root.android-player #mobileLayout #mobilePlaylistSheet .music-platform-tabs button[aria-checked='true'] { background: var(--md-secondary-container) !important; color: var(--md-on-secondary-container); }
+html:root.android-player #mobileLayout #mobilePlaylistSheet .music-source-filter button { min-width: 48px; min-height: 48px; }
+html:root.android-player #mobileLayout #mobilePlaylistSheet .music-source-scroll { flex-basis: 48px; }
+html:root.android-player #mobileLayout #mobilePlaylistSheet .catalog-entry { border-radius: 24px; box-shadow: none; }
+html:root.android-player #settingsCard .account-install { display: none; }
+.android-player :is(.catalog-button, .catalog-entry) { min-height: 48px; border: 0; border-radius: 24px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); }
+.android-player .catalog-primary { background: var(--md-primary); color: var(--md-on-primary); }
+.android-player .catalog-header h2 { font-weight: 500; }
+.android-player .catalog-source-fields label { min-height: 48px; }
+.android-player .catalog-search-form input { min-height: 56px; border-radius: 28px; padding-inline: 20px; border-color: var(--md-outline); }
+
+html:root.android-player :is(#playbackQualityDialog,#downloadDialog) :is(.liquid-quality-trigger,.liquid-quality-menu,.liquid-quality-option) { background: var(--md-surface-container) !important; border: 1px solid var(--md-outline-variant); box-shadow: none; border-radius: 16px; }
+html:root.android-player :is(#playbackQualityDialog,#downloadDialog) .liquid-quality-option[aria-selected='true'] { color: var(--md-on-secondary-container); background: var(--md-secondary-container) !important; border-color: var(--md-primary); }
+.android-player .android-rail-mark { display: none; }
+@media (min-width: 840px) {
+  html.android-player #mobileLayout #mobileChartsSheet { padding-left: 96px; }
+  .android-player #mobileChartsSheet .android-nav { position: absolute; top: 0; bottom: 0; left: 0; width: 96px; flex-direction: column; justify-content: flex-start; align-items: stretch; padding: 24px 8px; gap: 16px; }
+  .android-player #mobileChartsSheet .android-nav button { flex: none; min-height: 72px; }
+  .android-player #mobileChartsSheet .android-rail-mark { display: grid; place-items: center; align-self: center; width: 56px; height: 56px; margin-bottom: 16px; border-radius: 20px; background: var(--md-primary-container); color: var(--md-on-primary-container); font-size: 28px; font-weight: 500; }
+  .android-player #mobileExploreContent .discover-tracks { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 24px; }
+  .android-player #mobileChartsSheet .android-search-wrap { padding-top: 4px; }
+}
+@media (max-width: 599px) {
+  html:root.android-player #settingsCard { width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; padding: max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom)); border-radius: 0; background: var(--md-surface) !important; }
+  html.android-player :is(.personal-library, .lyric-share-dialog) { border-radius: 0; }
+  .android-player #settingsCard > .flex:first-child { margin-bottom: 16px; }
+  .android-player .lyric-settings__font { flex-wrap: wrap; gap: 12px; }
+  .android-player #mobilePlaylistSheet { max-height: calc(100dvh - 16px); }
+}
+@media (max-width: 359px) {
+  .android-player .android-app-actions button { width: 48px; }
+  .android-player #mobileChartsPageTitle { font-size: 1.5rem; }
+  .android-player .android-wordmark { font-size: .6875rem !important; }
+  .android-player .android-shortcuts { gap: 4px; }
+  html.android-player #mobileLayout #mobileChartsSheet .android-shortcuts button { padding: 12px; font-size: .8125rem; }
+}
+
+@media (orientation: portrait) and (max-height: 680px) {
+  .android-player .lyric-page-kicker { display: none; }
+  .android-player .lyric-page-heading { padding-bottom: 8px; }
+  .android-player .lyric-page-track h2 { font-size: 1.125rem; -webkit-line-clamp: 1; }
+  html:root.android-player #mobileLyricsPage .lyric-surface #mobileLyricsScroller .lrc-line { padding-block: 12px; }
+}
 
 @media (min-width: 600px) {
   .android-player #mobileExploreContent :is(.discover-module-host, .discover-hero) { grid-template-columns: 1fr 1fr; }
@@ -203,14 +575,29 @@ html.android-player #mobileLayout #mobilePlayBtn { width: 68px; height: 58px; bo
   .android-player .entry-intro { align-items: flex-start; padding-top: 20px; }
   html.android-player #mobileLayout > header { height: 48px; }
   html.android-player #mobileCoverContainer { grid-template-columns: minmax(0,.8fr) minmax(0,1fr); grid-template-rows: minmax(0,1fr); width: min(100%,760px); column-gap: 24px; }
-  html.android-player #mobileLayout .mobile-control-deck { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; align-items: center; }
+  html.android-player #mobileCoverContainer #mobileVinylContainer.has-cover-carousel { width: 100%; max-width: 100%; }
+  html.android-player #mobileLayout .mobile-control-deck { display: grid; grid-template-columns: 1fr; align-items: center; }
   .android-player .mobile-control-deck > :is(.playback-feedback, .progress-scrubber, .flex:first-of-type), .android-player .mobile-control-deck > .flex:has(#mobileProgressBarContainer) { grid-column: 1 / -1; }
   .android-player .mobile-control-deck > .justify-between { grid-column: 1; }
   html.android-player #mobileLayout #mobilePlayBtn { height: 48px; }
   .android-player #mobileChartsSheet .mobile-charts-header { padding-top: 4px; min-height: 48px; }
   .android-player #mobileChartsSheet .android-wordmark { display: none; }
   .android-player #mobileExploreTabs { padding-block: 0; }
+  .android-player .android-search-wrap { display: none; }
+  .android-player #mobileLayout .android-nav { min-height: 56px; padding-block: 4px; }
+  .android-player .android-nav button { display: flex; justify-content: center; gap: 8px; }
+  html.android-player #mobileLyricsPage { display: grid; grid-template-columns: minmax(140px,.65fr) minmax(0,1.35fr); grid-template-rows: minmax(0,1fr) auto; gap: 0 24px; padding-block: 0; }
+  html.android-player #mobileLayout .lyric-page-heading { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-content: center; gap: 4px; padding: 0; margin: 0; border: 0; overflow: auto; }
+  .android-player .lyric-page-track { flex-basis: 100%; }
+  .android-player .lyric-page-kicker { display: none; }
+  .android-player .lyric-page-track h2 { font-size: 1.125rem; -webkit-line-clamp: 1; }
+  .android-player .lyric-page-actions { gap: 8px; }
+  .android-player .lyric-page-actions button { flex-direction: row; gap: 6px; padding-inline: 8px; }
+  .android-player .lyric-lookup-status { grid-row: 2; grid-column: 1; font-size: .6875rem; }
+  .android-player .lyric-page-body { grid-row: 1 / 3; grid-column: 2; height: 100%; }
+  html.android-player .lyric-surface #mobileLyricsScroller .lrc-line .lrc-text { font-size: min(var(--lyric-size,36px), 1.75rem); }
+  html:root.android-player #mobileLyricsPage .lyric-surface #mobileLyricsScroller .lrc-line { padding: 10px 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .android-player #mobileLayout *, .android-player #accountEntryDialog * { transition-duration: 0s !important; scroll-behavior: auto !important; }
+  .android-player *, .android-player *::before, .android-player *::after { transition-duration: 0s !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }

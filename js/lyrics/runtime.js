@@ -28,7 +28,7 @@ function createSurface(scroller, { onSeek, onFollow, preview = false }) {
     });
     scroller.replaceChildren(...nodes.map(node => node.element));
     if (!nodes.length) { const message = document.createElement('p'); message.className = 'lyric-plain'; message.textContent = doc.plain || '纯音乐 / 暂无歌词'; scroller.append(message); }
-    info.textContent = `${doc.source} · ${doc.hasWordLevel ? '逐字' : doc.lines.length ? '逐行' : doc.plain ? '纯文本' : '暂无歌词'}`;
+    info.textContent = `${doc.source} · ${doc.hasWordLevel ? '逐字同步' : doc.lines.length ? '逐行同步' : doc.plain ? '纯文本 · 可自由滚动' : '暂无歌词'}${doc.lines.length ? ' · 轻触跳转' : ''}`;
     if (settings) setSettings(settings);
   }
   function setSettings(value) {

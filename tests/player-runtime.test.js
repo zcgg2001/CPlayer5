@@ -6,7 +6,8 @@ import { createPlaybackSession } from '../js/playback-session.js';
 import { normalizeMediaUrl } from '../js/security.js';
 import * as musicData from '../js/music-data.js';
 import { RequestCancelledError } from '../js/http.js?v=37';
-import { MusicService, QUALITY_DETAILS, supportedQuality, qualityDetails } from '../js/music-service.js';
+import { MusicService, DEFAULT_QUALITY, QUALITY_DETAILS, supportedQuality, qualityDetails } from '../js/music-service.js';
+import { t } from '../js/i18n.js';
 import { isMusicChannel } from '../js/music-channels.js';
 import { createQueueStore } from '../js/queue-store.js';
 import { createPlaybackController } from '../js/playback-controller.js';
@@ -113,7 +114,7 @@ function playbackHarness() {
     parseLyrics: lrc => parsed.push(lrc),
     setLyricsStatus: message => { context.lyricStatus = message; },
     updateDoraemonProgress() {}, resetBufferedProgress() {},
-    syncPlaybackQualityDisplay() {}, syncDesktopPlayerAvailability() {},
+    syncPlaybackQualityDisplay() {}, syncDesktopPlayerAvailability() {}, syncQueueActions() {},
     syncPlaybackControls() {}, setPlaybackTransitionPending() {},
     saveLastCover() {}, highlightCurrentSong() {}, showToast() {},
     setTimeout: timer,
@@ -145,6 +146,22 @@ test('late song responses cannot replace a newer selection or its loader', async
   assert.equal(context.audio.src, song('B').url);
   assert.equal(context.currentPlaybackSong.id, 'B');
   assert.equal(context.dom.desktopLoaderOverlay.classList.contains('opacity-0'), true);
+});
+
+test('starting playback preserves the selected queue occurrence across provider ID collisions', async () => {
+  for (const index of [1, 2]) {
+    const { context, songs } = playbackHarness();
+    const selected = { ...song('A'), provider: 'qq' };
+    context.queue.playlist = [song('A'), selected, { ...selected }, song('B')];
+    context.queue.currentIndex = index;
+    context.queue.playMode = 'sequence';
+    const loading = context.loadAndPlaySong(selected.id, selected);
+    assert.equal(context.queue.currentIndex, index, 'loading keeps the selected occurrence');
+    songs.get('A').resolve(selected);
+    await loading;
+    assert.equal(context.queue.currentIndex, index, 'playback start must not jump to the first bare ID');
+    assert.equal(context.queueStore.next({ manual: true }), index + 1);
+  }
 });
 
 test('lyrics, artwork and deferred preload remain owned by the current song', async () => {
@@ -254,7 +271,7 @@ function enableQualityChanges(context, replaceAudioSource) {
     AbortController, RequestCancelledError, replaceAudioSource,
     supportedQuality: value => value,
     qualityDetails: value => ({ name: value }),
-    savePlaybackQuality: value => { context.musicService.config.quality = value; },
+    DEFAULT_QUALITY,
     playbackQualitySelector: { setValue() {} },
   });
   context.dom.playbackQualityStatus = element();
@@ -282,7 +299,7 @@ test('quality controls respect the selected provider before playback and retain 
     assert.equal(nodes.desktopPlaybackQualityBtn.disabled,disabled,source);
     assert.equal(nodes.mobilePlaybackQualityBtn.disabled,disabled,source);
     if (disabled) assert.doesNotMatch(nodes.desktopPlaybackQualityBtn.getAttribute('aria-label'),/点击选择/);
-    assert.equal(service.config.quality,preference,'display must not overwrite the saved preference');
+    assert.equal(service.config.quality,DEFAULT_QUALITY,'display must not overwrite the lossless default');
   }
 });
 
@@ -328,17 +345,45 @@ test('a late quality playback failure never restores the previous song after swi
   assert.equal(context.audio.src, song('B').url);
 });
 
-test('quality selections during song loading only update the default', async () => {
+test('quality selections during song loading leave the default and current request unchanged', async () => {
   const { context, songs } = playbackHarness();
   enableQualityChanges(context, () => { throw new Error('Unexpected source change'); });
   context.currentPlaybackSong = song('A');
+  context.musicService.config.quality = DEFAULT_QUALITY;
   const loading = context.loadAndPlaySong('B');
   await context.applyPlaybackQuality('standard');
-  assert.equal(context.musicService.config.quality, 'standard');
+  assert.equal(context.musicService.config.quality, 'lossless');
+  assert.match(context.dom.playbackQualityStatus.textContent, /加载中/);
   assert.equal(songs.has('A'), false);
   songs.get('B').resolve(song('B'));
   await loading;
   assert.equal(context.currentPlaybackSong.id, 'B');
+});
+
+test('mode changes explain every mode and keep mobile and desktop controls in sync', () => {
+  const queueStore=createQueueStore({random:()=>0});
+  queueStore.restore({songs:[{id:'a'},{id:'b'},{id:'c'}]},'a');
+  const makeButton=()=>{const attrs=new Map();return {...element(),setAttribute:(name,value)=>attrs.set(name,value),getAttribute:name=>attrs.get(name)};};
+  const dom={playModeBtn:makeButton(),mobileModeBtn:makeButton()},messages=[];
+  let updates=0;
+  const context=vm.createContext({dom,t,queue:queueStore.state,shufflePlaylist:queueStore.shuffle,
+    showToast:message=>messages.push(message),renderAllPlaylistItems(){},highlightCurrentSong(){},mobileUI:{loadPlaylist(){updates++;}}});
+  vm.runInContext(inlineFunction('syncPlayModeUI')+'\n'+inlineFunction('togglePlayMode'),context);
+  context.syncPlayModeUI();
+  assert.match(dom.mobileModeBtn.getAttribute('aria-label'),/随机播放/);
+  assert.equal(messages.length,0);
+  for (const [mode,label,icon] of [['single','单曲循环','Repeat1'],['sequence','顺序播放','ListOrdered'],['random','随机播放','Shuffle']]) {
+    context.togglePlayMode();
+    assert.equal(queueStore.state.playMode,mode);
+    for(const button of Object.values(dom)) {
+      assert.equal(button.dataset.playMode,mode);
+      assert.ok(button.getAttribute('aria-label').includes(label));
+      assert.equal(button.getAttribute('title'),messages.at(-1));
+      assert.ok(button.innerHTML.includes(icon));
+    }
+  }
+  assert.equal(updates,3);
+  assert.deepEqual([...queueStore.state.shuffledOrder].sort(),[0,1,2]);
 });
 
 test('lyric lookup handles sorted timestamps, forward seeks and backward seeks with bounded DOM work', () => {
@@ -607,7 +652,7 @@ test('GD discovery stays independent of ChKSz and captures its initiating source
   assert.equal(context.dom.desktopDiscoveryRefresh.disabled, false);
 });
 
-test('saving a ChKSz key refreshes collections while keeping GD playback selected', () => {
+test('saving a ChKSz key refreshes its collections while public artists stay independent', () => {
   let onEnabled;
   const refreshed = [];
   const context = vm.createContext({
@@ -623,7 +668,7 @@ test('saving a ChKSz key refreshes collections while keeping GD playback selecte
   context.initSettingsUI();
   onEnabled();
   assert.equal(context.musicService.config.source, 'gd');
-  assert.deepEqual(refreshed, ['discovery', 'collections', 'artists']);
+  assert.deepEqual(refreshed, ['discovery', 'collections']);
 });
 
 test('album track expansion uses GD with GD playback selected', async () => {

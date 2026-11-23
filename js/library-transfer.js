@@ -41,7 +41,7 @@ export function parseM3U(input) {
     if(pending){songs.push(pending);pending=null;continue;}
     let url;try{url=new URL(line);}catch{throw new Error('本地文件路径需在离线管理中重新导入音频');}
     if(url.hostname==='music.163.com' && /^\d{1,20}$/.test(url.searchParams.get('id')||''))songs.push({id:url.searchParams.get('id'),name:`歌曲 ${url.searchParams.get('id')}`,provider:'gd'});
-    else throw new Error('此 M3U 缺少 CPlayer 曲目元数据；不导入任意远程音频地址');
+    else throw new Error('此 M3U 缺少 ZPlayer 曲目元数据；不导入任意远程音频地址');
   }
   return dedupe(songs);
 }

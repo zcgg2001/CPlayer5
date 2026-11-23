@@ -185,7 +185,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     if (!['artist', 'album'].includes(type) || !/^\d{1,20}$/.test(id)) return;
     const signal = openDialog('正在读取音乐资料'); textStatus(dialogBody, '正在读取音乐资料…');
     try {
-      const data = await requestJson(`/api/v1/discovery/${type}?id=${id}`, { signal });
+      const data = await service.collection(type, id, signal);
       if (!signal.aborted) { showTracks(data.collection.name, data.tracks, data.collection.description || data.collection.source); dialogBody.prepend(button(type==='album'?'收藏专辑':'收藏歌手',()=>onCollect({...data.collection,type,provider:'netease'}))); }
     } catch (error) { if (!signal.aborted) textStatus(dialogBody, requestErrorMessage(error)); }
   }

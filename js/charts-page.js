@@ -1,5 +1,6 @@
 import { bindArtwork } from './artwork.js?v=1';
 import { catalogRecord } from './music-catalog.js';
+import { createChartCache } from './chart-cache.js';
 const CHARTS = Object.freeze({
   hot: Object.freeze({ id: '3778678', name: '热歌榜' }),
   new: Object.freeze({ id: '3779629', name: '新歌榜' }),
@@ -113,15 +114,6 @@ function readSnapshot(storage, chartKey) {
     return value?.chart && Array.isArray(value?.items) ? value : null;
   } catch {
     return null;
-  }
-}
-
-function writeSnapshot(storage, chartKey, payload) {
-  if (!storage) return;
-  try {
-    storage.setItem(`${CACHE_PREFIX}${chartKey}`, JSON.stringify(payload));
-  } catch {
-    // A full or restricted storage area must not block the chart.
   }
 }
 
@@ -350,8 +342,8 @@ async function fetchJson(fetchImpl, url, { signal } = {}) {
   return payload;
 }
 
-export async function fetchChartPayload(fetchImpl, chartKey, { signal } = {}) {
-  const chart = CHARTS[chartKey] || CHARTS[DEFAULT_CHART];
+export async function fetchChartPayload(fetchImpl, chartKey, { signal, definition } = {}) {
+  const chart = definition && /^\d{1,20}$/.test(String(definition.id)) ? definition : CHARTS[chartKey] || CHARTS[DEFAULT_CHART];
   const data = await fetchJson(fetchImpl, `/api/v1/discovery/playlist?id=${chart.id}`, { signal });
   if (!Array.isArray(data.tracks) || !data.collection) throw new Error('公开榜单没有返回有效曲目');
   return {
@@ -381,12 +373,29 @@ export function createChartsController({
   }
   const surfaces = chartSurfaces(documentRef);
   let activeChart = DEFAULT_CHART;
-  let requestController = null;
-  let loadedChart = '';
+  let generation = 0, destroyed = false, prefetchPending = false;
+  const definitions = new Map(Object.entries(CHARTS));
+  const cache = createChartCache({ storage, pinnedKeys: ['directory'], validate: (key,value) => key === 'directory' ? Array.isArray(value.items) : value.chart && Array.isArray(value.items), fetchValue: async (key, signal) => {
+    if (key === 'directory') {
+      const data = await fetchJson(fetchImpl, '/api/v1/discovery/charts', { signal });
+      if (!Array.isArray(data.items)) throw new Error('榜单目录暂不可用');
+      return { items: data.items.filter(item => /^\d{1,20}$/.test(String(item.id)) && typeof item.name === 'string').slice(0,100) };
+    }
+    return fetchChartPayload(fetchImpl, key, { signal, definition: definitions.get(key) });
+  } });
+  const rails = [...documentRef.querySelectorAll('.chart-tabs[role="tablist"]')];
+  const directoryButtons = new Map();
+  function applyDirectory(data) {
+    for (const item of data?.items || []) {
+      const key = Object.keys(CHARTS).find(key => CHARTS[key].id === String(item.id)) || `list_${item.id}`;
+      definitions.set(key, { id: String(item.id), name: item.name, cover: item.cover, trackCount: item.trackCount });
+    }
+  }
+  applyDirectory(cache.peek('directory'));
 
   try {
     const saved = storage?.getItem('cp_active_chart');
-    if (Object.hasOwn(CHARTS, saved)) activeChart = saved;
+    if (definitions.has(saved)) activeChart = saved;
   } catch {
     // Keep the default chart when preferences are unavailable.
   }
@@ -399,17 +408,65 @@ export function createChartsController({
     });
   };
 
+  function renderDirectory() {
+    for (const rail of rails) {
+      const toggle = directoryButtons.get(rail);
+      if (toggle) toggle.textContent = rail.classList.contains('is-expanded') ? '收起榜单' : `全部 ${definitions.size} 个榜单`;
+      const focusKey = rail.contains(documentRef.activeElement) ? documentRef.activeElement.dataset.chartKey : null;
+      const scroll = rail.scrollLeft;
+      const fragment = documentRef.createDocumentFragment();
+      for (const [key, chart] of definitions) {
+        const button = documentRef.createElement('button'); button.type = 'button'; button.className = 'chart-tab chart-cover-tab';
+        button.dataset.chartKey = key; button.setAttribute('role','tab'); button.setAttribute('aria-label', `查看${chart.name}`);
+        button.setAttribute('aria-controls', rail.closest('.charts-workspace')?.querySelector('[role="list"]')?.id || 'mobileChartList');
+        const art = documentRef.createElement('span'); art.className = 'chart-cover-art'; art.setAttribute('aria-hidden','true');
+        if (chart.cover) {
+          const image = documentRef.createElement('img'); image.alt = ''; image.loading = 'lazy'; image.width = image.height = 144;
+          bindArtwork(image, chart, { size: 240 }); art.append(image);
+        } else {
+          art.textContent = chart.name.replace(/云音乐|云村|网易云/g,'');
+          art.dataset.tone = String([...definitions.keys()].indexOf(key) % 4);
+        }
+        const label = documentRef.createElement('strong'); label.textContent = chart.name; label.title = chart.name;
+        const hint = documentRef.createElement('span'); hint.className = 'chart-cover-hint'; hint.textContent = chart.trackCount ? `${chart.trackCount} 首` : '查看榜单';
+        button.append(art,label,hint); fragment.append(button);
+      }
+      rail.replaceChildren(fragment);
+      rail.scrollLeft = scroll;
+      if (focusKey) [...rail.children].find(button => button.dataset.chartKey === focusKey)?.focus({ preventScroll:true });
+    }
+    syncTabs();
+  }
+  async function directory() {
+    if (!fetchImpl || !onlineEnabled() || destroyed) return;
+    try { const data = await cache.get('directory'); if (destroyed) return; applyDirectory(data); renderDirectory(); }
+    catch { /* The saved catalog and built-in charts remain selectable. */ }
+  }
+  async function prefetch() {
+    if (prefetchPending || !onlineEnabled() || destroyed || globalThis.navigator?.connection?.saveData) return;
+    prefetchPending = true;
+    const owner = activeChart, keys = [...definitions.keys()], at = keys.indexOf(owner);
+    try {
+      for (const key of keys.slice(at + 1, at + 3)) {
+        if (destroyed || !onlineEnabled() || activeChart !== owner) break;
+        try { await cache.get(key); } catch { /* Selecting this card can retry. */ }
+      }
+    } finally {
+      prefetchPending = false;
+      if (activeChart !== owner) void prefetch();
+    }
+  }
   const load = async ({ force = false } = {}) => {
+    const key = activeChart, token = ++generation;
+    const previous = cache.peek(key) || readSnapshot(storage, key);
     if (!onlineEnabled()) {
-      requestController?.abort();
-      loadedChart = '';
       syncTabs();
-      const cached = readSnapshot(storage, activeChart);
+      const cached = previous;
       surfaces.forEach(surface => {
         if (cached) {
           renderSurface(surface, cached, { onPlay, onAdd, stale: true });
         } else {
-          surface.title.textContent = CHARTS[activeChart].name;
+          surface.title.textContent = definitions.get(key).name;
           surface.description.textContent = '当前离线；你仍可查看已保存的榜单。';
           surface.source.textContent = '实时更新已暂停';
           surface.count.textContent = '暂无缓存';
@@ -424,33 +481,33 @@ export function createChartsController({
       return;
     }
     if (!fetchImpl) return;
-    if (!force && loadedChart === activeChart) return;
-    requestController?.abort();
-    const controller = new AbortController();
-    requestController = controller;
-    surfaces.forEach(setLoading);
+    const fresh = cache.fresh(key);
+    if (previous) surfaces.forEach(surface => {
+      renderSurface(surface, previous, { onPlay, onAdd, stale: !fresh });
+      if (force || !fresh) { surface.updated.textContent = '后台更新中 · 保留当前榜单'; if (surface.refresh) surface.refresh.disabled = true; }
+    });
+    else surfaces.forEach(surface => { surface.title.textContent = definitions.get(key).name; setLoading(surface); });
     syncTabs();
-
-    const previous = readSnapshot(storage, activeChart);
+    if (previous && fresh && !force) { void prefetch(); return previous; }
     try {
-      const payload = await fetchChartPayload(fetchImpl, activeChart, { signal: controller.signal });
-      if (controller.signal.aborted) return;
+      const payload = await cache.get(key, { force });
+      if (destroyed || generation !== token) return;
       const withMovement = {
         ...payload,
         items: computeRankMovement(payload.items, previous ? previous.items : null),
       };
       surfaces.forEach(surface => renderSurface(surface, withMovement, { onPlay, onAdd, stale: false }));
-      writeSnapshot(storage, activeChart, payload);
-      loadedChart = activeChart;
+      void prefetch();
+      return withMovement;
     } catch (error) {
-      if (controller.signal.aborted) return;
+      if (destroyed || generation !== token) return;
       if (previous) {
         const cached = {
           ...previous,
           items: computeRankMovement(previous.items, previous.items),
         };
         surfaces.forEach(surface => renderSurface(surface, cached, { onPlay, onAdd, stale: true }));
-        loadedChart = activeChart;
+        surfaces.forEach(surface => { surface.updated.textContent = '刷新失败 · 已保留上次内容'; });
       } else {
         surfaces.forEach(surface => setError(
           surface,
@@ -459,7 +516,7 @@ export function createChartsController({
         ));
       }
     } finally {
-      if (requestController !== controller) return;
+      if (destroyed || generation !== token) return;
       surfaces.forEach(surface => {
         if (surface.refresh) {
           surface.refresh.disabled = false;
@@ -469,20 +526,42 @@ export function createChartsController({
     }
   };
 
-  documentRef.querySelectorAll('[data-chart-key]').forEach(button => {
-    button.addEventListener('click', () => {
+  rails.forEach(rail => {
+    rail.classList.add('chart-cover-rail');
+    const overview = rail.parentElement.querySelector('.chart-overview');
+    if (overview) rail.parentElement.insertBefore(rail, overview);
+    const heading = documentRef.createElement('div'); heading.className = 'chart-directory-heading';
+    const label = documentRef.createElement('strong'); label.textContent = '选择榜单';
+    const toggle = documentRef.createElement('button'); toggle.type = 'button';
+    rail.id ||= `${rail.closest('[id]')?.id || 'charts'}CoverCatalog`;
+    toggle.setAttribute('aria-expanded','false'); toggle.setAttribute('aria-controls',rail.id);
+    toggle.addEventListener('click', () => {
+      const expanded = rail.classList.toggle('is-expanded');
+      toggle.setAttribute('aria-expanded',String(expanded));
+      toggle.textContent = expanded ? '收起榜单' : `全部 ${definitions.size} 个榜单`;
+      rail.scrollTop = 0;
+    });
+    directoryButtons.set(rail,toggle); heading.append(label,toggle); rail.parentElement.insertBefore(heading,rail);
+    rail.addEventListener('click', event => {
+      const button = event.target.closest('[data-chart-key]'); if (!button) return;
       const next = button.dataset.chartKey;
-      if (!Object.hasOwn(CHARTS, next) || next === activeChart) return;
+      if (!definitions.has(next)) return;
+      if (rail.classList.contains('is-expanded')) {
+        rail.classList.toggle('is-expanded');
+        toggle.setAttribute('aria-expanded','false'); toggle.textContent = `全部 ${definitions.size} 个榜单`;
+        button.scrollIntoView?.({block:'nearest',inline:'center'});
+      }
+      if (next === activeChart) return;
       activeChart = next;
-      loadedChart = '';
       try {
         storage?.setItem('cp_active_chart', activeChart);
       } catch {
         // Preference persistence is optional.
       }
-      load({ force: true });
+      void load();
     });
-    button.addEventListener('keydown', event => {
+    rail.addEventListener('keydown', event => {
+      const button = event.target.closest('[data-chart-key]'); if (!button) return;
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       const tabs = Array.from(
         button.closest('[role="tablist"]')?.querySelectorAll('[data-chart-key]') || [],
@@ -503,15 +582,20 @@ export function createChartsController({
   surfaces.forEach(surface => {
     surface.refresh?.addEventListener('click', () => load({ force: true }));
   });
-  syncTabs();
+  renderDirectory();
+  const warmup = setTimeout(() => {
+    if (destroyed || !onlineEnabled() || globalThis.navigator?.connection?.saveData) return;
+    void directory();
+    void cache.get(activeChart).then(() => prefetch()).catch(() => {});
+  }, 1000);
 
   return {
     load,
-    ensureLoaded: () => load(),
+    ensureLoaded: () => { void directory(); return load(); },
     refresh: () => load({ force: true }),
     current: () => activeChart,
     destroy() {
-      requestController?.abort();
+      destroyed = true; generation++; clearTimeout(warmup); cache.destroy();
     },
   };
 }

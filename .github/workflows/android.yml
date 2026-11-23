@@ -25,8 +25,9 @@ jobs:
         run: sh scripts/build_android.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: CPlayer5-android-preview
+          name: ZPlayer-android-preview
           path: |
+            output/android/ZPlayer-android-preview-*.apk
             output/android/CPlayer5-android-preview-*.apk
             output/android/SHA256SUMS.txt
           retention-days: 30

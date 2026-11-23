@@ -134,7 +134,7 @@ html.desktop-immersive-open:root #desktopPlayerBar #progressBar { background: va
   .listening-playing #mobileLayout .listening-ambient-art { animation-play-state: running; }
   html:root #mobileLayout > header { border-bottom-color: #ffffff18 !important; }
   html:root #mobileLayout > header h1,
-  html:root #mobileLayout :is(#mobileChartsBtn, #mobileThemeBtn, #mobileSettingsBtn, #mobileModeBtn, #mobilePrevBtn, #mobileNextBtn, #mobilePlaylistToggleBtn, #mobileViewToggle) { color: var(--room-ink) !important; }
+  html:root #mobileLayout :is(#mobileChartsBtn, #mobileThemeBtn, #mobileSettingsBtn, #mobileModeBtn, #mobilePrevBtn, #mobileNextBtn, #mobilePlaylistToggleBtn) { color: var(--room-ink) !important; }
   html:root #mobileLayout #mobileMainView { color: var(--room-ink); }
   html:root #mobileCoverContainer { gap: 16px; }
   html:root #mobileVinylContainer { width: min(78vw, 35vh, 360px); height: auto; aspect-ratio: 1; }
@@ -145,9 +145,6 @@ html.desktop-immersive-open:root #desktopPlayerBar #progressBar { background: va
   html:root #mobileLyricsScroller .lrc-line.active .lrc-text { font-size: 28px; color: var(--room-ink); }
   html:root #mobileLyricsScroller .lrc-line { padding: 16px 20px; }
   html:root #mobileLyricsScroller .lrc-trans { font-size: 16px; }
-  html:root #mobileLayout #mobileViewToggle { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0 14px; border: 1px solid #ffffff25; border-radius: 99px; background: #ffffff0b; font-size: 12px; }
-  html:root #mobileLayout #mobileViewToggle[aria-pressed="true"] { background: #ffffff25; }
-  #mobileViewToggle svg { width: 16px; height: 16px; }
   html:root #mobileLayout .mobile-empty-lyrics { color: var(--room-muted); }
 }
 @media (prefers-reduced-motion: reduce) {

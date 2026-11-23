@@ -7,6 +7,7 @@ export function initPageScrollSpider() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
   if (document.getElementById('pageScrollSpider')) return window.pageScrollSpider || null;
   const resolveTarget = () => {
+    if (document.documentElement.classList.contains('android-player')) return null;
     if (window.matchMedia(DESKTOP_SHELL_MEDIA).matches) {
       return document.documentElement.classList.contains('desktop-immersive-open')
         ? null : document.getElementById('desktopLibraryView');

@@ -34,6 +34,16 @@ html:root #settingsCard #musicApiKey[aria-invalid="true"] { border-color: var(--
 #musicKeyFeedback { margin-top: 8px; color: var(--studio-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 #musicKeyFeedback:empty { display: none; }
 #musicKeyFeedback[data-error="true"] { color: var(--studio-ink); font-weight: 600; }
+.lx-source-form h3 { font-size: 1rem; font-weight: 600; }
+.lx-source-form label { display: block; font-size: .875rem; }
+.lx-source-form .lx-source-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; cursor: pointer; }
+.lx-source-toggle input { flex: 0 0 20px; width: 20px; height: 20px; accent-color: var(--primary-color); }
+.lx-source-form .music-key-hint { margin-top: 0; }
+.lx-source-form input[type='url'] { width: 100%; min-width: 0; min-height: 48px; margin: 6px 0 12px; padding: 10px 12px; border: 1px solid var(--studio-line); border-radius: 12px; background: var(--studio-bg); color: var(--studio-ink); }
+.lx-source-form button { min-height: 48px; }
+#lxSourceFeedback { margin-top: 8px; font-size: .875rem; overflow-wrap: anywhere; }
+#lxSourceFeedback:empty { display: none; }
+#lxSourceFeedback[data-error='true'] { color: var(--md-error, var(--studio-accent)); }
 
 html[data-theme="light"] {
   --studio-bg: #f5f6f4;

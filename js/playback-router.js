@@ -7,6 +7,7 @@ import { createPlaybackCache } from './playback-cache.js';
 // search/catalog channel takes precedence over this order and latency scores.
 export const PLAYBACK_SOURCE_ORDER = Object.freeze(['netease', 'gd', 'xinghai-netease', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'xinghai-qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou', 'chksz']);
 const QUALITY_ORDER = ['jymaster', 'hires', 'lossless', 'exhigh', 'standard'];
+export const DEFAULT_PLAYBACK_QUALITY = 'lossless';
 const HEALTH_KEY = 'cp_playback_health_v1';
 export function actualPlaybackQuality(data) {
   let path = '';
@@ -19,10 +20,10 @@ export function actualPlaybackQuality(data) {
   return { ...data, ...(format ? {format} : {}) };
 }
 const platform = source => MUSIC_CHANNELS[source]?.platform || (['gd', 'chksz'].includes(source) ? 'netease' : source);
-export function playbackLevels(provider, ceiling = 'jymaster') {
+export function playbackLevels(provider, ceiling = DEFAULT_PLAYBACK_QUALITY) {
   const supported = provider === 'chksz' ? QUALITY_ORDER : provider === 'gd' ? QUALITY_ORDER.slice(1)
     : MUSIC_CHANNELS[provider]?.qualities.length ? [...MUSIC_CHANNELS[provider].qualities].reverse() : ['standard'];
-  const start = Math.max(0, QUALITY_ORDER.indexOf(ceiling));
+  const start = QUALITY_ORDER.indexOf(QUALITY_ORDER.includes(ceiling) ? ceiling : DEFAULT_PLAYBACK_QUALITY);
   return supported.filter(level => QUALITY_ORDER.indexOf(level) >= start);
 }
 export function samePlaybackRecording(left, right) {
@@ -74,7 +75,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     const score = p => { const h=health.get(p); return (h?.failures||0)*20000 + (h?.latency||0) + Math.max(0,PLAYBACK_SOURCE_ORDER.indexOf(p))*900; };
     return [...providers].sort((a,b)=>score(a)-score(b));
   }
-  async function* candidates(id, { song, signal, fetchImpl, level = 'jymaster', prefetch = false, onAttempt = () => {} } = {}) {
+  async function* candidates(id, { song, signal, fetchImpl, level = DEFAULT_PLAYBACK_QUALITY, prefetch = false, onAttempt = () => {} } = {}) {
     const policy = await service.getRuntimePolicy?.();
     signal?.throwIfAborted();
     const input = song || { id };

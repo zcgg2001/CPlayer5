@@ -2,10 +2,13 @@ package tech.zc505.cplayer;
 
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.Process;
+import android.webkit.WebSettings;
 import androidx.annotation.Nullable;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.C;
@@ -16,6 +19,12 @@ import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.datasource.DataSourceBitmapLoader;
+import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.datasource.okhttp.OkHttpDataSource;
+import androidx.media3.exoplayer.source.ProgressiveMediaSource;
+import androidx.media3.session.CacheBitmapLoader;
+import androidx.media3.session.DefaultMediaNotificationProvider;
 import androidx.media3.session.MediaSession;
 import androidx.media3.session.MediaSessionService;
 import java.util.function.Consumer;
@@ -31,6 +40,8 @@ public final class PlaybackService extends MediaSessionService {
   private int token;
   private boolean seeked;
   private WebPlayerHost webHost;
+  private final ProgressiveMediaSource.Factory importedAudio =
+      new ProgressiveMediaSource.Factory(new OkHttpDataSource.Factory(LxHttpBridge.publicClient().build()));
 
   WebPlayerHost webHost() {
     if (webHost == null) webHost = new WebPlayerHost(this);
@@ -62,6 +73,7 @@ public final class PlaybackService extends MediaSessionService {
         }
       };
 
+  // Same-process Activity binding only. This binder exposes no remote transactions.
   public final class LocalBinder extends Binder {
     PlaybackService service() {
       return PlaybackService.this;
@@ -131,7 +143,29 @@ public final class PlaybackService extends MediaSessionService {
             0,
             new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-    session = new MediaSession.Builder(this, controls).setSessionActivity(open).build();
+    CacheBitmapLoader artworkLoader = new CacheBitmapLoader(
+        new DataSourceBitmapLoader.Builder(this)
+            .setDataSourceFactory(new DefaultHttpDataSource.Factory()
+                .setUserAgent(WebSettings.getDefaultUserAgent(this) + " CPlayerAndroid/" + BuildConfig.VERSION_NAME)
+                .setConnectTimeoutMs(8000)
+                .setReadTimeoutMs(8000))
+            .setMaximumOutputDimension(512)
+            .build());
+    session = new MediaSession.Builder(this, controls)
+        .setSessionActivity(open)
+        .setBitmapLoader(artworkLoader)
+        .setCallback(new MediaSession.Callback() {
+          @Override
+          public MediaSession.ConnectionResult onConnect(
+              MediaSession mediaSession, MediaSession.ControllerInfo controller) {
+            if (!allowedController(controller)) return MediaSession.ConnectionResult.reject();
+            return MediaSession.Callback.super.onConnect(mediaSession, controller);
+          }
+        })
+        .build();
+    DefaultMediaNotificationProvider notifications = new DefaultMediaNotificationProvider(this);
+    notifications.setSmallIcon(R.drawable.ic_playback);
+    setMediaNotificationProvider(notifications);
     // The Activity uses a local binder, so no external MediaController calls
     // onGetSession to register it for us. Registration drives the foreground
     // notification and keeps playback eligible for background network access.
@@ -155,7 +189,11 @@ public final class PlaybackService extends MediaSessionService {
 
   @Override
   public MediaSession onGetSession(MediaSession.ControllerInfo controller) {
-    return session;
+    return allowedController(controller) ? session : null;
+  }
+
+  private boolean allowedController(MediaSession.ControllerInfo controller) {
+    return controller.getUid() == Process.myUid() || controller.isTrusted();
   }
 
   void attach(@Nullable Consumer<String> callback) {
@@ -178,16 +216,19 @@ public final class PlaybackService extends MediaSessionService {
         return;
       }
       player.setPlayWhenReady(false);
-      player.setMediaItem(
-          new MediaItem.Builder()
+      MediaItem item = new MediaItem.Builder()
+              .setMediaId(message.optString("mediaId"))
               .setUri(url)
               .setMediaMetadata(
                   new MediaMetadata.Builder()
                       .setTitle(message.optString("title"))
                       .setArtist(message.optString("artist"))
                       .setAlbumTitle(message.optString("album"))
+                      .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
                       .build())
-              .build());
+              .build();
+      if (message.optBoolean("importedAudio")) player.setMediaSource(importedAudio.createMediaSource(item));
+      else player.setMediaItem(item);
       player.setVolume((float) Math.max(0, Math.min(1, message.optDouble("volume", 1))));
       player.prepare();
     } else if (incoming == token) {
@@ -208,19 +249,20 @@ public final class PlaybackService extends MediaSessionService {
         case "volume":
           player.setVolume((float) Math.max(0, Math.min(1, message.optDouble("volume"))));
           break;
-        case "metadata":
+        case "artwork":
           MediaItem item = player.getCurrentMediaItem();
-          if (item != null)
+          if (item != null && item.mediaId.equals(message.optString("mediaId"))) {
+            String artwork = message.optString("artworkUri");
+            Uri artworkUri = BridgePolicy.artwork(artwork) ? Uri.parse(artwork) : null;
+            if (java.util.Objects.equals(item.mediaMetadata.artworkUri, artworkUri)) break;
             player.replaceMediaItem(
                 0,
                 item.buildUpon()
-                    .setMediaMetadata(
-                        new MediaMetadata.Builder()
-                            .setTitle(message.optString("title"))
-                            .setArtist(message.optString("artist"))
-                            .setAlbumTitle(message.optString("album"))
+                    .setMediaMetadata(item.mediaMetadata.buildUpon()
+                            .setArtworkUri(artworkUri)
                             .build())
                     .build());
+          }
           break;
         default:
           break;

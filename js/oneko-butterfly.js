@@ -34,6 +34,7 @@ function resolveLayout(width, height, reducedMotion) {
 
 export function initOnekoButterfly() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+  if (document.documentElement.classList.contains('android-player')) return null;
   if (window.desktopPet) return window.desktopPet;
   const pet = createDesktopPet({
     id: 'onekoPetLayer',

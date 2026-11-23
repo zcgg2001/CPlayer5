@@ -11,10 +11,12 @@ function harness(resolve, options={}) {
  const calls=[];const service={sourceForSong:()=>({provider:'gd'}),search:async()=>[],getSongAtLevel:async(id,level,opts)=>{calls.push({id,level,...opts});return resolve(id,level,opts);}};
  const router=createPlaybackRouter(service,options);return {router,service,calls};
 }
-test('each provider starts at its maximum and a ceiling constrains manual quality',()=>{
- assert.deepEqual(playbackLevels('gd'),['hires','lossless','exhigh','standard']);
+test('providers start lossless by default and still allow explicit higher quality',()=>{
+ assert.deepEqual(playbackLevels('gd'),['lossless','exhigh','standard']);
  assert.deepEqual(playbackLevels('netease'),['lossless','exhigh','standard']);
- assert.deepEqual(playbackLevels('op-applemusic'),['hires','lossless','exhigh','standard']);
+ assert.deepEqual(playbackLevels('op-applemusic'),['lossless','exhigh','standard']);
+ assert.deepEqual(playbackLevels('gd','hires'),['hires','lossless','exhigh','standard']);
+ assert.deepEqual(playbackLevels('chksz','jymaster'),['jymaster','hires','lossless','exhigh','standard']);
  assert.deepEqual(playbackLevels('op-qq','lossless'),['lossless','exhigh','standard']);
  assert.deepEqual(playbackLevels('chksz','exhigh'),['exhigh','standard']);
 });
@@ -34,7 +36,7 @@ test('a selected search provider wins over global priority and latency for every
 test('selected source downgrades before falling back and preserves exact source IDs',async()=>{
  const {router,calls}=harness((id,level,{source})=>source==='op-netease'&&level==='hires'?null:playable(source,level));
  const song={...track,id:'op-netease:123',sourceId:'123',provider:'op-netease',preferredProvider:'op-netease'};
- const iterator=router.candidates(song.id,{song});
+ const iterator=router.candidates(song.id,{song,level:'hires'});
  const result=(await iterator.next()).value;assert.equal(result.provider,'op-netease');assert.equal(result.level,'lossless');
  assert.deepEqual(calls.map(x=>[x.source,x.level]),[['op-netease','hires'],['op-netease','lossless']]);
  assert.equal((await iterator.next({skipProvider:true})).value.provider,'netease');
@@ -55,9 +57,9 @@ test('selected sources still honor Retry-After and do not bypass a known provide
  assert.equal((await router.candidates(song.id,{song}).next()).value.provider,'netease');
  assert.equal(calls.filter(x=>x.source==='op-netease').length,1);
 });
-test('unavailable quality downgrades on the same provider',async()=>{
- const {router,calls}=harness((id,level,{source})=>level==='jymaster'?null:playable(source,level));
- const {value}=await router.candidates(track.id,{song:{...track,preferredProvider:'chksz'}}).next();assert.equal(value.level,'hires');assert.deepEqual(calls.map(x=>x.level),['jymaster','hires']);
+test('unavailable lossless downgrades on the same provider',async()=>{
+ const {router,calls}=harness((id,level,{source})=>level==='lossless'?null:playable(source,level));
+ const {value}=await router.candidates(track.id,{song:{...track,preferredProvider:'chksz'}}).next();assert.equal(value.level,'exhigh');assert.deepEqual(calls.map(x=>x.level),['lossless','exhigh']);
 });
 test('rate limits skip all remaining qualities and cool the provider across songs',async()=>{
  const {router,calls}=harness((id,level,{source})=>{if(source==='chksz')throw new HttpStatusError(429,null,'600');return playable(source,level);});
@@ -67,13 +69,13 @@ test('rate limits skip all remaining qualities and cool the provider across song
 });
 test('media failure tries lower quality, transport failure moves to another provider',async()=>{
  const {router}=harness((id,level,{source})=>playable(source,level));const iterator=router.candidates(track.id,{song:{...track,preferredProvider:'chksz'}});
- assert.equal((await iterator.next()).value.level,'jymaster');
- assert.equal((await iterator.next({error:Error('codec')})).value.level,'hires');
+ assert.equal((await iterator.next()).value.level,'lossless');
+ assert.equal((await iterator.next({error:Error('codec')})).value.level,'exhigh');
  assert.equal((await iterator.next({skipProvider:true})).value.provider,'netease');
 });
 test('actual server downgrade skips redundant tiers on subsequent media failure',async()=>{
- const {router,calls}=harness((id,level,{source})=>playable(source,level==='jymaster'?'exhigh':level));const it=router.candidates(track.id,{song:{...track,preferredProvider:'chksz'}});
- await it.next();assert.equal((await it.next()).value.level,'standard');assert.deepEqual(calls.map(x=>x.level),['jymaster','standard']);
+ const {router,calls}=harness((id,level,{source})=>playable(source,level==='lossless'?'exhigh':level));const it=router.candidates(track.id,{song:{...track,preferredProvider:'chksz'}});
+ await it.next();assert.equal((await it.next()).value.level,'standard');assert.deepEqual(calls.map(x=>x.level),['lossless','standard']);
 });
 test('matching rejects covers, live versions, mismatched album and duration',()=>{
  assert.equal(samePlaybackRecording(track,{...track,provider:'qq',id:'abc'}),true);
@@ -93,7 +95,7 @@ test('OP NetEase reuses verified platform IDs and skips pending tasks without tr
   throw new HttpStatusError(503,{error:{message:'OP Music 音频仍在准备，已切换其他渠道'}});
  });
  assert.equal((await router.candidates(track.id,{song:track}).next()).value.provider,'at38-netease');
- const op=calls.filter(x=>x.source==='op-netease');assert.equal(op.length,1);assert.equal(op[0].id,'op-netease:123');assert.equal(op[0].level,'hires');
+ const op=calls.filter(x=>x.source==='op-netease');assert.equal(op.length,1);assert.equal(op[0].id,'op-netease:123');assert.equal(op[0].level,'lossless');
 });
 test('OP QQ shares mids, while Apple IDs stay isolated and later matching uses prepared album metadata',async()=>{
  const h=harness((id,level,{source})=>source==='op-qq'?playable(source,level):Promise.reject(new HttpStatusError(503)));
@@ -204,7 +206,7 @@ test('Xinghai fallback reuses exact NetEase IDs and QQ mids; refusal cools only 
   const h=harness((id,level,{source:provider})=>provider===source?playable(provider,level):Promise.reject(new HttpStatusError(503)));
   h.service.search=async()=>{throw new Error('Exact platform IDs should not need search');};
   const result=(await h.router.candidates(original.id,{song:original}).next()).value;
-  assert.equal(result.provider,source);assert.equal(h.calls.at(-1).id,`${source}:${id}`);assert.equal(h.calls.at(-1).level,'hires');
+  assert.equal(result.provider,source);assert.equal(h.calls.at(-1).id,`${source}:${id}`);assert.equal(h.calls.at(-1).level,'lossless');
   const selected={...original,provider:source,id:`${source}:${id}`,sourceId:id,preferredProvider:source};
   const denied=harness((id,level,{source:provider})=>{if(provider===source)throw new HttpStatusError(403);return playable(provider,level);});
   assert.notEqual((await denied.router.candidates(selected.id,{song:selected}).next()).value.provider,source);assert.equal(denied.calls.filter(x=>x.source===source).length,1);assert.ok(denied.router.health()[source].until>Date.now());
@@ -271,6 +273,26 @@ test('controller prepares only the next track near its end and reuses resolution
  await controller.preloadNext();assert.equal(h.calls.length,2);
  await controller.load(next.id,next);assert.equal(h.calls.length,2);assert.equal(successes,2);
  assert.equal(controller.state.currentSong.id,next.id);assert.equal(controller.state.currentSong.routing.cacheHit,true);
+ controller.stop();
+});
+
+test('a manual quality change does not lower the next track or its prefetch',async()=>{
+ const h=harness((id,level,{source})=>({...playable(source,level),sourceId:id}));
+ const next={...track,id:'124'},audio=new Audio(),queue=createQueueStore();
+ queue.state.playMode='sequence';queue.restore({songs:[track,next]},track.id);
+ const service={...h.service,playbackCandidates:h.router.candidates,getLyric:async()=>null};
+ const controller=createPlaybackController({audio,musicService:service,queueStore:queue,setTimer:()=>1,clearTimer:()=>{}});
+ await controller.load(track.id,track);
+ assert.equal(controller.state.currentSong.level,'lossless');
+ await controller.changeQuality('standard');
+ assert.equal(controller.state.currentSong.level,'standard');
+ audio.currentTime=260;
+ await controller.preloadNext();
+ assert.equal(h.calls.at(-1).id,'netease:124');
+ assert.equal(h.calls.at(-1).level,'lossless');
+ await controller.load(next.id,next);
+ assert.equal(controller.state.currentSong.level,'lossless');
+ assert.equal(controller.state.currentSong.routing.cacheHit,true);
  controller.stop();
 });
 

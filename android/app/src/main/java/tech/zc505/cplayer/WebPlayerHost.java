@@ -35,6 +35,9 @@ final class WebPlayerHost {
   private static final String UI_PATH = "/android-player/";
   static final String START_URL = BuildConfig.PLAYER_ORIGIN + UI_PATH + "index.html?app=android";
   final WebView view;
+  final LyricShareBridge lyricShare;
+  private final UpdateBridge updates;
+  private final LxHttpBridge lxHttp = new LxHttpBridge();
   private final MutableContextWrapper context;
   private JavaScriptReplyProxy reply;
   private MainActivity activity;
@@ -44,6 +47,8 @@ final class WebPlayerHost {
   WebPlayerHost(PlaybackService service) {
     context = new MutableContextWrapper(service);
     view = new WebView(context);
+    lyricShare = new LyricShareBridge(service, () -> activity);
+    updates = new UpdateBridge(service, () -> activity);
     view.setBackgroundColor(Color.rgb(24, 22, 21));
     WebSettings settings = view.getSettings();
     settings.setJavaScriptEnabled(true);
@@ -86,6 +91,27 @@ final class WebPlayerHost {
               /* Malformed messages carry no authority. */
             }
           });
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))
+      WebViewCompat.addWebMessageListener(view, "CPlayerShare", Collections.singleton(BuildConfig.PLAYER_ORIGIN),
+        (web, message, origin, mainFrame, proxy) -> {
+          if (mainFrame && BridgePolicy.trusted(origin.toString()) && BridgePolicy.trusted(view.getUrl()))
+            lyricShare.receive(message.getData(), proxy);
+        });
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))
+      WebViewCompat.addWebMessageListener(view, "ZPlayerLxHttp", Collections.singleton(BuildConfig.PLAYER_ORIGIN),
+          (web, message, origin, mainFrame, proxy) -> {
+            String page = web.getUrl();
+            if (mainFrame && BridgePolicy.trusted(origin.toString()) && BridgePolicy.trusted(page)
+                && (UI_PATH + "index.html").equals(Uri.parse(page).getPath()))
+              lxHttp.receive(message.getData(), proxy);
+          });
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))
+      WebViewCompat.addWebMessageListener(view, "ZPlayerUpdates", Collections.singleton(BuildConfig.PLAYER_ORIGIN),
+          (web, message, origin, mainFrame, proxy) -> {
+            String page = web.getUrl();
+            if (mainFrame && BridgePolicy.trusted(origin.toString()) && BridgePolicy.trusted(page)
+                && (UI_PATH + "index.html").equals(Uri.parse(page).getPath())) updates.receive(message.getData(), proxy);
+          });
     service.attach(
         data -> {
           if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
@@ -126,6 +152,9 @@ final class WebPlayerHost {
           @Override
           public void onPageStarted(WebView web, String url, android.graphics.Bitmap icon) {
             reply = null;
+            lxHttp.reset();
+            updates.reset();
+            lyricShare.reset();
             service.pageUnloaded();
           }
 
@@ -141,6 +170,9 @@ final class WebPlayerHost {
             // with invisible controls or a stale recovery session.
             if (web.getParent() instanceof android.view.ViewGroup parent) parent.removeView(web);
             reply = null;
+            lxHttp.reset();
+            updates.reset();
+            lyricShare.reset();
             service.rendererLost();
             if (activity != null) activity.recreate();
             return true;
@@ -181,6 +213,7 @@ final class WebPlayerHost {
   void attach(MainActivity host) {
     activity = host;
     context.setBaseContext(host);
+    view.getSettings().setTextZoom(Math.round(host.getResources().getConfiguration().fontScale * 100));
     host.applyAppearance(lightTheme);
   }
 
@@ -191,6 +224,9 @@ final class WebPlayerHost {
 
   void destroy() {
     reply = null;
+    lxHttp.reset();
+    updates.destroy();
+    lyricShare.destroy();
     view.stopLoading();
     view.destroy();
     activity = null;

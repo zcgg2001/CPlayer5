@@ -311,7 +311,6 @@ class StartupBehaviorTests(unittest.TestCase):
         for fragment in (
             "function openPlaybackQualityDialog(opener)",
             "async function applyPlaybackQuality(level)",
-            "musicService.saveSettings('quality'",
             "const resumeAt = audio.currentTime || 0;",
             "const shouldResume = !audio.paused;",
             "const replace = url =>",

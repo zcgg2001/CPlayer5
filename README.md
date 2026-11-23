@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="img/icon.svg" alt="CPlayer 5 Logo" width="120" height="120">
+  <img src="img/icon.svg" alt="ZPlayer Logo" width="120" height="120">
 </p>
 
-<h1 align="center">CPlayer 5</h1>
+<h1 align="center">ZPlayer</h1>
 
 <p align="center">
   <b>一款现代化的 Web 音乐播放器，支持超清母带音质、实时歌词、离线歌单导入与沉浸式动态背景。</b>
@@ -29,7 +29,7 @@
 
 项目文档：[项目梳理、重点与优势](docs/PROJECT_OVERVIEW.md) · [分阶段优化方案](docs/OPTIMIZATION_PLAN.md)
 
-CPlayer 5 是一个基于浏览器原生能力的单页音乐播放器，支持播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入。在线内容通过同源服务端接口访问，不能仅靠静态文件服务运行。
+ZPlayer 是一个基于浏览器原生能力的单页音乐播放器，支持播放控制、歌词同步、音频可视化、PWA 离线缓存、移动端手势交互与本地歌单导入。在线内容通过同源服务端接口访问，不能仅靠静态文件服务运行。
 
 当前版本除了基础播放体验，还加入了更完整的歌单加载链路：支持远程歌单 ID 拉取、`playlist.js` 本地离线歌单、JSON 文件导入、拖拽导入，以及 IndexedDB 歌单缓存与静默更新。
 
@@ -190,7 +190,13 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 ### Android APK
 
-从 GitHub Releases 下载 `CPlayer5-android-preview-<versionCode>.apk`。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
+1.11.1 起应用更名为 **ZPlayer**，沿用原包名、签名和个人库，可直接覆盖安装。
+
+1.11.0 预览版按 Material Design 3 统一浅色/深色配色、卡片、按钮、搜索和设置；手机使用底部导航，宽屏使用侧边导航。
+
+安卓歌词页支持 LRCLIB 自动补全与本机缓存，可选句生成方形或竖版卡片并保存、分享。窄屏、平板和横屏分别适配布局。
+
+新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署
 
@@ -312,7 +318,7 @@ CPlayer5/
 
 新增网易云 Meting / 51ape / 煎饼、QQ 的 51ape / VKeys / 煎饼、酷狗煎饼、酷我煎饼 / 歌曲客，共 9 个渠道。新增渠道首页与播放独立于 ChKSz 额度，歌曲保留自己的渠道，音频通过本站 HTTPS 播放。详见 [渠道与接口说明](docs/music-channels.md)。
 
-GD 与 ChKSz 共用网易云歌曲 ID。在这两个接口之间切换后，下一次加载网易云歌曲或切换音质使用所选接口；正在播放的音频不打断。GD 首页使用独立搜索和按需加载的主题入口，启动时不请求 ChKSz。实时榜单、歌手聚合、新歌、新碟和歌单详情是 ChKSz 的可选功能；GD 模式下榜单和歌手页只显示已保存内容或搜索入口，已保存歌单只从本地缓存恢复。ChKSz 额度耗尽时可从错误提示一键切换 GD，不影响界面和基础播放。搜索使用所选接口，歌词跟随歌曲实际使用的播放接口；Bilibili 视频发现保留原有来源。保存 ChKSz 密钥不会改变当前播放接口。
+GD 与 ChKSz 共用网易云歌曲 ID。在这两个接口之间切换后，下一次加载网易云歌曲或切换音质使用所选接口；正在播放的音频不打断。GD 首页使用独立搜索和按需加载的主题入口，启动时不请求 ChKSz。排行榜和歌手页从网易云公开榜单加载，所有音源均可浏览，离线可查看上次保存的榜单。ChKSz 的新歌、新碟和歌单详情仍按需使用。ChKSz 额度耗尽时可从错误提示一键切换 GD，不影响界面和基础播放。搜索使用所选接口，歌词跟随歌曲实际使用的播放接口；Bilibili 视频发现保留原有来源。保存 ChKSz 密钥不会改变当前播放接口。
 
 GD 请求经同源后端转发，固定访问 music-api.gdstudio.xyz，不携带 ChKSz 密钥。搜索每次显示 10 条，服务端串行请求并缓存成功结果；每个服务进程限制最多 50 次 / 5 分钟，429 遵守 Retry-After，不自动重试。分布式部署仍需遵守 GD 的总体限额。GD 音频地址为空时最多降档到 320K、128K；鉴权、限流等错误立即停止。GD 返回的实际音质决定播放器标识，最高对应 Hi-Res，不标为母带。
 
