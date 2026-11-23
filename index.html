@@ -83,6 +83,7 @@
     <link rel="stylesheet" href="./css/account.css?v=3">
     <link rel="stylesheet" href="./css/personal-library.css">
     <link rel="stylesheet" href="./css/android-player.css">
+    <link rel="stylesheet" href="./css/music-wall.css">
 </head>
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
@@ -1140,6 +1141,7 @@
                         <button type="button" data-open-personal-library="playlists"><i data-lucide="ListMusic" aria-hidden="true"></i><span>我的歌单</span></button>
                     </div>
                 </div>
+                <section id="mobileExploreWallPane" class="mobile-explore-pane" aria-label="音乐墙" hidden></section>
                 <div id="mobileExploreChartsPane" class="mobile-explore-pane"
                     role="tabpanel" aria-labelledby="mobileChartsPageTitle">
                     <section class="charts-workspace" aria-labelledby="mobileChartTitle">
@@ -1320,6 +1322,7 @@
                 <span class="android-rail-mark" aria-hidden="true">Z</span>
                 <button type="button" data-android-action="home" aria-current="page"><i data-lucide="Compass" aria-hidden="true"></i><span>发现</span></button>
                 <button type="button" data-android-action="search" aria-haspopup="dialog" aria-controls="mobilePlaylistSheet"><i data-lucide="Search" aria-hidden="true"></i><span>搜索</span></button>
+                <button type="button" data-android-action="wall" aria-controls="mobileExploreWallPane"><i data-lucide="Grid2X2" aria-hidden="true"></i><span>音乐墙</span></button>
                 <button type="button" data-open-personal-library aria-haspopup="dialog" aria-controls="personalLibraryDialog"><i data-lucide="Library" aria-hidden="true"></i><span>我的音乐</span></button>
             </nav>
         </section>

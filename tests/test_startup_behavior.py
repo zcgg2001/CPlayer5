@@ -150,7 +150,7 @@ class StartupBehaviorTests(unittest.TestCase):
     def test_content_hubs_support_deep_links_and_mobile_section_switching(self):
         for fragment in (
             "function contentViewFromHash()",
-            "['discovery', 'charts', 'artists', 'videos'].includes(view)",
+            "['discovery', 'charts', 'artists', 'videos', ...(androidPlayer ? ['wall'] : [])].includes(view)",
             "function syncContentRoute(view)",
             "function setMobileExploreView(view",
             "function setMobileExploreOpen(open",

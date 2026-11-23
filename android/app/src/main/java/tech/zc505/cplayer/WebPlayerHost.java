@@ -118,6 +118,7 @@ final class WebPlayerHost {
             if (reply != null && BridgePolicy.trusted(view.getUrl())) reply.postMessage(data);
           }
         });
+    CoverImageCache covers = CoverImageCache.get(context);
     WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
         .setDomain(Uri.parse(BuildConfig.PLAYER_ORIGIN).getHost())
         .addPathHandler(UI_PATH + "qq-artwork/", new QqArtworkHandler())
@@ -129,6 +130,8 @@ final class WebPlayerHost {
       ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+          WebResourceResponse cover = "GET".equals(request.getMethod()) ? covers.intercept(request.getUrl().toString()) : null;
+          if (cover != null) return cover;
           return assets.shouldInterceptRequest(request.getUrl());
         }
       });
@@ -137,6 +140,8 @@ final class WebPlayerHost {
         new WebViewClient() {
           @Override
           public WebResourceResponse shouldInterceptRequest(WebView web, WebResourceRequest request) {
+            WebResourceResponse cover = "GET".equals(request.getMethod()) ? covers.intercept(request.getUrl().toString()) : null;
+            if (cover != null) return cover;
             return assets.shouldInterceptRequest(request.getUrl());
           }
 

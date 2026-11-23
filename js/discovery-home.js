@@ -7,7 +7,7 @@ import { createRecommendationService, createRadio } from './recommendation-servi
 import { catalogRecord, groupAvailability, AVAILABILITY_LABELS } from './music-catalog.js';
 import { durationLabel } from './discovery-table.js';
 
-export function createDiscoveryHome({ onCollect = () => {}, document, root, musicService, storage, onPlay, onBatch, onDetails, getCurrentSong, getLibrary, notify = () => {} }) {
+export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {}, document, root, musicService, storage, onPlay, onBatch, onDetails, getCurrentSong, getLibrary, notify = () => {} }) {
   const profileStore = createDiscoveryProfile({ storage }), { profile } = profileStore;
   const service = createRecommendationService({ musicService, profileStore, storage });
   let controller, modalController, daily = [], modalEntries = [], filters = {}, dialogOpener, lastDismissed, lastDay = dayKey(), homeLoading = true;
@@ -262,7 +262,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     homeStatus.replaceChildren(el('span', '', '正在更新推荐…'));
     renderRecommendations(); renderHistory();
     try { await service.loadHome(signal, ({ errors, stale, loading, sections }) => {
-      if (signal.aborted) return; homeLoading = loading; renderRecommendations();
+      if (signal.aborted) return; homeLoading = loading; renderRecommendations(); onUpdate();
       const news = service.newSongs();
       if (!news.length && sections.news === 'loading') skeleton(newsList);
       else {
@@ -275,7 +275,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
         ...(!profileStore.persistent() ? ['浏览器存储不可用，偏好仅在本次会话有效'] : [])].join(' · ')));
       if (errors.length) homeStatus.append(button('重试', load));
     }); } catch (error) { if (!signal.aborted) { homeStatus.replaceChildren(el('span', '', error.message), button('重试', load)); } }
-    finally { if (!signal.aborted) { homeLoading = false; renderRecommendations(); } }
+    finally { if (!signal.aborted) { homeLoading = false; renderRecommendations(); onUpdate(); } }
   }
   let observedKey = '', lastTick = 0, accumulated = 0, lastSave = 0;
   function savePlayback(audio, force = false) {
@@ -296,7 +296,7 @@ export function createDiscoveryHome({ onCollect = () => {}, document, root, musi
     if (next !== profileOwner) { profileOwner = next; radio.stop(); dialog.close(); renderHistory(); renderRecommendations(); }
   });
   load();
-  return { load, connectAudio, openCollection, showCharts, startRadio, radio, advanceRadio,
+  return { wallSnapshot: () => ({ recommendations: service.pool(), favorites: service.favorites(), loading: homeLoading }), load, connectAudio, openCollection, showCharts, startRadio, radio, advanceRadio,
     playbackFailed(error) { if (radio.active()) radioStatus.textContent = `这首暂时无法播放，点击下一首继续 · ${requestErrorMessage(error)}`; },
     beforePlay(song) { if (!radio.owns(song)) radio.stop(); },
     record: (song, position, delta) => profileStore.record(song, position, delta),

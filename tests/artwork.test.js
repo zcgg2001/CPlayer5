@@ -57,7 +57,7 @@ test('broken artwork falls back to native-ID metadata and reuses the successful 
   assert.equal(requests.length,1);assert.match(requests[0],/artwork=1/);
   assert.deepEqual(images,[artworkUrl(track.cover,640,baseUrl),artworkUrl(track.cover,0,baseUrl),artworkUrl(native,640,baseUrl)]);
   await resolver.resolve(track);
-  assert.equal(requests.length,1);assert.equal(images.length,4);
+  assert.equal(requests.length,1);assert.equal(images.length,3);
 });
 
 test('audio source switching retains the original artwork ID, not the new provider namespace', async () => {
@@ -204,4 +204,50 @@ test('rapid track changes repaint all surfaces together and ignore late artwork 
   assert.deepEqual(changes.at(-1),['ready','2']);
   images[0].onerror();assert.ok(images.every(image=>image.dataset.artworkState==='fallback'));
   assert.ok(images.every(image=>image.src===images[0].src));
+});
+
+
+test('concurrent album covers share one image load; a canceled row cannot cancel another', async () => {
+  let complete, calls = 0, sharedSignal;
+  const pending = new Promise(resolve => { complete = resolve; });
+  const resolver = createArtworkResolver({ baseUrl, loadImage: async (url, { signal }) => { calls++; sharedSignal = signal; await pending; } });
+  const abort = new AbortController();
+  const a = resolver.resolve({ ...song, cover: native }, { signal: abort.signal, size: 300 });
+  const b = resolver.resolve({ ...song, id: '2', cover: native }, { size: 300 });
+  await Promise.resolve(); abort.abort(); await assert.rejects(a, { name: 'AbortError' });
+  assert.equal(sharedSignal.aborted, false); complete();
+  assert.equal((await b).status, 'ready'); assert.equal(calls, 1);
+  await resolver.resolve({ ...song, id: '3', cover: native }, { size: 300 });
+  assert.equal(calls, 1);
+});
+
+test('cached covers paint immediately; display failures invalidate the URL and recover', async () => {
+  const attempts = [], track = { ...song, cover: native }, image = imageNode();
+  const resolver = createArtworkResolver({ baseUrl, fetchImpl: assert.fail, loadImage: async url => attempts.push(url) });
+  await resolver.resolve(track, { size: 300 });
+  bindArtwork(image, track, { resolver, size: 300 });
+  assert.equal(image.dataset.artworkState, 'ready');
+  assert.equal(attempts.length, 1);
+  image.onerror();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(image.dataset.artworkState, 'ready');
+  assert.equal(image.src, artworkUrl(native, 0, baseUrl));
+  assert.equal(attempts.length, 2);
+});
+
+test('changed cover references and rendition sizes do not reuse obsolete artwork', async () => {
+  const resolver = createArtworkResolver({ baseUrl, loadImage: async () => {} });
+  const track = { ...song, cover: native };
+  await resolver.resolve(track, { size: 150 });
+  assert.equal(resolver.peek(track, { size: 300 }), null);
+  assert.equal(resolver.peek(track, { size: 300, anySize: true }).status, 'ready');
+  assert.equal(resolver.peek({ ...track, cover: 'https://p1.music.126.net/new.jpg' }, { size: 150 }), null);
+});
+
+test('wall thumbnail sizes use supported CDN variants without altering signed requests', () => {
+  const qq = 'https://y.gtimg.cn/music/photo_new/T002R300x300M000000MkMni19ClKG.jpg';
+  assert.match(artworkUrl(qq, 500, baseUrl), /T002R500x500/);
+  const kg = 'https://imge.kugou.com/stdmusic/800/20230920/abc.jpg';
+  assert.match(decodeURIComponent(artworkUrl(kg, 240, baseUrl)), /stdmusic\/240\//);
+  assert.match(decodeURIComponent(artworkUrl(kg + '?token=keep', 240, baseUrl)), /stdmusic\/800\/.*token=keep/);
 });

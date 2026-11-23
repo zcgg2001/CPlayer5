@@ -33,8 +33,15 @@ export function artworkUrl(value, size = 640, baseUrl = base()) {
     if (size === 0) url.searchParams.delete('param');
     else url.searchParams.set('param', `${width}y${width}`);
   } else if (size !== 0 && url.hostname === 'y.gtimg.cn' && !url.search && /\/T002R\d+x\d+M000/.test(url.pathname)) {
-    const qqSize = width <= 150 ? 150 : width <= 300 ? 300 : 800;
+    const qqSize = width <= 150 ? 150 : width <= 300 ? 300 : width <= 500 ? 500 : 800;
     url.pathname = url.pathname.replace(/T002R\d+x\d+M000/, `T002R${qqSize}x${qqSize}M000`);
+  } else if (size > 0 && !url.search && /(^|\.)(kugou\.com|kgimg\.com)$/.test(url.hostname)) {
+    const tier = width <= 240 ? 240 : width <= 480 ? 480 : 800;
+    url.pathname = url.pathname.replace(/\/(?:\d{2,4}|%7Bsize%7D)\/(?=\d{8}\/)/i, `/${tier}/`);
+  } else if (size > 0 && !url.search && url.hostname.endsWith('.kuwo.cn')) {
+    url.pathname = url.pathname.replace(/(\/star\/albumcover\/)\d+\//, `$1${width}/`);
+  } else if (size > 0 && !url.search && url.hostname.endsWith('.mzstatic.com')) {
+    url.pathname = url.pathname.replace(/\/\d+x\d+bb\.(jpg|png|webp)$/, `/${width}x${width}bb.$1`);
   } else if (size > 0 && width <= 320 && url.hostname.endsWith('.hdslb.com') && !url.search && /\.(jpe?g|png)$/i.test(url.pathname)) {
     url.pathname += '@480w_270h_1c.webp';
   }
@@ -134,7 +141,30 @@ async function waitForMetadata(pending, signal) {
 
 export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage = loadArtworkImage, now = Date.now, baseUrl = base(), timeoutMs = 12000, storage } = {}) {
   const failures = new Map(), metadata = new Map(), successes = new Map(), pendingMetadata = new Map();
-  const knownCovers = new Map();
+  const knownCovers = new Map(), readyImages = new Map(), pendingImages = new Map();
+  // A request is shared by URL, even when several songs use the same album cover.
+  async function probe(url, signal) {
+    if (readyImages.get(url) > now()) return;
+    let job = pendingImages.get(url);
+    if (!job) {
+      const controller = new AbortController();
+      job = { controller, waiters: 0 };
+      job.promise = Promise.resolve().then(() => loadImage(url, { signal: controller.signal }))
+        .then(() => {
+          controller.signal.throwIfAborted();
+          boundedSet(readyImages, url, now() + 86400000);
+        })
+        .finally(() => { if (pendingImages.get(url) === job) pendingImages.delete(url); });
+      pendingImages.set(url, job);
+    }
+    job.waiters++;
+    try { await waitForMetadata(job.promise, signal); }
+    finally {
+      if (--job.waiters === 0 && pendingImages.get(url) === job) {
+        pendingImages.delete(url); job.controller.abort();
+      }
+    }
+  }
   try {
     const saved = JSON.parse(storage?.getItem(COVER_INDEX) || '[]');
     for (const [id, url] of saved.slice(-200)) {
@@ -179,7 +209,26 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
     return artworkIdentity(original) || (original.sources || []).filter(other => sameArtworkRelease(song, other)).map(artworkIdentity).find(Boolean) || '';
   }
 
+  const cacheGroup = (song, id = identity(song), sources = artworkSources(song)) => JSON.stringify([id, sources]);
+  const cacheKey = (group, size) => `${group}:${size}`;
+  const peek = (song, { size = 640, anySize = false } = {}) => {
+    const group = cacheGroup(song);
+    const saved = successes.get(cacheKey(group, size));
+    if (saved?.expires > now() && !(failures.get(saved.url) > now())) return { url: saved.url, status: 'ready' };
+    if (anySize) {
+      const prefix = `${group}:`;
+      for (const [id, entry] of [...successes].reverse()) {
+        if (id.startsWith(prefix) && entry.expires > now() && !(failures.get(entry.url) > now())) return { url: entry.url, status: 'ready' };
+      }
+    }
+    return null;
+  };
   return {
+    peek,
+    invalidate(url) {
+      readyImages.delete(url); boundedSet(failures, url, now() + 30000);
+      for (const [id, saved] of successes) if (saved.url === url) successes.delete(id);
+    },
     knownCover(song) { return knownCovers.get(identity(song)) || ''; },
     async resolve(song, { signal, size = 640 } = {}) {
       signal?.throwIfAborted();
@@ -189,13 +238,13 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
       const timer = setTimeout(() => scope.abort(new DOMException('Artwork deadline', 'TimeoutError')), timeoutMs);
       const id = identity(song);
       const sources = artworkSources(song);
-      const cacheId = JSON.stringify([id || sources, size]);
+      const cacheId = cacheKey(cacheGroup(song, id, sources), size);
       const tried = new Set();
       const attempt = async url => {
         if (!url || tried.has(url) || tried.size >= 5 || failures.get(url) > now()) return null;
         scope.signal.throwIfAborted(); tried.add(url);
         try {
-          await loadImage(url, { signal: scope.signal }); scope.signal.throwIfAborted();
+          await probe(url, scope.signal); scope.signal.throwIfAborted();
         } catch (error) {
           if (scope.signal.aborted) throw error;
           boundedSet(failures, url, now() + 30000); return null;
@@ -231,17 +280,17 @@ try { localStore = globalThis.localStorage; } catch { /* Storage is optional. */
 export const artworkResolver = createArtworkResolver({ storage: localStore });
 
 // One observer covers dynamic and virtualized lists. Dropped rows never take a network slot.
-const bindings = new WeakMap(), watching = new Set(), visible = new Set();
+const bindings = new WeakMap(), watching = new Set(), visible = new Set(), running = new Set();
 let observer, active = 0;
 function drainArtwork() {
   for (const image of visible) {
-    if (active >= 4) break;
+    if (active >= 6) break;
     if (image.closest?.('[inert]')) continue;
     visible.delete(image); watching.delete(image); observer?.unobserve(image);
     const load = bindings.get(image);
     if (!load || image.isConnected === false) continue;
-    active++;
-    void load().finally(() => { active--; drainArtwork(); });
+    active++; running.add(image);
+    void load().finally(() => { active--; running.delete(image); drainArtwork(); });
   }
 }
 function watchArtwork(image) {
@@ -253,11 +302,12 @@ function watchArtwork(image) {
         if (isIntersecting) visible.add(target); else visible.delete(target);
       }
       drainArtwork();
-    });
+    }, { rootMargin: '280px 0px' });
     new MutationObserver(records => {
-      if (!watching.size) return;
+      if (!watching.size && !running.size) return;
       if (records.some(record => record.removedNodes.length)) {
-        for (const target of watching) if (!target.isConnected) {
+        for (const target of new Set([...watching, ...running])) if (!target.isConnected) {
+          bindings.get(target)?.cancel();
           observer.unobserve(target); watching.delete(target); visible.delete(target);
         }
       }
@@ -269,27 +319,36 @@ function watchArtwork(image) {
 
 export function bindArtwork(image, song, { size = 320, url = song?.cover, resolver = artworkResolver } = {}) {
   const track = url === song?.cover ? song : { ...song, cover: url };
-  const fallback = fallbackArtwork(track);
+  const fallback = fallbackArtwork(track), controller = new AbortController();
+  bindings.get(image)?.cancel();
   image.classList.add('cplayer-artwork'); image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
   image.removeAttribute('crossorigin'); image.onload = image.onerror = null;
-  image.dataset.artworkState = 'loading'; image.style.backgroundImage = `url("${fallback.url}")`;
-  image.src = fallback.url;
-  async function load() {
-    const result = await resolver.resolve(track, { size }).catch(() => fallback);
-    if (bindings.get(image) !== load || image.isConnected === false) return;
+  image.style.backgroundImage = `url("${fallback.url}")`;
+  let recovered = false;
+  function paint(result) {
     image.dataset.artworkState = result.status;
-    if (result.status !== 'ready') return;
-    image.onerror = () => {
+    image.onerror = result.status === 'ready' ? () => {
+      resolver.invalidate?.(result.url);
       image.onerror = null; image.dataset.artworkState = 'fallback'; image.src = fallback.url;
-    };
+      if (!recovered && resolver.invalidate) { recovered = true; void load(); }
+    } : null;
     image.src = result.url;
   }
-  bindings.set(image, load); watchArtwork(image);
+  async function load() {
+    const result = await resolver.resolve(track, { size, signal: controller.signal }).catch(() => fallback);
+    if (controller.signal.aborted || bindings.get(image) !== load || image.isConnected === false) return;
+    paint(result);
+  }
+  load.cancel = () => controller.abort();
+  bindings.set(image, load);
+  const cached = resolver.peek?.(track, { size });
+  paint(cached || resolver.peek?.(track, { size, anySize: true }) || { ...fallback, status: 'loading' });
+  if (!cached) watchArtwork(image);
   return image;
 }
 
 // One presentation transaction for all playback surfaces; stale requests cannot repaint.
-export function createArtworkPresenter({ resolver = createArtworkResolver(), images, onChange = () => {} }) {
+export function createArtworkPresenter({ resolver = artworkResolver, images, onChange = () => {} }) {
   let controller, version = 0;
   const paint = (result, song) => {
     for (const image of images().filter(Boolean)) {
@@ -298,7 +357,7 @@ export function createArtworkPresenter({ resolver = createArtworkResolver(), ima
       image.dataset.artworkState = result.status;
       image.alt = result.status === 'ready' ? `${albumName(song) || '歌曲'}封面` : '音乐封面占位图';
       image.onload = null;
-      image.onerror = result.status === 'ready' ? () => paint(fallbackArtwork(song), song) : null;
+      image.onerror = result.status === 'ready' ? () => { resolver.invalidate?.(result.url); paint(fallbackArtwork(song), song); } : null;
       image.src = result.url;
     }
     onChange(result, song);
@@ -314,7 +373,7 @@ export function createArtworkPresenter({ resolver = createArtworkResolver(), ima
       signal?.addEventListener('abort', abort, { once: true });
       const live = () => !signal?.aborted && !current.signal.aborted && token === version && isCurrent();
       if (!live()) { signal?.removeEventListener('abort', abort); return; }
-      paint(fallbackArtwork(song), song);
+      paint(resolver.peek?.(song, { anySize: true }) || fallbackArtwork(song), song);
       try {
         const result = await resolver.resolve(song, { signal: current.signal });
         if (live()) paint(result, song);

@@ -33,6 +33,7 @@ import { createPlayerAudio } from './native-audio.js';
 import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtworkPresenter } from './artwork.js?v=1';
 import { createQueueStore } from './queue-store.js?v=1';
 import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
+import { createMusicWall } from './music-wall.js';
 import { initAccountPanel } from './account-panel.js?v=3';
 import { createGuestTrial } from './guest-trial.js?v=1';
 const guestTrial = createGuestTrial(localStorage);
@@ -322,6 +323,7 @@ let artistsController = null;
 let videosController = null;
 let mobileChartsOpener = null;
 let mobileExploreView = 'discovery';
+let musicWall = null;
 let videoPreviewOpener = null;
 let visualizer = null;
 
@@ -637,11 +639,11 @@ function showDesktopMainView(view) {
 
 function contentViewFromHash() {
     const view = window.location.hash.replace(/^#/, '');
-    return ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : null;
+    return ['discovery', 'charts', 'artists', 'videos', ...(androidPlayer ? ['wall'] : [])].includes(view) ? view : null;
 }
 
 function syncContentRoute(view) {
-    const nextView = ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : null;
+    const nextView = ['discovery', 'charts', 'artists', 'videos', ...(androidPlayer ? ['wall'] : [])].includes(view) ? view : null;
     if (nextView) {
         const nextHash = `#${nextView}`;
         if (window.location.hash !== nextHash) {
@@ -659,19 +661,21 @@ function syncContentRoute(view) {
 }
 
 function setMobileExploreView(view, { syncRoute = true, resetScroll = true } = {}) {
-    const nextView = ['discovery', 'charts', 'artists', 'videos'].includes(view) ? view : 'discovery';
+    const nextView = ['discovery', 'charts', 'artists', 'videos', ...(androidPlayer ? ['wall'] : [])].includes(view) ? view : 'discovery';
     mobileExploreView = nextView;
     const labels = {
         discovery: ['发现音乐', '每日推荐与私人电台'],
         charts: ['音乐排行榜', '热歌、新歌与趋势'],
         artists: ['歌手中心', '实时榜单自动聚合'],
         videos: ['视频中心', '国内音乐视频与现场影像'],
+        wall: ['音乐墙', '让封面带你遇见下一首'],
     };
     const panes = {
         discovery: dom.mobileExploreDiscoveryPane,
         charts: dom.mobileExploreChartsPane,
         artists: dom.mobileExploreArtistsPane,
         videos: dom.mobileExploreVideosPane,
+        wall: dom.mobileExploreWallPane,
     };
     Object.entries(panes).forEach(([key, pane]) => {
         if (!pane) return;
@@ -686,6 +690,12 @@ function setMobileExploreView(view, { syncRoute = true, resetScroll = true } = {
     });
     if (dom.mobileChartsPageTitle) dom.mobileChartsPageTitle.textContent = labels[nextView][0];
     if (dom.mobileExploreSubtitle) dom.mobileExploreSubtitle.textContent = labels[nextView][1];
+    dom.mobileChartsSheet.classList.toggle('is-music-wall', nextView === 'wall');
+    dom.mobileChartsSheet.querySelectorAll('.android-nav [data-android-action]').forEach(button => {
+        const selected = button.dataset.androidAction === (nextView === 'wall' ? 'wall' : 'home');
+        if (selected) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+    });
+    musicWall?.setActive(nextView === 'wall' && dom.mobileChartsSheet.getAttribute('aria-hidden') === 'false');
     if (nextView === 'charts') chartsController?.ensureLoaded();
     if (nextView === 'artists') artistsController?.ensureLoaded();
     if (nextView === 'videos') videosController?.ensureLoaded();
@@ -718,10 +728,11 @@ function setMobileExploreOpen(open, { view = mobileExploreView, syncRoute = true
         setMobileExploreView(view, { syncRoute, resetScroll: !androidPlayer || view !== mobileExploreView });
         requestAnimationFrame(() => {
             if (androidPlayer) {
-                if (!document.querySelector('dialog[open]')) dom.mobileExploreTabs.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
+                if (!document.querySelector('dialog[open]')) (view === 'wall' ? dom.mobileChartsSheet.querySelector('[data-android-action="wall"]') : dom.mobileExploreTabs.querySelector('[aria-selected="true"]'))?.focus({ preventScroll: true });
             } else dom.mobileChartsClose?.focus();
         });
     } else {
+        musicWall?.setActive(false);
         const opener = mobileChartsOpener;
         mobileChartsOpener = null;
         if (androidPlayer) dom.androidCollapsePlayer.focus({ preventScroll: true });
@@ -1224,6 +1235,7 @@ function initEventListeners() {
         dom.androidCollapsePlayer.addEventListener('click', () => setMobileExploreOpen(true));
         const actions = {
             home: () => setMobileExploreView('discovery'),
+            wall: () => setMobileExploreView('wall'),
             search: () => openMusicSearch(),
             theme: () => dom.mobileThemeBtn.click(),
             settings: openSettings,
@@ -2292,7 +2304,7 @@ function initDiscoveryTable() {
         onPlay: song => addDiscoverySong(song),
         onQueue: song => addChartSong(song, {playNow:false,source:song.source}),
     });
-    discoveryHome = createDiscoveryHome({ document, root: dom.discoveryHome, musicService, storage: localStorage,
+    discoveryHome = createDiscoveryHome({ onUpdate: () => musicWall?.refresh(), document, root: dom.discoveryHome, musicService, storage: localStorage,
         onCollect: item => personalLibrary?.collect(item),
         onPlay: (song, options) => addDiscoverySong(song, options),
         onBatch: (songs, label) => addCollectionTracks(songs, {label, playNow:true, source:'recommendations'}),
@@ -2302,6 +2314,18 @@ function initDiscoveryTable() {
         notify: showToast,
     });
     discoveryHome.connectAudio(audio);
+    if (androidPlayer) {
+        musicWall = createMusicWall({ document, root: dom.mobileExploreWallPane, storage: localStorage,
+            getSnapshot: () => ({ ...discoveryHome.wallSnapshot(), queue: queue.playlist }),
+            getCurrentSong: () => playback.state.currentSong,
+            onPlay: song => addDiscoverySong(song),
+            onQueue: song => addChartSong(song, { playNow: false, source: song.source }),
+            onDetails: (song, trigger) => catalogBrowser.open({ song, trigger }),
+            onSearch: openMusicSearch, onRetry: () => discoveryHome.load(),
+        });
+        musicWall.setActive(mobileExploreView === 'wall' && dom.mobileChartsSheet.getAttribute('aria-hidden') === 'false');
+        for (const event of ['loadedmetadata', 'playing', 'pause', 'emptied']) audio.addEventListener(event, () => musicWall.refresh());
+    }
     const sharedPage = new URLSearchParams(location.search);
     if (/^\d{1,20}$/.test(sharedPage.get('collection') || '')) {
         const openSharedPage = () => discoveryHome.openCollection(sharedPage.get('collectionType'), sharedPage.get('collection'));
@@ -4314,6 +4338,7 @@ let vsScrollRAF = null;      // 防抖 requestAnimationFrame
 let vsNodeMap = new Map();   // displayIndex -> DOM node
 
 function syncQueueActions() {
+    musicWall?.refresh();
     const selectedSong = mobileUI?.coverSong || playback.state.currentSong;
     if (selectedSong) queueStore.select(selectedSong);
     mobileUI?.syncCoverCarousel();
@@ -4536,6 +4561,7 @@ function vsRenderVisible(forceRebuild) {
 
 // 一次性渲染播放列表（保留作为兼容入口，内部走虚拟滚动）
 function renderAllPlaylistItems() {
+    musicWall?.refresh();
     setupVirtualScroll();
 }
 
