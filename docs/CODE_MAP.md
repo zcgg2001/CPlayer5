@@ -56,7 +56,6 @@
 - [js/discovery-home.js](../js/discovery-home.js) — 295 行
 - [js/discovery-table.js](../js/discovery-table.js) — 161 行
 - [js/download-session.js](../js/download-session.js) — 43 行
-- [js/guest-trial.js](../js/guest-trial.js) — 12 行
 - [js/http.js](../js/http.js) — 139 行
 - [js/i18n.js](../js/i18n.js) — 59 行
 - [js/library-data.js](../js/library-data.js) — 70 行

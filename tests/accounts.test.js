@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 import { handleAccounts } from '../sites/accounts.js';
 import { wechatProvider } from '../sites/account-auth.js';
 import { sqliteSQL, applyLocalAccountMigrations } from '../local-accounts.js';
+import { createAccountLibrary } from '../js/account-library.js';
 import { createAccountSync } from '../js/account-sync.js';
 import { cleanRecords, mergeRecords } from '../js/account-data.js';
-import { createGuestTrial } from '../js/guest-trial.js';
 import { createRequire } from 'node:module';
 const { appOrigin, tokenRoute } = createRequire(import.meta.url)('../desktop/policy.cjs');
 const origin = 'http://127.0.0.1:8787';
@@ -102,6 +102,38 @@ test('sync rejects large documents before they exceed the D1 row limit', () => {
   assert.throws(() => cleanRecords(records(950)), /云端资料超过/);
 });
 function storage() { const data = new Map(); return { getItem: k => data.get(k) ?? null, setItem: (k,v) => data.set(k,v), removeItem: k => data.delete(k) }; }
+test('oversized lyric settings cannot block login, leak to another account, or erase cloud settings', () => {
+  const store = storage();
+  const library = createAccountLibrary({
+    storage: store,
+    player: { queue: () => [], setQueue() {} },
+    refreshFavorites() {},
+    onSettings() {},
+  });
+  const key = 'cp_lyricTracks_v1', record = `setting:${key}`, guestTracks = 'g'.repeat(16001), accountTracks = 'a'.repeat(16001);
+  store.setItem(key, guestTracks);
+  store.setItem('cp_theme', 'night');
+  assert.throws(() => cleanRecords({ [record]: guestTracks }), /设置过大/);
+  assert.equal(library.capture()['setting:cp_theme'], 'night');
+  assert.equal(library.capture()[record], undefined);
+
+  library.switchLocalSettings('account');
+  store.setItem('cp_account_owner', 'account');
+  library.apply({ [record]: 'small cloud version' });
+  assert.equal(store.getItem(key), 'small cloud version');
+  store.setItem(key, accountTracks);
+  const cloudSettings = { [record]: 'small cloud version' };
+  assert.equal(library.capture({ cloudSettings })[record], 'small cloud version');
+  library.apply(cloudSettings);
+  assert.equal(store.getItem(key), accountTracks);
+
+  library.switchLocalSettings(null);
+  store.removeItem('cp_account_owner');
+  assert.equal(store.getItem(key), guestTracks);
+  library.switchLocalSettings('account');
+  assert.equal(store.getItem(key), accountTracks);
+});
+
 test('offline journal survives reload and account switch cannot upload previous user data', async () => {
   const store = storage(); let offline = true, remote = { revision: 0, records: {} };
   const request = async (_path, opts) => { if (offline) throw Error('offline'); if (opts) { remote = { revision: remote.revision + 1, records: opts.body.records }; return { revision: remote.revision }; } return structuredClone(remote); };
@@ -109,12 +141,6 @@ test('offline journal survives reload and account switch cannot upload previous 
   sync = createAccountSync({ storage: store, request }); sync.connect('a'); assert.equal(sync.records()['favorite:gd:1'].id, '1');
   sync.disconnect(); sync.connect('b'); offline = false; await sync.sync(); assert.deepEqual(remote.records, {});
   sync.disconnect(); sync.connect('a'); await sync.sync(); assert.equal(remote.records['favorite:gd:1'].id, '1');
-});
-test('guest permits 50 unique songs, repeats do not consume; failed/unrecorded plays do not consume', () => {
-  const s = storage(), trial = createGuestTrial(s); assert.equal(trial.remaining(), 50);
-  for (let id = 0; id < 50; id++) { assert.ok(trial.allows({ id })); trial.record({ id }); }
-  assert.equal(trial.remaining(), 0); assert.equal(trial.allows({ id: 50 }), false); assert.equal(trial.allows({ id: 2 }), true);
-  trial.record({ id: 2 }); assert.equal(createGuestTrial(s).remaining(), 0);
 });
 test('desktop only injects bearer into trusted private API routes', () => {
   const origin = appOrigin(); assert.ok(tokenRoute(origin + '/api/sync', origin));

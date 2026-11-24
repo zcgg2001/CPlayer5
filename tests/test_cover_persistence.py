@@ -44,7 +44,7 @@ class CoverPersistenceTests(unittest.TestCase):
         startup = source_block(
             self.source,
             "document.addEventListener('DOMContentLoaded', async () =>",
-            "// ★ 初始化 IndexedDB 缓存",
+            "initDownloadControls();",
         )
         self.assertIn("restoreLastCover();", startup)
 

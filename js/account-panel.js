@@ -1,17 +1,17 @@
 import { createAccountSync } from './account-sync.js';
-import { createAccountLibrary } from './account-library.js';
-import { createAccountEntry } from './account-entry.js';
+import { createAccountLibrary } from './account-library.js?v=2';
+import { createAccountEntry } from './account-entry.js?v=2';
 import { createOfflineDatabase } from './offline-audio.js';
 
 // The player normalizes content hashes during startup; preserve OAuth return intent.
 const initialAccountURL = new URL(location.href);
 const entry = createAccountEntry();
 
-export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, guestTrial, persistGuestQueue = false }) {
+export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, persistGuestQueue = false }) {
   root.innerHTML = `
     <div class="account-heading"><div><p class="account-eyebrow">ZPLAYER ACCOUNT</p><h3>账号与多端</h3></div><span id="accountBadge">本地模式</span></div>
     <p id="accountNotice" role="status" aria-live="polite">正在检查账号服务…</p>
-    <div id="accountLogin"><button id="accountOpenEntry" type="button">登录 / 注册账号</button><p id="accountGuestQuota" class="account-help"></p><p class="account-help">只需用户名和密码，即可保存与同步你的音乐。</p></div>
+    <div id="accountLogin"><button id="accountOpenEntry" type="button">登录 / 注册账号</button><p class="account-help">游客听歌不限首数。</p><p class="account-help">只需用户名和密码，即可保存与同步你的音乐。</p></div>
     <div id="accountSignedIn" hidden><div class="account-heading"><strong id="accountIdentityName"></strong><button id="accountSignOut" type="button">退出登录</button></div>
       <p id="accountSyncStatus" role="status" aria-live="polite"></p><div class="account-actions"><button id="accountSyncNow" type="button">立即同步</button><button id="accountImportLocal" type="button">导入登录前的本地资料</button></div>
       <p class="account-help">收藏、歌单、队列、设置自动同步。播放进度每 30 秒保存，点击下方继续播放。音源与歌词设置在下次打开播放器时生效。</p>
@@ -24,14 +24,45 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     <div class="account-install"><button id="accountInstall" type="button">安装播放器</button><span id="accountInstallHint" class="account-help">安装后可从桌面打开，支持离线界面和系统媒体键。</span></div>`;
   const $ = id => root.querySelector(`#${id}`);
   const storage = localStorage;
-  let user = null, caps = {}, busy = false, timer, installPrompt, syncing = false, lastProgress = 0, switching = false, authenticated = false, entered = false, offlineMode = false;
+  let user = null, caps = {}, busy = false, timer, installPrompt, syncing = false, lastProgress = 0, switching = false, authenticated = false, entered = false;
   const library = createAccountLibrary({ storage, player, refreshFavorites, onSettings });
   const notice = (text, error = false) => { $('accountNotice').textContent = text; $('accountNotice').classList.toggle('account-error', error); };
   const request = async (path, { method = 'GET', body } = {}) => {
-    const response = await fetch(path, { method, credentials: 'same-origin', cache: 'no-store', headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(20000) });
-    const data = await response.json();
-    if (!response.ok) { const messages = { INVALID_USERNAME_OR_PASSWORD: '用户名或密码不正确', USERNAME_IS_ALREADY_TAKEN: '这个用户名已被注册，请换一个', USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: '这个用户名已被注册，请换一个', PASSWORD_TOO_SHORT: '密码至少需要 8 位', PASSWORD_TOO_LONG: '密码不能超过 128 位', INVALID_USERNAME: '用户名只能包含字母、数字和下划线' }; const error = new Error(response.status === 429 ? '尝试次数过多，请稍后再试' : messages[data.code] || data.message || data.error?.message || '操作失败，请稍后重试'); error.status = response.status; throw error; }
-    return data;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(path, {
+        method, credentials: 'same-origin', cache: 'no-store',
+        headers: body ? { 'content-type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
+      });
+      const data = await response.json().catch(error => {
+        if (controller.signal.aborted) throw error;
+        return null;
+      });
+      if (!response.ok) {
+        const messages = {
+          INVALID_USERNAME_OR_PASSWORD: '用户名或密码不正确',
+          USERNAME_IS_ALREADY_TAKEN: '这个用户名已被注册，请换一个',
+          USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: '这个用户名已被注册，请换一个',
+          PASSWORD_TOO_SHORT: '密码至少需要 8 位',
+          PASSWORD_TOO_LONG: '密码不能超过 128 位',
+          INVALID_USERNAME: '用户名只能包含字母、数字和下划线',
+        };
+        const message = response.status === 429 ? '尝试次数过多，请稍后再试'
+          : response.status >= 500 ? '账号服务暂时不可用，请稍后再试'
+          : messages[data?.code] || data?.message || data?.error?.message || '账号请求失败，请稍后重试';
+        throw Object.assign(new Error(message), { status: response.status });
+      }
+      if (data === null) throw new Error('账号服务返回异常，请稍后重试');
+      return data;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('连接账号服务超时，请检查网络后重试');
+      if (error instanceof TypeError) throw new Error('无法连接账号服务，请检查网络后重试');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   };
   const button = (text, action) => { const el = document.createElement('button'); el.type = 'button'; el.textContent = text; el.addEventListener('click', () => run(action)); return el; };
   const row = (text, buttons) => { const el = document.createElement('div'); el.className = 'account-row'; const label = document.createElement('span'); label.textContent = text; el.append(label, ...buttons); return el; };
@@ -40,6 +71,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     $('accountSyncStatus').textContent = state.message; $('accountSyncStatus').classList.toggle('account-error', state.error);
     $('accountConflicts').replaceChildren(...state.conflicts.map(key => row(`同时修改了：${key.startsWith('favorite:') ? '收藏 ' + key.slice(9) : key.startsWith('playlist:') ? sync.records()[key]?.name || '歌单' : key === 'queue' ? '播放队列' : key}`, [button('保留本机', async () => { sync.resolve(key, 'local'); await sync.sync(); }), button('使用云端', async () => { sync.resolve(key, 'remote'); await sync.sync(); })])));
   } });
+  const captureForSync = options => library.capture({ ...options, cloudSettings: sync.records() });
   async function run(action) { if (busy) return; busy = true; root.setAttribute('aria-busy', 'true'); try { await action(); } catch (error) { notice(error.message, true); } finally { busy = false; root.removeAttribute('aria-busy'); } }
   function renderLists() {
     const entries = Object.entries(library.saved()); $('accountPlaylistCount').textContent = `(${entries.length})`;
@@ -52,30 +84,31 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   function displayUser() {
     $('accountLogin').hidden = Boolean(user); $('accountSignedIn').hidden = !user;
     $('accountBadge').textContent = user ? '云同步' : '本地模式'; $('accountIdentityName').textContent = user?.username || user?.email || user?.name || '';
-    updateGuest();
   }
-  function updateGuest() { $('accountGuestQuota').textContent = `游客还可试听 ${guestTrial.remaining()} / 50 首不同歌曲 · 重复播放不扣次数`; }
   function cachedIdentity() { try { const saved = JSON.parse(storage.getItem('cp_account_identity')); return saved?.id && saved.id === storage.getItem('cp_account_owner') ? saved : null; } catch { return null; } }
-  function openEntry(mode = 'login') { entry.open(mode); entry.ready(caps, guestTrial.remaining(), Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || ''); }
+  function openEntry(mode = 'login') { entry.open(mode); entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || ''); }
   $('accountOpenEntry').onclick = () => { closeSettings(); openEntry(); };
-  async function connect(next) {
-    authenticated = true; entered = true; offlineMode = false;
-    if (user?.id === next.id) { displayUser(); await sync.sync(); if (!authenticated) throw new Error('登录已失效，请重新登录'); return; }
+  function connect(next) {
+    authenticated = true; entered = true;
+    if (user?.id === next.id) { displayUser(); void sync.sync(); return; }
     if (!user && !storage.getItem('cp_account_owner')) storage.setItem('cp_guest_library_v1', JSON.stringify(library.capture()));
-    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = next; storage.setItem('cp_account_owner', user.id); storage.setItem('cp_account_identity', JSON.stringify(user));
-    sync.connect(user.id); displayUser(); await sync.sync();
-    if (!authenticated) throw new Error('登录已失效，请重新登录');
+    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend();
+    library.switchLocalSettings(next.id);
+    user = next; storage.setItem('cp_account_owner', user.id); storage.setItem('cp_account_identity', JSON.stringify(user));
+    sync.connect(user.id); displayUser();
     notice('已登录。你的音乐资料会自动同步。');
+    void sync.sync();
   }
   function detach(erase = false) {
-    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); sync.disconnect({ erase }); user = null; authenticated = false; offlineMode = false;
+    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); sync.disconnect({ erase }); user = null; authenticated = false;
+    library.switchLocalSettings(null, { erase });
     storage.removeItem('cp_account_owner'); storage.removeItem('cp_account_identity');
     let guest = {}; try { guest = JSON.parse(storage.getItem('cp_guest_library_v1')) || {}; } catch {}
     library.apply(guest); displayUser(); renderLists(); notice('已退出，已恢复登录前的本地资料。');
   }
   function changed() {
     if (!user || switching || !entered) return;
-    try { sync.capture(library.capture()); } catch (error) { notice(error.message, true); return; }
+    try { sync.capture(captureForSync()); } catch (error) { notice(error.message, true); return; }
     clearTimeout(timer); timer = setTimeout(flush, 1500);
   }
   // A search can insert a batch of songs in one event. Persist the final queue once.
@@ -94,8 +127,8 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     syncing = true;
     try {
       const withProgress = player.isPlaying() && Date.now() - lastProgress >= 30000;
-      sync.capture(library.capture({ withProgress })); if (withProgress) lastProgress = Date.now();
-      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { await connect(current.user); return; } authenticated = true; offlineMode = false; }
+      sync.capture(captureForSync({ withProgress })); if (withProgress) lastProgress = Date.now();
+      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { connect(current.user); return; } authenticated = true; }
       await sync.sync();
     } catch (error) { if (error.status === 401) { authenticated = false; $('accountLogin').hidden = false; } notice(error.message, true); } finally { syncing = false; }
   }
@@ -120,7 +153,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     if (device.client_id !== 'cplayer-desktop' || device.status !== 'pending') throw new Error('设备请求无效或已处理，请重新发起');
     await request(`/api/auth/device/${action}`, { method: 'POST', body: { userCode: code } }); notice(action === 'approve' ? '已允许连接，可返回桌面客户端。' : '已拒绝连接'); $('accountDevice').hidden = true;
   });
-  window.cplayerDesktop?.onSignedIn(() => run(async () => { await connect((await request('/api/account/me')).user); entry.close(); }));
+  window.cplayerDesktop?.onSignedIn(() => run(async () => { connect((await request('/api/account/me')).user); entry.close(); }));
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; $('accountInstallHint').textContent = '可安装到桌面或主屏幕。'; });
   window.addEventListener('appinstalled', () => { installPrompt = null; $('accountInstallHint').textContent = '播放器已安装。'; });
   $('accountInstall').onclick = () => run(async () => { if (installPrompt) { await installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; } else $('accountInstallHint').textContent = matchMedia('(display-mode: standalone)').matches || window.cplayerDesktop ? '当前已在独立窗口运行。' : /iPhone|iPad/.test(navigator.userAgent) ? 'Safari → 分享 → 添加到主屏幕。离线可打开界面，并播放个人库中已保存的音频。' : '在浏览器菜单中选择“安装应用”。离线可打开界面，并播放个人库中已保存的音频。'; });
@@ -129,22 +162,22 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   window.addEventListener('online', flush); document.addEventListener('visibilitychange', () => { if (!document.hidden) flush(); else changed(); });
   window.addEventListener('storage', event => { if (event.key === 'cp_account_owner') { switching = true; player.suspend(); location.reload(); } });
   setInterval(() => { if (!document.hidden) flush(); }, 30000);
-  renderLists(); updateGuest();
+  renderLists();
   async function loadCapabilities() {
     try { caps = await request('/api/account/config'); }
     catch { caps = { enabled: false }; }
-    entry.ready(caps, guestTrial.remaining(), Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || '');
+    entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || '');
     notice(caps.enabled ? '游客模式 · 登录后可以同步收藏、歌单与播放进度。' : '暂未连接账号服务，可以使用游客模式。');
   }
   entry.configure({
     async submit({ mode, username, password }) {
       await request(mode === 'register' ? '/api/auth/sign-up/username' : '/api/auth/sign-in/username', { method: 'POST', body: { username, password, rememberMe: false } });
-      await connect((await request('/api/account/me')).user);
+      connect((await request('/api/account/me')).user);
       if (params.has('device') || params.has('user_code')) setTimeout(openSettings, 0);
     },
     async offline() {
       const saved = cachedIdentity(); if (!saved || caps.enabled) throw new Error('请通过登录进入账号');
-      window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = saved; entered = true; authenticated = false; offlineMode = true;
+      window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = saved; entered = true; authenticated = false;
       sync.connect(user.id); displayUser(); closeSettings(); notice('正在访问此设备保存的资料；联网验证身份后才能同步。');
     },
     async guest() {
@@ -161,5 +194,5 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   });
   void loadCapabilities();
   window.addEventListener('pagehide', changed);
-  return { changed, queueChanged, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(library.capture({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, isOffline: () => offlineMode, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered, updateGuest, requireLogin() { openEntry(); entry.message('游客 50 首试听额度已用完，登录后继续播放。已试听歌曲仍可重播。', true); } };
+  return { changed, queueChanged, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(captureForSync({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered };
 }

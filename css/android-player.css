@@ -82,7 +82,7 @@ html.android-player :is(#mobileLayout, dialog, #settingsCard) button { min-width
 
 html.android-player #mobileLayout button:disabled { opacity: .5; }
 
-/* Sign-in keeps its existing form, guest quota and offline entry. */
+/* Sign-in keeps its existing form, guest entry and offline entry. */
 .android-player #accountEntryDialog {
   padding: 0; background: var(--studio-bg); color: var(--studio-ink); font-family: var(--cplayer-font);
 }
@@ -106,7 +106,7 @@ html.android-player #mobileLayout button:disabled { opacity: .5; }
 .android-player #entrySubtitle { margin: 4px 0 14px; color: var(--studio-muted); }
 .android-player .entry-card label { color: var(--studio-ink); margin: 10px 0 5px; }
 .android-player .entry-card input { color: var(--studio-ink); border-color: var(--md-outline); background: var(--md-surface-high); border-radius: 12px 12px 0 0; min-height: 56px; font-size: 1rem; }
-.android-player .entry-card input::placeholder, .android-player :is(#entryShowPassword, #entryGuestQuota, #entryStatus, .entry-divider) { color: var(--studio-muted); }
+.android-player .entry-card input::placeholder, .android-player :is(#entryShowPassword, #entryGuestNote, #entryStatus, .entry-divider) { color: var(--studio-muted); }
 .android-player #entryStatus:empty { display: none; }
 .android-player #entryStatus.is-error { color: var(--md-error); }
 .android-player .entry-card .entry-primary { min-height: 48px; margin-top: 18px; background: var(--studio-accent); color: var(--studio-accent-ink); border-radius: 100px; }

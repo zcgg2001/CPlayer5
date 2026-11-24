@@ -22,7 +22,7 @@ class StartupBehaviorTests(unittest.TestCase):
     def test_first_visit_enters_player_without_welcome_dialog(self):
         startup = function_block(
             self.source,
-            "async function loadDefaultPlaylist()",
+            "async function loadDefaultPlaylist(",
             "// 从输入值中提取歌单 ID",
         )
         self.assertNotIn("openWelcomeModal();", startup)

@@ -1,11 +1,13 @@
 import { LIBRARY_KEY, personalRecord } from './personal-library-store.js';
-import { cleanRecords, cleanSong, SYNC_SETTINGS, same } from './account-data.js';
+import { cleanRecords, cleanSong, SYNC_SETTINGS, MAX_SYNC_SETTING_LENGTH, same } from './account-data.js';
 
 export function createAccountLibrary({ storage, player, refreshFavorites, onSettings }) {
   let progress = {}, currentQueue = null;
   let deviceId = storage.getItem('cp_device_id');
   if (!deviceId) { deviceId = crypto.randomUUID(); storage.setItem('cp_device_id', deviceId); }
   const read = (key, fallback) => { try { return JSON.parse(storage.getItem(key)) || fallback; } catch { return fallback; } };
+  const oversized = value => typeof value === 'string' && value.length > MAX_SYNC_SETTING_LENGTH;
+  const localSettingsKey = owner => `cp_local_large_settings_v1:${owner || 'guest'}`;
   const songs = list => list.map(song => { try { return cleanSong(typeof song === 'object' ? song : { id: song }); } catch { return null; } }).filter(Boolean);
   return {
     saveGuestQueue() {
@@ -15,11 +17,41 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
       const saved = read('cp_guest_queue_v1', null);
       if (Array.isArray(saved)) player.setQueue(songs(saved));
     },
-    capture({ withProgress = false } = {}) {
+    switchLocalSettings(nextOwner, { erase = false } = {}) {
+      const owner = storage.getItem('cp_account_owner');
+      if (owner === nextOwner) return;
+      const previous = {};
+      for (const key of SYNC_SETTINGS) {
+        const value = storage.getItem(key);
+        if (oversized(value)) previous[key] = value;
+      }
+      // Store the original before clearing it from the shared player keys.
+      if (!erase && Object.keys(previous).length) {
+        try { storage.setItem(localSettingsKey(owner), JSON.stringify({ ...read(localSettingsKey(owner), {}), ...previous })); }
+        catch { return; } // Keep the local value if there is no room to copy it.
+      } else if (erase) {
+        storage.removeItem(localSettingsKey(owner));
+      }
+      for (const key of Object.keys(previous)) storage.removeItem(key);
+      const next = read(localSettingsKey(nextOwner), {});
+      try {
+        for (const key of SYNC_SETTINGS) {
+          if (oversized(next[key])) storage.setItem(key, next[key]);
+        }
+        storage.removeItem(localSettingsKey(nextOwner));
+      } catch { /* Keep the backup if available storage is too small to restore. */ }
+    },
+    capture({ withProgress = false, cloudSettings = {} } = {}) {
       const records = {};
       for (const [key, value] of read('cp_favorites_v1', [])) { try { records[`favorite:${key}`] = cleanSong(value); } catch {} }
       for (const [id, value] of Object.entries(read('cp_saved_playlists_v1', {}))) records[`playlist:${id}`] = value;
-      for (const key of SYNC_SETTINGS) { const value = storage.getItem(key); if (value !== null) records[`setting:${key}`] = value; }
+      for (const key of SYNC_SETTINGS) {
+        const record = `setting:${key}`;
+        const value = storage.getItem(key);
+        // A large local copy does not replace or delete its smaller cloud version.
+        const shared = oversized(value) ? cloudSettings[record] : value;
+        if (typeof shared === 'string' && !oversized(shared)) records[record] = shared;
+      }
       records.queue = { name: '播放队列', songs: songs(player.queue()) };
       if (withProgress) {
         const value = player.progress();
@@ -40,8 +72,10 @@ export function createAccountLibrary({ storage, player, refreshFavorites, onSett
       storage.setItem('cp_saved_playlists_v1', JSON.stringify(playlists)); refreshFavorites();
       const changed = [];
       for (const key of SYNC_SETTINGS) {
+        const current = storage.getItem(key);
+        if (oversized(current)) continue;
         const value = records[`setting:${key}`] ?? null;
-        if (value !== storage.getItem(key)) { changed.push(key); if (value === null) storage.removeItem(key); else storage.setItem(key, value); }
+        if (value !== current) { changed.push(key); if (value === null) storage.removeItem(key); else storage.setItem(key, value); }
       }
       if (changed.length) onSettings(changed);
       globalThis.window?.dispatchEvent(new Event('cplayer:library-applied'));

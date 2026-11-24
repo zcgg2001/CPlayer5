@@ -49,7 +49,7 @@
 #entryRetry { color: #f5a0b5; min-height: 44px; font-size: 12px; }
 .entry-divider { display: flex; align-items: center; gap: 12px; margin: 17px 0; color: #898493; font-size: 11px; }.entry-divider::before, .entry-divider::after { content: ''; flex: 1; height: 1px; background: #ffffff12; }
 .entry-guest { width: 100%; min-height: 46px; display: flex; justify-content: center; align-items: center; gap: 18px; border: 1px solid #5d5364; border-radius: 10px; color: #ece5f1; font-size: 14px; }.entry-guest:hover:not(:disabled) { background: #ffffff08; }
-#entryGuestQuota, .entry-footnote { color: #a19aa9; text-align: center; font-size: 11px; line-height: 1.6; margin-top: 10px; }.entry-footnote { margin-top: 24px; color: #827b8b; }
+#entryGuestNote, .entry-footnote { color: #a19aa9; text-align: center; font-size: 11px; line-height: 1.6; margin-top: 10px; }.entry-footnote { margin-top: 24px; color: #827b8b; }
 @media (max-width: 680px) { .account-entry { padding: 20px 14px; } .entry-layout { max-width: 440px; grid-template-columns: 1fr; border-radius: 22px; } .entry-intro { padding: 22px 26px 0; background: transparent; } .entry-record, .entry-intro h1, .entry-kicker, .entry-intro > p:last-child { display: none; } .entry-card { padding: 24px 26px; } .entry-card h2 { margin-top: 23px; } .entry-card input { font-size: 16px; } }
 @media (prefers-reduced-motion: reduce) { .entry-card button { transition: none; } }
 

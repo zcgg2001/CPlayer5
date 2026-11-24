@@ -34,9 +34,7 @@ import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtwor
 import { createQueueStore } from './queue-store.js?v=1';
 import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
 import { createMusicWall } from './music-wall.js';
-import { initAccountPanel } from './account-panel.js?v=3';
-import { createGuestTrial } from './guest-trial.js?v=1';
-const guestTrial = createGuestTrial(localStorage);
+import { initAccountPanel } from './account-panel.js?v=4';
 let accountPanel = null;
 let personalLibrary = null;
 import { initPersonalLibrary } from './personal-library.js';
@@ -470,14 +468,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showDesktopMainView('discovery');
     }
 
-    // ★ 初始化 IndexedDB 缓存
-    try {
-        await initDatabase();
-        console.log('💾 IndexedDB 缓存已初始化');
-    } catch (e) {
-        console.warn('IndexedDB 初始化失败:', e);
-    }
-
     initDownloadControls();
     initDiscoveryTable();
     initEventListeners();
@@ -485,43 +475,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSettingsUI();
     initMusicSourceControl();
     setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
-    loadDefaultPlaylist().finally(() => {
-        accountPanel = initAccountPanel({
-            root: document.getElementById('accountPanel'), openSettings, closeSettings, guestTrial,
-            persistGuestQueue: androidPlayer,
-            refreshFavorites: () => discoveryTable?.refreshFavorites(),
-            onSettings: keys => { if (keys.includes('cp_theme')) applyTheme(localStorage.getItem('cp_theme') || 'night', { persist: false }); },
-            player: {
-                queue: () => queue.playlist,
-                progress: () => ({ song: playback.state.currentSong, position: audio.currentTime }),
-                isPlaying: () => !audio.paused,
-                suspend: () => {
-                    playback.stop(); playerExperience?.reset(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
-                    if (androidPlayer) setMobileExploreOpen(true);
-                    dom.songTitle.textContent = '请选择歌曲'; dom.artistName.textContent = '从歌单或搜索中开始播放';
-                    setLyricsStatus('播放音乐以查看歌词');
-                    if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
-                },
-                setQueue: songs => {
-                    queue.playlist = songs;
-                    queue.currentIndex = songs.findIndex(song => String(song.id) === String(playback.state.currentSong?.id) && song.provider === playback.state.currentSong?.provider);
-                    queueStore.resetOrder(); syncQueueAfterMutation();
-                },
-                resume: value => loadAndPlaySong(value.song.id, value.song, { position: value.position }),
+    let restoreStartupQueue = true;
+    accountPanel = initAccountPanel({
+        root: document.getElementById('accountPanel'), openSettings, closeSettings,
+        persistGuestQueue: androidPlayer,
+        refreshFavorites: () => discoveryTable?.refreshFavorites(),
+        onSettings: keys => { if (keys.includes('cp_theme')) applyTheme(localStorage.getItem('cp_theme') || 'night', { persist: false }); },
+        player: {
+            queue: () => queue.playlist,
+            progress: () => ({ song: playback.state.currentSong, position: audio.currentTime }),
+            isPlaying: () => !audio.paused,
+            suspend: () => {
+                restoreStartupQueue = false;
+                playback.stop(); playerExperience?.reset(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
+                if (androidPlayer) setMobileExploreOpen(true);
+                dom.songTitle.textContent = '请选择歌曲'; dom.artistName.textContent = '从歌单或搜索中开始播放';
+                setLyricsStatus('播放音乐以查看歌词');
+                if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
             },
-        });
-        personalLibrary = initPersonalLibrary({ document, storage: localStorage, account: accountPanel, musicService, audio,
-            getSong: () => playback.state.currentSong, getQueue: () => queue.playlist,
-            onPlay: (song, options) => addDiscoverySong(song, options),
-            onQueue: (songs, replace = false) => {
-                if (replace) { queue.playlist = songs; queue.currentIndex = -1; queueStore.resetOrder(); syncQueueAfterMutation(); }
-                else addChartSong(songs, { playNow: false, source: songs.source });
+            setQueue: songs => {
+                restoreStartupQueue = false;
+                queue.playlist = songs;
+                queue.currentIndex = songs.findIndex(song => String(song.id) === String(playback.state.currentSong?.id) && song.provider === playback.state.currentSong?.provider);
+                queueStore.resetOrder(); syncQueueAfterMutation();
             },
-            onCollection: (type, id) => discoveryHome.openCollection(type, id), onSearch: openMusicSearch,
-            notify: showToast, refreshFavorites: () => discoveryTable?.refreshFavorites(),
-        });
-        for (const event of ['pause', 'seeked']) audio.addEventListener(event, () => accountPanel.checkpoint());
+            resume: value => loadAndPlaySong(value.song.id, value.song, { position: value.position }),
+        },
     });
+    personalLibrary = initPersonalLibrary({ document, storage: localStorage, account: accountPanel, musicService, audio,
+        getSong: () => playback.state.currentSong, getQueue: () => queue.playlist,
+        onPlay: (song, options) => addDiscoverySong(song, options),
+        onQueue: (songs, replace = false) => {
+            if (replace) { queue.playlist = songs; queue.currentIndex = -1; queueStore.resetOrder(); syncQueueAfterMutation(); }
+            else addChartSong(songs, { playNow: false, source: songs.source });
+        },
+        onCollection: (type, id) => discoveryHome.openCollection(type, id), onSearch: openMusicSearch,
+        notify: showToast, refreshFavorites: () => discoveryTable?.refreshFavorites(),
+    });
+    for (const event of ['pause', 'seeked']) audio.addEventListener(event, () => accountPanel.checkpoint());
+    // An optional cache or playlist request must not delay the login form.
+    const startupQueue = queue.playlist;
+    const startupQueueLength = startupQueue.length;
+    const canRestoreStartupQueue = () => restoreStartupQueue && queue.playlist === startupQueue
+        && startupQueue.length === startupQueueLength;
+    void initDatabase()
+        .then(() => loadDefaultPlaylist(canRestoreStartupQueue))
+        .catch(error => console.warn('启动歌单恢复失败:', error));
     loadNewSongDiscovery();
     scheduleMusicCollections();
     const sharedQuery = new URL(location.href).searchParams.get('q');
@@ -3375,13 +3374,6 @@ function updateMediaSessionMetadata(data) {
 
 async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
     if (accountPanel?.canEnter && !accountPanel.canEnter()) return;
-    const trialSong = { ...(songOverride || {}), id, provider: songOverride?.provider || musicService.config.source };
-    const localPlayback = trialSong.provider === 'local' || accountPanel?.isOffline?.();
-    if (!localPlayback && !accountPanel?.isSignedIn() && !guestTrial.allows(trialSong)) {
-        audio.pause();
-        if (accountPanel) accountPanel.requireLogin(); else { openSettings(); showToast('游客试听额度已用完，请登录后继续', true); }
-        return;
-    }
     discoveryHome?.beforePlay(songOverride);
     return playback.load(id, songOverride, {
         onLoading() {
@@ -3433,8 +3425,6 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
             showToast('歌曲已加载，请点击播放键继续');
         },
         onStarted(data, playbackData, session) {
-            const recordTrial = () => { if (session.isCurrent() && !localPlayback && !accountPanel?.isSignedIn()) { guestTrial.record(trialSong); accountPanel?.updateGuest(); } };
-            if (!audio.paused) recordTrial(); else audio.addEventListener('playing', recordTrial, { once: true, signal: session.signal });
             const { isCurrent } = session;
             if (position > 0 && !session.recovering) {
                 const resume = () => {
@@ -3844,22 +3834,25 @@ function handlePlaylistFile(file) {
 }
 
 // 加载指定歌单
-async function loadPlaylistById(listId, { cachedOnly = false } = {}) {
+async function loadPlaylistById(listId, { cachedOnly = false, canApply = () => true, startup = false } = {}) {
     currentPlaylistId = listId;
     localStorage.setItem('cp_playlistId', listId);
 
-    queue.playlist = [];
-    queue.currentIndex = -1;
-    allSongsLoaded = false;
-    renderedCount = 0;
+    if (!startup) {
+        queue.playlist = [];
+        queue.currentIndex = -1;
+        allSongsLoaded = false;
+        renderedCount = 0;
 
-    dom.uploadContainer.classList.add('hidden');
-    dom.playlistContent.innerHTML = '<div class="text-center py-4 opacity-50"><i class="fas fa-spinner fa-spin mr-2"></i>正在加载歌单...</div>';
-    document.getElementById('playlistCount').textContent = '(加载中...)';
+        dom.uploadContainer.classList.add('hidden');
+        dom.playlistContent.innerHTML = '<div class="text-center py-4 opacity-50"><i class="fas fa-spinner fa-spin mr-2"></i>正在加载歌单...</div>';
+        document.getElementById('playlistCount').textContent = '(加载中...)';
+    }
 
     // ★ 先尝试从 IndexedDB 缓存加载
     try {
         const cached = await getPlaylistFromCache(listId);
+        if (!canApply()) return false;
         if (cached && cached.songs && cached.songs.length > 0) {
             console.log('💾 从缓存加载歌单:', cached.songs.length, '首');
             queue.playlist = cached.songs;
@@ -3872,7 +3865,7 @@ async function loadPlaylistById(listId, { cachedOnly = false } = {}) {
             document.getElementById('playlistCount').textContent = `(${queue.playlist.length}首)`;
 
             // 后台静默更新缓存
-            if (!cachedOnly) setTimeout(() => refreshPlaylistInBackground(listId), 5000);
+            if (!cachedOnly) setTimeout(() => refreshPlaylistInBackground(listId, startup ? () => playlistSource === 'cache' && queue.playlist === cached.songs : canApply), 5000);
             return true;
         }
     } catch (e) {
@@ -3880,19 +3873,19 @@ async function loadPlaylistById(listId, { cachedOnly = false } = {}) {
     }
 
     // GD 启动只恢复本地歌单，不依赖 ChKSz。
-    if (cachedOnly) return false;
-    await fetchAndLoadPlaylist(listId);
-    return true;
+    if (cachedOnly || !canApply()) return false;
+    return fetchAndLoadPlaylist(listId, canApply);
 }
 
 // 后台静默更新歌单缓存
-async function refreshPlaylistInBackground(listId) {
+async function refreshPlaylistInBackground(listId, canApply) {
     console.log('🔄 后台更新播放列表缓存...');
     try {
         const freshSongs = await PlaylistService.fetchPlaylist(listId);
         if (freshSongs.length > 0) {
             await savePlaylistToCache(listId, freshSongs);
             console.log('✅ 播放列表缓存已更新:', freshSongs.length, '首');
+            if (!canApply()) return;
             // 后台更新成功后，来源标记为在线
             if (playlistSource === 'cache') {
                 playlistSource = 'online';
@@ -3908,10 +3901,11 @@ async function refreshPlaylistInBackground(listId) {
 }
 
 // 从 API 获取并加载歌单（单次请求）
-async function fetchAndLoadPlaylist(listId) {
+async function fetchAndLoadPlaylist(listId, canApply) {
     isLoadingPlaylist = true;
     try {
         const songs = await PlaylistService.fetchPlaylist(listId);
+        if (!canApply()) return false;
 
         if (songs.length === 0) {
             throw new Error('歌单为空或不存在');
@@ -3929,9 +3923,10 @@ async function fetchAndLoadPlaylist(listId) {
 
         // ★ 保存到 IndexedDB 缓存
         await savePlaylistToCache(listId, queue.playlist);
-        console.log('💾 播放列表已缓存:', queue.playlist.length, '首');
-
+        console.log('💾 播放列表已缓存:', songs.length, '首');
+        return true;
     } catch (e) {
+        if (!canApply()) return false;
         console.error('播放列表加载失败:', e);
         showToast('播放列表加载失败，请检查歌单ID是否正确', true);
         throw e;
@@ -3942,7 +3937,8 @@ async function fetchAndLoadPlaylist(listId) {
     }
 }
 
-async function loadDefaultPlaylist() {
+async function loadDefaultPlaylist(canApply) {
+    if (!canApply()) return;
     // 优先级: 1. LOCAL_PLAYLIST → 2. localStorage → 3. 空播放列表
 
     // 1. 本地 playlist.js
@@ -3973,12 +3969,14 @@ async function loadDefaultPlaylist() {
         const input = document.getElementById('playlistIdInput');
         if (input) input.value = savedId;
         try {
-            const restored = await loadPlaylistById(savedId, { cachedOnly: musicService.config.source !== 'chksz' });
+            const restored = await loadPlaylistById(savedId, { cachedOnly: musicService.config.source !== 'chksz', canApply, startup: true });
             if (restored) return;
         } catch (e) {
             console.error('已保存的歌单加载失败:', e);
         }
     }
+
+    if (!canApply()) return;
 
     // 3. 没有任何歌单来源 → 直接进入播放器，通过搜索添加歌曲
     console.log('🎵 未配置歌单，直接进入播放器');

@@ -2,6 +2,7 @@ import { cleanSong, cleanPlaylist, cleanEntity, cleanAnnotation, cleanHistory, c
 export { cleanSong } from './library-data.js';
 // Shared wire format. Never synchronize playable URLs, service keys or browser caches.
 export const SYNC_SETTINGS = ['cp_theme', 'cp_quality', 'cp_source', 'cp_download_quality', 'cp_anime_thumb', 'cp_immersiveMode', 'cp_lyricAppearance', 'cp_lyricStudio_v1', 'cp_lyricTracks_v1'];
+export const MAX_SYNC_SETTING_LENGTH = 16_000;
 // D1 limits an entire row to 2,000,000 bytes, including metadata columns.
 export const MAX_SYNC_BYTES = 1_990_000;
 export const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -20,7 +21,7 @@ export function cleanRecords(input) {
     else if (key.startsWith('listen:')) output[key] = cleanListening(value);
     else if (key.startsWith('playlist:')) output[key] = cleanPlaylist(value);
     else if (key.startsWith('setting:')) {
-      if (typeof value !== 'string' || value.length > 16000) throw new Error('设置过大');
+      if (typeof value !== 'string' || value.length > MAX_SYNC_SETTING_LENGTH) throw new Error('设置过大');
       output[key] = value;
     } else if (key.startsWith('progress:')) {
       if (!Number.isFinite(value.position) || value.position < 0 || value.position > 86400 || !Number.isFinite(value.savedAt)) throw new Error('播放进度无效');

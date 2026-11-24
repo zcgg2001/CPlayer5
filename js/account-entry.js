@@ -57,14 +57,13 @@ export function createAccountEntry() {
     open, close, message,
     isOpen: () => dialog.open,
     configure(callbacks) { handlers = callbacks; },
-    ready(caps, remaining, isDesktop = false, offlineName = '') {
+    ready(caps, isDesktop = false, offlineName = '') {
       ready = Boolean(caps.enabled && caps.username); desktop = isDesktop;
-      $('entryGuestQuota').textContent = `可试听 ${remaining} / 50 首不同歌曲，重复播放不扣次数`;
       $('entryForm').hidden = desktop; $('entryModes').hidden = desktop; $('entryDesktopLogin').hidden = !desktop;
       $('entryRetry').hidden = ready;
       $('entryOffline').hidden = ready || !offlineName;
       $('entryOffline').textContent = `离线打开 ${offlineName} 的本机资料`;
-      if (!ready) message('账号服务暂未连接，你可以先以游客试听。'); else message('');
+      if (!ready) message('账号服务暂未连接，可以先以游客身份听歌。'); else message('');
       controls();
     },
   };
