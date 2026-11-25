@@ -16,7 +16,7 @@ export function coverUrl(value, origin = globalThis.location?.origin) {
   if (!value || !origin) return value;
   try {
     const url = new URL(value, origin);
-    if (url.protocol !== 'https:' || url.username || url.password || url.port || !['music.126.net', 'gtimg.cn', 'qpic.cn', 'kugou.com', 'kuwo.cn', 'hdslb.com', 'mzstatic.com'].some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))) return value;
+    if (url.protocol !== 'https:' || url.username || url.password || url.port || !['music.126.net', 'gtimg.cn', 'qpic.cn', 'kugou.com', 'kgimg.com', 'kuwo.cn', 'hdslb.com', 'mzstatic.com'].some(host => url.hostname === host || url.hostname.endsWith(`.${host}`))) return value;
     return `/api/cover?${new URLSearchParams({ url: url.href })}`;
   } catch { return value; }
 }

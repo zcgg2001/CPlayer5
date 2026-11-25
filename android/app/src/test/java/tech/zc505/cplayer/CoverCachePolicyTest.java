@@ -15,10 +15,12 @@ public class CoverCachePolicyTest {
     }
   }
 
-  @Test public void interceptionRequiresTheTrustedCoverRoute() throws Exception {
+  @Test public void interceptionRequiresTheTrustedCoverRouteOrUnsignedPublicCdn() throws Exception {
     String target = "https://p1.music.126.net/a.jpg?param=300y300";
     String route = BuildConfig.PLAYER_ORIGIN + "/api/cover?url=" + URLEncoder.encode(target, "UTF-8");
     assertEquals(target, CoverCachePolicy.target(route));
+    assertEquals(target, CoverCachePolicy.target(target));
+    assertNull(CoverCachePolicy.target("https://p1.music.126.net/a.jpg?token=secret"));
     assertNull(CoverCachePolicy.target(route.replace("/api/cover", "/api/account")));
     assertNull(CoverCachePolicy.target(route.replace(BuildConfig.PLAYER_ORIGIN, "https://other.test")));
     assertNull(CoverCachePolicy.target(route + "&token=secret"));
@@ -27,6 +29,7 @@ public class CoverCachePolicyTest {
   @Test public void cacheAcceptsImagesAndRejectsErrorPages() {
     assertEquals("image/jpeg", CoverCachePolicy.imageType("image/jpg; charset=utf-8"));
     assertEquals("image/webp", CoverCachePolicy.imageType("image/webp"));
+    assertEquals("image/png", CoverCachePolicy.imageType("image/x-png"));
     assertNull(CoverCachePolicy.imageType("text/html"));
     assertNull(CoverCachePolicy.imageType("image/svg+xml"));
   }

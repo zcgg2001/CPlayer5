@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { artworkUrl, artworkCandidates, fallbackArtwork, createArtworkResolver, createArtworkPresenter, loadArtworkImage, bindArtwork } from '../js/artwork.js';
+import { artworkUrl, artworkCandidates, directArtworkUrl, fallbackArtwork, createArtworkResolver, createArtworkPresenter, loadArtworkImage, bindArtwork, retryArtworkBindings } from '../js/artwork.js';
 import { cleanSong, imageURL } from '../js/library-data.js';
 import { createPersonalLibraryStore } from '../js/personal-library-store.js';
 import { createAccountLibrary } from '../js/account-library.js';
@@ -55,9 +55,9 @@ test('broken artwork falls back to native-ID metadata and reuses the successful 
   const track={...song,cover:'https://p1.music.126.net/broken.jpg'};
   assert.equal((await resolver.resolve(track)).status,'ready');
   assert.equal(requests.length,1);assert.match(requests[0],/artwork=1/);
-  assert.deepEqual(images,[artworkUrl(track.cover,640,baseUrl),artworkUrl(track.cover,0,baseUrl),artworkUrl(native,640,baseUrl)]);
+  assert.deepEqual(images,[artworkUrl(track.cover,640,baseUrl),track.cover+'?param=640y640',artworkUrl(track.cover,0,baseUrl),track.cover,artworkUrl(native,640,baseUrl)]);
   await resolver.resolve(track);
-  assert.equal(requests.length,1);assert.equal(images.length,3);
+  assert.equal(requests.length,1);assert.equal(images.length,5);
 });
 
 test('audio source switching retains the original artwork ID, not the new provider namespace', async () => {
@@ -120,7 +120,7 @@ test('missing thumbnail tries the original rendition before any metadata lookup'
     if (url.includes('param')) throw Error('Thumbnail missing');
   } });
   assert.equal((await resolver.resolve({...song,cover:native},{size:80})).url, artworkUrl(native,0,baseUrl));
-  assert.equal(attempts.length,2);
+  assert.equal(attempts.length,3);
 });
 
 test('same QQ song uses one exact MID lookup across rows; other recordings and collections stay separate', async () => {
@@ -231,7 +231,7 @@ test('cached covers paint immediately; display failures invalidate the URL and r
   image.onerror();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(image.dataset.artworkState, 'ready');
-  assert.equal(image.src, artworkUrl(native, 0, baseUrl));
+  assert.equal(image.src, native + '?param=300y300');
   assert.equal(attempts.length, 2);
 });
 
@@ -250,4 +250,71 @@ test('wall thumbnail sizes use supported CDN variants without altering signed re
   const kg = 'https://imge.kugou.com/stdmusic/800/20230920/abc.jpg';
   assert.match(decodeURIComponent(artworkUrl(kg, 240, baseUrl)), /stdmusic\/240\//);
   assert.match(decodeURIComponent(artworkUrl(kg + '?token=keep', 240, baseUrl)), /stdmusic\/800\/.*token=keep/);
+});
+
+test('a failed proxy falls back to the exact public thumbnail without guessing another album', async () => {
+  const attempts = [];
+  const resolver = createArtworkResolver({ baseUrl, fetchImpl: assert.fail, loadImage: async url => {
+    attempts.push(url); if (url.startsWith('/api/cover')) throw Error('502');
+  } });
+  const result = await resolver.resolve({ ...song, cover: native }, { size: 150 });
+  assert.equal(result.url, native + '?param=150y150'); assert.equal(result.status, 'ready');
+  assert.deepEqual(attempts, [artworkUrl(native,150,baseUrl), result.url]);
+});
+
+test('a stalled proxy cannot block a healthy CDN and the losing request releases its slot', async () => {
+  let proxySignal;
+  const attempts = [];
+  const resolver = createArtworkResolver({ baseUrl, proxyGraceMs: 5, fetchImpl: assert.fail, loadImage: async (url, { signal }) => {
+    attempts.push(url);
+    if (url.startsWith('/api/cover')) {
+      proxySignal = signal;
+      await new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), { once: true }));
+    }
+  } });
+  const track = { ...song, cover: native };
+  assert.equal((await resolver.resolve(track, { size: 150 })).url, native + '?param=150y150');
+  assert.equal(proxySignal.aborted, true);
+  const count = attempts.length;
+  assert.equal((await resolver.resolve(track, { size: 150 })).status, 'ready');
+  assert.equal(attempts.length, count);
+});
+
+test('direct artwork fallback excludes signed resources, non-cover routes and untrusted hosts', () => {
+  const route = value => '/api/cover?url=' + encodeURIComponent(value);
+  assert.equal(directArtworkUrl(route(native + '?param=150y150'), baseUrl), native + '?param=150y150');
+  assert.equal(directArtworkUrl(route('https://imgessl.kgimg.com/stdmusic/20240101/album.jpg'), baseUrl), 'https://imgessl.kgimg.com/stdmusic/20240101/album.jpg');
+  for (const value of [native + '?token=secret', native + '#fragment', 'http://p1.music.126.net/a.jpg', 'https://p1.music.126.net:444/a.jpg', 'https://user:pass@p1.music.126.net/a.jpg', 'https://p1.music.126.net.evil.test/a.jpg', 'https://127.0.0.1/a.jpg']) {
+    assert.equal(directArtworkUrl(route(value),baseUrl), '');
+  }
+  for (const value of ['/api/account?url='+encodeURIComponent(native), route(native)+'&token=secret', 'https://elsewhere.test'+route(native)]) assert.equal(directArtworkUrl(value,baseUrl),'');
+});
+
+test('online or explicit retry recovers an existing fallback without replacing the song or waiting for cooldown', async () => {
+  let available = false, calls = 0;
+  const track = { ...song, cover: native }, image = imageNode();
+  const resolver = createArtworkResolver({ baseUrl, loadImage: async () => { calls++; if (!available) throw Error('offline'); }, fetchImpl: async () => new Response(null,{status:502}) });
+  bindArtwork(image,track,{resolver,size:150});
+  await new Promise(resolve => setTimeout(resolve,10));
+  assert.equal(image.dataset.artworkState,'fallback');
+  const first = calls; available = true;
+  retryArtworkBindings({querySelectorAll:()=>[image]},false);
+  await new Promise(resolve => setTimeout(resolve,10));
+  assert.equal(image.dataset.artworkState,'ready'); assert.ok(calls > first);
+  assert.equal(image.src,artworkUrl(native,150,baseUrl));
+});
+
+test('a visible failed cover retries automatically with a bounded budget, and rebinding cancels old retries', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let calls = 0;
+  const image = { ...imageNode(), ownerDocument: {}, isConnected: true };
+  const resolver = { resolve: async track => { calls++; return fallbackArtwork(track); } };
+  const flush = () => new Promise(resolve => setImmediate(resolve));
+  bindArtwork(image,song,{resolver}); await flush(); assert.equal(calls,1);
+  t.mock.timers.tick(32000); await flush(); assert.equal(calls,2);
+  t.mock.timers.tick(64000); await flush(); assert.equal(calls,3);
+  t.mock.timers.tick(300000); await flush(); assert.equal(calls,3);
+  bindArtwork(image,{...song,id:'new'},{resolver}); await flush(); assert.equal(calls,4);
+  bindArtwork(image,{...song,id:'ready'},{resolver:{resolve:async()=>({url:native,status:'ready'})}}); await flush();
+  t.mock.timers.tick(300000); await flush(); assert.equal(calls,4); assert.equal(image.dataset.artworkState,'ready');
 });

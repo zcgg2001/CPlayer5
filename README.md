@@ -198,6 +198,12 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 1.15.0 Android 预览版支持按歌曲 ID 补充 QQ QRC、酷狗 KRC 逐字歌词，保留翻译、罗马音及手动选择；已有歌词先显示，补充失败自动回退。详见 [在线逐字歌词说明](docs/android-online-lyrics.md)。
 
+1.16.0 Android 预览构建把音乐墙改为四向无限封面拼贴：大小封面交错铺满，支持惯性拖动、双指缩放、点选展开与定位正在播放。推荐、队列和收藏中的歌曲循环呈现，仅渲染视口附近的封面；图片代理缓慢或失败时回退同一张 CDN 封面，支持联网恢复和手动重载。详见 [无限音乐墙说明](docs/android-music-wall.md)。
+
+1.17.0 Android 预览构建新增播放器顶部音源菜单（C 方案）：封面页与歌词页均可切换当前歌曲的渠道，跨平台严格匹配同曲，接续进度及暂停状态，加载失败恢复原音源。完整面板可选择后续优先渠道。详见 [播放器换源说明](docs/android-source-switch.md)。
+
+1.18.0 Android 预览构建参考 myMusic 的个人中心与设置布局：新增「我的」首页，集中展示收藏、最近播放、本地离线和自建歌单；设置按外观、播放页、歌词、音乐源、资料与更新分组，并展示当前配置摘要。手机逐级进入子页，平板使用双栏；返回操作保留未保存编辑保护。详见 [个人中心与设置说明](docs/android-personal-center.md)。
+
 新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署

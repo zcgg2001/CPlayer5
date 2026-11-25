@@ -61,6 +61,7 @@ public class CoverImageCacheTest {
   @Test public void pageAndSessionReadsReuseDiskBytesAfterReopening() throws Exception {
     assertArrayEquals(body, cache.read(route("album.png")).bytes);
     assertArrayEquals(body, cache.read(route("album.png")).bytes);
+    assertArrayEquals(body, cache.read("https://p1.music.126.net/album.png").bytes);
     assertEquals(1, calls.get());
     cache.close(); cache = openCache();
     status = 503;

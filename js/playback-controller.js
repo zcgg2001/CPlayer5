@@ -11,7 +11,7 @@ export function createPlaybackController({
     replaceSource, mediaTimeoutMs = 15000, stallTimeoutMs = 8000,
 } = {}) {
     const state = {
-        currentSong: null, transitionPending: false,
+        currentSong: null, transitionPending: false, sourceSwitch: null,
         quality: { controller: null, version: 0, songLoading: false },
     };
     const sessions = createPlaybackSession();
@@ -37,7 +37,7 @@ export function createPlaybackController({
 
     async function preloadNext() {
         if (globalThis.navigator?.connection?.saveData || /(^|-)2g$/.test(globalThis.navigator?.connection?.effectiveType || '')) return;
-        if (!musicService.playbackCandidates || !queueStore.state.playlist.length || audio.paused || state.quality.songLoading) return;
+        if (!musicService.playbackCandidates || !queueStore.state.playlist.length || audio.paused || state.quality.songLoading || state.sourceSwitch) return;
         // Resolve only near the transition so short-lived URLs are still fresh.
         // The router's cache is consumed by normal playback, with policy checked again.
         if (!Number.isFinite(audio.duration) || audio.duration <= 0 || audio.duration - audio.currentTime > 45) return;
@@ -61,6 +61,7 @@ export function createPlaybackController({
 
     async function load(id, songOverride = null, view = {}, options = {}) {
         const session = sessions.start();
+        state.sourceSwitch = null;
         const isCurrent = () => sessions.isCurrent(session);
         commandVersion += 1;
         state.transitionPending = false;
@@ -78,7 +79,7 @@ export function createPlaybackController({
         const automatic = typeof musicService.playbackCandidates === 'function';
         const routeOptions = { song: queuedSong, signal: session.signal, level: options.level,
             onAttempt: info => { if (info.stage === 'resolving') firstProvider ||= info.provider; if (isCurrent()) view.onAttempt?.(info); } };
-        const iterator = automatic ? musicService.playbackCandidates(id, routeOptions)
+        let iterator = automatic ? musicService.playbackCandidates(id, routeOptions)
             : (async function* () { yield await musicService.getSong(id, routeOptions); })();
         const active = { id, original: queuedSong, view, session, attempting: false, recovering: false,
             wantsPlay: options.shouldPlay !== false, position: options.resumeAt || 0 };
@@ -86,14 +87,14 @@ export function createPlaybackController({
         let stallTimer = null, lastTime = 0, mediaGeneration = 0;
         const stopStall = () => { if (stallTimer !== null) clearTimer(stallTimer); stallTimer = null; };
         const mediaError = () => Object.assign(new Error('音频无法播放'), { mediaCode: audio.error?.code });
-        const startAudio = (url, position, shouldPlay) => new Promise((resolve, reject) => {
+        const startAudio = (url, position, shouldPlay, signal = session.signal) => new Promise((resolve, reject) => {
             let settled = false, timer, restoredPosition = false;
             const finish = error => {
                 if (settled) return;
                 settled = true; clearTimer(timer);
                 audio.removeEventListener?.('loadedmetadata', loaded);
                 audio.removeEventListener?.('error', failed);
-                session.signal.removeEventListener('abort', aborted);
+                signal.removeEventListener('abort', aborted);
                 error ? reject(error) : resolve();
             };
             const loaded = () => {
@@ -109,14 +110,29 @@ export function createPlaybackController({
             timer = setTimer(() => finish(Object.assign(new Error('音频加载超时'), { mediaCode: 2 })), mediaTimeoutMs);
             audio.addEventListener?.('loadedmetadata', loaded);
             audio.addEventListener?.('error', failed);
-            session.signal.addEventListener('abort', aborted, { once: true });
-            if (!isCurrent()) return aborted();
+            signal.addEventListener('abort', aborted, { once: true });
+            if (!isCurrent() || signal.aborted) return aborted();
             try {
                 audio.src = url;
                 if (shouldPlay) Promise.resolve(audio.play()).then(() => { loaded(); finish(); }, finish);
                 else audio.load?.();
             } catch (error) { finish(error); }
         });
+        const playbackDataFor = data => {
+            const coverOptions = { baseUrl, allowDataImage: true };
+            const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
+                || normalizeMediaUrl(data.cover, coverOptions) || '';
+            return { ...queuedSong, ...data, id: queuedSong?.id || id, url: mediaUrl(data.url), cover: coverUrl(cover),
+                artworkSource: queuedSong || { id: data.id, provider: data.provider, sourceId: data.sourceId },
+                albumEntity: queuedSong?.albumEntity || data.albumEntity,
+                name: queuedSong?.name || data.name, artist: queuedSong?.artist || data.artist,
+                album: queuedSong?.album || data.album || '' };
+        };
+        const fetchLyrics = (data, playbackData, isMediaCurrent) => {
+            Promise.resolve().then(() => isMediaCurrent() ? musicService.getLyric(id, { song: playbackData, signal: session.signal }) : null)
+                .then(lyrics => { if (isMediaCurrent()) view.onLyrics?.(lyrics, data, playbackData); })
+                .catch(error => { if (isMediaCurrent()) view.onLyricsError?.(error); });
+        };
         async function advance(feedback, position = 0) {
             active.attempting = true;
             state.quality.songLoading = true;
@@ -132,15 +148,7 @@ export function createPlaybackController({
                     if (!url) throw new Error('Invalid media URL');
                     const audioProvider = data.playbackSource || data.provider;
                     firstProvider ||= audioProvider;
-                    const coverOptions = { baseUrl, allowDataImage: true };
-                    const cover = normalizeMediaUrl(queuedSong?.cover || data.cover, coverOptions)
-                        || normalizeMediaUrl(data.cover, coverOptions) || '';
-                    const playbackData = { ...queuedSong, ...data, id: queuedSong?.id || id, url, cover: coverUrl(cover),
-                        // Keep artwork lookup IDs tied to the chosen recording when audio switches providers.
-                        artworkSource: queuedSong || { id: data.id, provider: data.provider, sourceId: data.sourceId },
-                        albumEntity: queuedSong?.albumEntity || data.albumEntity,
-                        name: queuedSong?.name || data.name, artist: queuedSong?.artist || data.artist,
-                        album: queuedSong?.album || data.album || '' };
+                    const playbackData = playbackDataFor(data);
                     state.currentSong = playbackData;
                     view.onResolved?.(data, playbackData);
                     let blocked = false;
@@ -170,9 +178,7 @@ export function createPlaybackController({
                     if (!blocked && active.wantsPlay) notifyStarted();
                     else audio.addEventListener?.('playing', notifyStarted, { once: true, signal: session.signal });
                     view.onStarted?.(data, playbackData, { signal: session.signal, isCurrent:isMediaCurrent, recovering: active.recovering });
-                    Promise.resolve().then(() => isMediaCurrent() ? musicService.getLyric(id, { song: playbackData, signal: session.signal }) : null)
-                        .then(lyrics => { if (isMediaCurrent()) view.onLyrics?.(lyrics, data, playbackData); })
-                        .catch(error => { if (isMediaCurrent()) view.onLyricsError?.(error); });
+                    fetchLyrics(data, playbackData, isMediaCurrent);
                     clearTimer(preloadTimer);
                     preloadTimer = setTimer(() => { if (isCurrent() && active.wantsPlay && !blocked) void (view.onPreload ? view.onPreload() : preloadNext()); }, 2000);
                     return;
@@ -186,6 +192,7 @@ export function createPlaybackController({
         }
         async function recover(error) {
             if (!automatic || !isCurrent() || active.attempting || !active.wantsPlay) return;
+            active.sourceController?.abort();
             active.recovering = true;
             mediaGeneration += 1;
             const position = audio.currentTime || 0;
@@ -212,15 +219,112 @@ export function createPlaybackController({
         for (const [event, handler] of Object.entries(listeners)) audio.addEventListener?.(event, handler);
         session.signal.addEventListener('abort', () => {
             stopStall();
+            active.sourceController?.abort();
             for (const [event, handler] of Object.entries(listeners)) audio.removeEventListener?.(event, handler);
         }, { once:true });
+
+        active.switchSource = async (provider, callbacks) => {
+            active.sourceController?.abort();
+            const controller = new AbortController();
+            active.sourceController = controller;
+            const current = () => isCurrent() && !controller.signal.aborted && active.sourceController === controller;
+            const previous = state.currentSong;
+            // Retain exact matched IDs without nesting prior playback snapshots.
+            const sourceRecord = ({ sources, artworkSource, routing, ...song }) => song;
+            const known = [...(active.original?.sources || (queuedSong ? [queuedSong] : [])), previous].map(sourceRecord);
+            const sources = [...new Map(known.map(song => [`${song.provider}:${song.sourceId || song.id}`, song])).values()];
+            const sourceSong = { ...previous, sources };
+            const requested = musicService.playbackCandidates(id, {
+                song: sourceSong, signal: controller.signal, onlyProvider: provider, level: musicService.config?.quality,
+                onAttempt: info => { if (current()) callbacks.onAttempt?.(info); },
+            });
+            state.sourceSwitch = { provider, stage:'resolving' };
+            cancelPreload();
+            callbacks.onStart?.();
+            let installing = false, position = 0, selectedData;
+            try {
+                const next = await requested.next();
+                if (!current()) return false;
+                const data = next.value;
+                selectedData = data;
+                if (next.done || data?.provider !== provider || data.playbackSource || !mediaUrl(data?.url)) {
+                    throw new Error('该渠道未返回有效音频');
+                }
+                const playbackData = playbackDataFor(data);
+                // Capture the latest clock and intent only after matching/resolution.
+                // The original audio remains untouched while the network is pending.
+                position = audio.currentTime || 0;
+                active.wantsPlay = !audio.paused;
+                active.attempting = installing = true;
+                state.quality.songLoading = true;
+                state.sourceSwitch = { provider, stage:'installing' };
+                stopStall();
+                callbacks.onAttempt?.({ provider, stage:'installing' });
+                audio.setMetadata?.(playbackData);
+                const began = Date.now();
+                await startAudio(playbackData.url, position, active.wantsPlay, controller.signal);
+                if (!current()) return false;
+                const generation = ++mediaGeneration;
+                const isMediaCurrent = () => isCurrent() && generation === mediaGeneration;
+                state.currentSong = playbackData;
+                active.original = { ...playbackData, preferredProvider:provider, sources:[...sources, sourceRecord(playbackData)] };
+                previousProvider = data.provider;
+                musicService.recordPlaybackSuccess?.(data, Date.now() - began + (data.routing?.resolveMs || 0));
+                // A later network failure can still use automatic recovery. Include
+                // the actual matched ID without changing the queue/catalog identity.
+                void iterator.return?.().catch(() => {});
+                iterator = musicService.playbackCandidates(id, { ...routeOptions,
+                    song: active.original });
+                view.onResolved?.(data, playbackData);
+                view.onStarted?.(data, playbackData, { signal:session.signal, isCurrent:isMediaCurrent, recovering:true });
+                fetchLyrics(data, playbackData, isMediaCurrent);
+                reportEvent('source_switched', provider);
+                callbacks.onSuccess?.(playbackData);
+                return true;
+            } catch (error) {
+                if (!current()) return false;
+                let restored = !installing;
+                if (installing) {
+                    musicService.recordPlaybackFailure?.(selectedData, error);
+                    audio.setMetadata?.(previous);
+                    try {
+                        await startAudio(previous.url, position, active.wantsPlay, controller.signal);
+                        restored = true;
+                        audio.setArtwork?.(previous, previous.cover);
+                        if (current()) view.onSourceRestored?.(previous);
+                    } catch { /* Expose a failed rollback so the user can retry playback. */ }
+                }
+                if (!current()) return false;
+                if (!restored) view.onError?.(error);
+                callbacks.onError?.(error, { restored });
+                return false;
+            } finally {
+                void requested.return?.().catch(() => {});
+                if (active.sourceController === controller) {
+                    active.sourceController = null;
+                    if (isCurrent()) {
+                        state.sourceSwitch = null;
+                        if (installing) { active.attempting = false; state.quality.songLoading = false; }
+                    }
+                    callbacks.onSettled?.();
+                }
+            }
+        };
         await advance(undefined, active.position);
+    }
+
+    async function changeSource(provider, view = {}) {
+        const song = state.currentSong;
+        if (!activeLoad || !song || state.quality.songLoading || song.offline || song.provider === 'local'
+            || song.provider === 'bilibili' || bilibiliVideoUrl(song) || !musicService.playbackCandidates) return false;
+        return activeLoad.switchSource(provider, view);
     }
 
     async function toggle(view = {}) {
         if (state.transitionPending) return;
         const version = ++commandVersion;
         const shouldPlay = audio.paused || audio.ended;
+        if (activeLoad) activeLoad.wantsPlay = shouldPlay;
         state.transitionPending = true;
         view.onPending?.(true);
         try {
@@ -332,7 +436,7 @@ export function createPlaybackController({
     function stop() {
         sessions.start(); commandVersion++; activeLoad = null; cancelPreload();
         state.quality.controller?.abort(); state.quality.songLoading = false;
-        state.currentSong = null; audio.pause?.(); audio.removeAttribute?.('src'); audio.load?.();
+        state.currentSong = null; state.sourceSwitch = null; audio.pause?.(); audio.removeAttribute?.('src'); audio.load?.();
     }
-    return { state, load, toggle, changeQuality, preloadNext, ended, stop };
+    return { state, load, toggle, changeQuality, changeSource, preloadNext, ended, stop };
 }

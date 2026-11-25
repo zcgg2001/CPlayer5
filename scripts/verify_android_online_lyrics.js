@@ -96,6 +96,7 @@ async (originalPage) => {
     await play('97774'); await waitText('风吹来'); await waitRequest(requests, '97774');
     if ((await state()).hasWords) throw Error('LRC fabricated word timing'); checks.primaryDisplaysDuringSupplement = true;
     await page.locator('button[aria-label="打开设置"]').filter({ visible: true }).first().click();
+    await page.locator('.android-settings-overview [data-preference="lyrics"]').click();
     await page.getByText('歌词与时间校正', { exact: true }).click();
     await page.locator('input[type=file][accept=".lrc,.yrc,.ttml,.qrc,.krc,.vtt,.txt"]').setInputFiles({
       name: 'manual.lrc', mimeType: 'text/plain', buffer: Buffer.from('[00:01]保留手动歌词\n[00:10]这是我的版本'),
@@ -119,17 +120,19 @@ async (originalPage) => {
     primaryGates.set('97773', gate()); await play('97773'); await waitWords();
     if (requests.filter(id => id === '97773').length !== before) throw Error('Cached QRC was refetched');
     checks.cachedWordLyricsBeforeNetwork = true;
-    await page.evaluate(() => {
-      const id = 'https://www.jbsou.cn/api.php?get=url&type=kg&id=0123456789abcdef0123456789abcdef';
-      const index = window.insertSongToPlaylist({ id, sourceId: id, provider: 'jianbin-kugou', name: '酷狗逐字验收', artist: '测试歌手', album: '原创测试', duration: 45 });
+    await page.evaluate(async () => {
+      const { channelTrackId } = await import('/js/music-channels.js?v=1');
+      const sourceId = 'https://www.jbsou.cn/api.php?get=url&type=kg&id=0123456789abcdef0123456789abcdef';
+      const index = window.insertSongToPlaylist({ id: channelTrackId('jianbin-kugou', sourceId), sourceId, provider: 'jianbin-kugou', name: '酷狗逐字验收', artist: '测试歌手', album: '原创测试', duration: 45 });
       void window.playSongAtIndex(index);
     });
     await page.waitForFunction(() => document.querySelector('.lyric-source-status').textContent.includes('KRC'));
     await waitWords();
     if (!(await state()).hasWords || !(await state()).source.includes('酷狗')) throw Error('KRC did not render as real words');
     checks.kugouNativeRouteAndDecode = true;
+    const final = await state();
     if (errors.length) throw Error(errors.join('; '));
-    return { checks, requests, errors, final: await state() };
+    return { checks, requests, errors, final };
   } catch (error) {
     await page.screenshot({ path: 'output/playwright/android-online-lyrics-failure.png' });
     throw Error(error.message + '\n' + JSON.stringify({ checks, requests, primaryRequests, errors, state: await state() }));

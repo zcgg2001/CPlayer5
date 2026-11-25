@@ -75,7 +75,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     const score = p => { const h=health.get(p); return (h?.failures||0)*20000 + (h?.latency||0) + Math.max(0,PLAYBACK_SOURCE_ORDER.indexOf(p))*900; };
     return [...providers].sort((a,b)=>score(a)-score(b));
   }
-  async function* candidates(id, { song, signal, fetchImpl, level = DEFAULT_PLAYBACK_QUALITY, prefetch = false, onAttempt = () => {} } = {}) {
+  async function* candidates(id, { song, signal, fetchImpl, level = DEFAULT_PLAYBACK_QUALITY, prefetch = false, onlyProvider, preferredSource, onAttempt = () => {} } = {}) {
     const policy = await service.getRuntimePolicy?.();
     signal?.throwIfAborted();
     const input = song || { id };
@@ -109,11 +109,16 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     // Quota-limited ChKSz is opt-in per track, never an automatic fallback or
     // speculative request. Server priorities cannot silently opt it back in.
     const available=(video?['bilibili']:order(PLAYBACK_SOURCE_ORDER)).filter(p =>
-      (p !== 'chksz' || (!prefetch && original.preferredProvider === 'chksz')) &&
+      (!onlyProvider || p === onlyProvider) &&
+      (p !== 'chksz' || (!prefetch && (onlyProvider === 'chksz' || original.preferredProvider === 'chksz'))) &&
       policy?.sources?.[p]?.enabled !== false && !(policy?.sources?.[p]?.coolingUntil > now()));
+    if (onlyProvider && (!available.includes(onlyProvider) || cooling(onlyProvider))) {
+      throw Object.assign(new Error('该渠道暂不可用或正在冷却，请稍后重试'), { code:'source_unavailable' });
+    }
     if (prefetch && (video || original.preferredProvider === 'chksz')) return;
     if (policy?.sources) available.sort((a,b) => (policy.sources[a]?.priority ?? 100) - (policy.sources[b]?.priority ?? 100));
-    const preferred = available.includes(original.preferredProvider) && direct.has(original.preferredProvider) ? original.preferredProvider : null;
+    const preferred = available.includes(preferredSource) && preferredSource !== 'chksz' ? preferredSource
+      : available.includes(original.preferredProvider) && direct.has(original.preferredProvider) ? original.preferredProvider : null;
     const remaining = available.filter(provider => provider !== preferred);
     const providers=[...(preferred ? [preferred] : []),...remaining.filter(p=>direct.has(p)),...remaining.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...remaining.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
     let attempts=0, searches=0, spent=0, lastError;
@@ -160,7 +165,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
             if (!original.duration && data.duration) original.duration = data.duration;
             seenUrls.add(data.url);
             const result={...data,id:original.id||id,catalogId:original.catalogId,sources:original.sources,requestedLevel,
-              routing:{automatic:true,attempt:attempts,resolveMs:Math.max(0,now()-began),cacheHit:hit,
+              routing:{automatic:true,manual:Boolean(onlyProvider),attempt:attempts,resolveMs:Math.max(0,now()-began),cacheHit:hit,
                 ...(searched ? {match:{key:matchKey(provider),track:{id:track.id,sourceId:track.sourceId,provider,name:track.name,artist:track.artist,album:track.album,duration:track.duration,versionLabel:track.versionLabel,metadata:track.metadata}}} : {})}};
             const feedback=yield result;
             if (feedback?.error || feedback?.skipProvider) resolutions.invalidate(data);
@@ -179,7 +184,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
         if(skipProvider)break;
       }
     }
-    if (!prefetch) { const error=new Error('暂时找不到可播放的同一版本歌曲，请稍后重试');error.code='playback_exhausted';error.cause=lastError;throw error; }
+    if (!prefetch) { const error=new Error(onlyProvider ? '该渠道没有可播放的同一版本歌曲，请尝试其他渠道' : '暂时找不到可播放的同一版本歌曲，请稍后重试');error.code='playback_exhausted';error.cause=lastError;throw error; }
   }
   return { candidates, success, failure, health:()=>Object.fromEntries(health) };
 }

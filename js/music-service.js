@@ -90,13 +90,22 @@ export class MusicService {
     // Every new song starts lossless; old per-song choices are not a default.
     const quality = DEFAULT_QUALITY;
     let source = DEFAULT_MUSIC_SOURCE;
+    let playbackSource = '';
     try {
       const initialSource = new URLSearchParams(this.location?.search || '').get('source');
       source = supportedMusicSource(initialSource || this.storage?.getItem('cp_source'));
+      playbackSource = this.storage?.getItem('cp_playback_source') || '';
     } catch (error) {
       console.warn('无法读取播放器偏好:', error);
     }
-    this.config = { quality, source };
+    this.config = { quality, source, playbackSource: Object.hasOwn(MUSIC_SOURCE_OPTIONS, playbackSource) && !['chksz','bilibili'].includes(playbackSource) ? playbackSource : '' };
+  }
+
+  setPlaybackPreference(provider = '') {
+    if (provider && (!Object.hasOwn(MUSIC_SOURCE_OPTIONS, provider) || ['chksz','bilibili'].includes(provider))) return false;
+    this.config.playbackSource = provider;
+    try { this.storage?.setItem('cp_playback_source', provider); } catch { /* Session preference still works. */ }
+    return true;
   }
 
   saveSettings(key, value) {
@@ -207,17 +216,21 @@ export class MusicService {
   async getRuntimePolicy() { return globalThis.document ? runtimePolicy() : null; }
 
   async *playbackCandidates(id, options = {}) {
+    const manualChoice = Boolean(options.onlyProvider || options.song?.routing?.manual);
     let offline;
-    try { offline = await this.offlineAudio?.resolve(options.song, options.signal); }
+    try { if (!manualChoice) offline = await this.offlineAudio?.resolve(options.song, options.signal); }
     catch (error) { if (options.signal?.aborted) throw error; }
     if (offline) { yield offline; return; }
     if (this.offlineOnly?.()) throw new Error('离线模式只能播放此设备已保存的音频，请联网登录后重试');
     if (options.song?.provider === 'local') throw new Error('此设备没有该本地音频，请在个人库重新导入');
-    if (!options.prefetch && globalThis.document && !bilibiliVideoUrl(options.song)
+    if (!manualChoice && !this.config.playbackSource && !options.prefetch && globalThis.document && !bilibiliVideoUrl(options.song)
         && options.song?.provider !== 'bilibili') {
       yield* this.lxSources.candidates(id, { ...options, defaultProvider: this.config.source });
     }
-    yield* this.playbackRouter.candidates(id, options);
+    yield* this.playbackRouter.candidates(id, {
+      preferredSource: options.song?.routing?.manual ? options.song.preferredProvider : this.config.playbackSource,
+      ...options,
+    });
   }
   recordPlaybackSuccess(data, elapsedMs) { if (!data.offline && !data.playbackSource) this.playbackRouter.success(data, elapsedMs); }
   recordPlaybackFailure(data, error) { if (!data?.offline && !data?.playbackSource) this.playbackRouter.failure(data, error); }

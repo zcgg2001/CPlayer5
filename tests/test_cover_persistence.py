@@ -54,7 +54,7 @@ class CoverPersistenceTests(unittest.TestCase):
     def test_playback_prefers_the_selected_queue_cover(self):
         self.assertIn("const queuedSong = songOverride || queueStore.state.playlist.find", self.playback)
         self.assertIn("const cover = normalizeMediaUrl(queuedSong?.cover || data.cover", self.playback)
-        self.assertIn("const playbackData = {", self.playback)
+        self.assertIn("const playbackData = playbackDataFor(data);", self.playback)
         self.assertIn("artworkPresenter.show(playbackData, session)", self.source)
 
 

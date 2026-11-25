@@ -87,6 +87,7 @@ export function createPlayerExperience({ document, audio, onSearch, onDiscover, 
       set('buffering');
     },
     blocked() { set('blocked'); },
+    started() { if (phase !== 'blocked') { hasStarted = true; set(audio.paused ? 'paused' : 'playing'); } },
     recovering(message) { resolvingMessage = message; set('resolving'); },
     failed(message) { errorMessage = message; set('error'); },
   };

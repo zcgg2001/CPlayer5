@@ -107,6 +107,7 @@ async (originalPage) => {
     await waitRequest(lyricRequests, '123402');
     await waitText('本机缓存 123402');
     await page.locator('button[aria-label="打开设置"]:not([inert] *)').filter({ visible: true }).first().click();
+    await page.locator('.android-settings-overview [data-preference="lyrics"]').click();
     await page.getByText('歌词与时间校正', { exact: true }).click();
     await page.evaluate(() => {
       window.__cacheSetItem = Storage.prototype.setItem;

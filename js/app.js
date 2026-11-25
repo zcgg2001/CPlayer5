@@ -36,6 +36,10 @@ import { artworkChoiceKey } from './artwork-recovery.js';
 import { createQueueStore } from './queue-store.js?v=1';
 import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
 import { createMusicWall } from './music-wall.js';
+import { createPlayerSource } from './player-source.js';
+let playerSourceUI = null;
+import { createAndroidSettings } from './android-settings.js';
+let androidSettingsUI = null;
 import { initAccountPanel } from './account-panel.js?v=5';
 let accountPanel = null;
 let personalLibrary = null;
@@ -489,6 +493,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindLxSettings(musicService.lxSources);
     initSettingsUI();
     initMusicSourceControl();
+    if (androidPlayer) playerSourceUI = createPlayerSource({ document, playback, musicService, toast:showToast });
     setupPlaylistIdLoader();  // 初始化歌单ID加载按钮
     let restoreStartupQueue = true;
     accountPanel = initAccountPanel({
@@ -502,7 +507,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             isPlaying: () => !audio.paused,
             suspend: () => {
                 restoreStartupQueue = false;
-                playback.stop(); playerExperience?.reset(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
+                playback.stop(); playerSourceUI?.close(); playerSourceUI?.sync(); playerExperience?.reset(); syncPlaybackControls(false); syncDesktopPlayerAvailability();
                 if (androidPlayer) setMobileExploreOpen(true);
                 dom.songTitle.textContent = '请选择歌曲'; dom.artistName.textContent = '从歌单或搜索中开始播放';
                 setLyricsStatus('播放音乐以查看歌词');
@@ -524,9 +529,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (replace) { queue.playlist = songs; queue.currentIndex = -1; queueStore.resetOrder(); syncQueueAfterMutation(); }
             else addChartSong(songs, { playNow: false, source: songs.source });
         },
-        onCollection: (type, id) => discoveryHome.openCollection(type, id), onSearch: openMusicSearch,
+        onCollection: (type, id) => discoveryHome.openCollection(type, id), onSearch: openMusicSearch, onSettings:openSettings,
         notify: showToast, refreshFavorites: () => discoveryTable?.refreshFavorites(),
     });
+    if (androidPlayer) androidSettingsUI = createAndroidSettings({ document, musicService, account:accountPanel, library:personalLibrary, close:closeSettings, notify:showToast });
     for (const event of ['pause', 'seeked']) audio.addEventListener(event, () => accountPanel.checkpoint());
     // An optional cache or playlist request must not delay the login form.
     const startupQueue = queue.playlist;
@@ -1886,8 +1892,9 @@ function handleAndroidBack() {
         return true;
     }
     if (dom.welcomeModal.getAttribute('aria-hidden') === 'false') closeWelcomeModal();
-    else if (dom.settingsModal.getAttribute('aria-hidden') === 'false') closeSettings();
+    else if (dom.settingsModal.getAttribute('aria-hidden') === 'false') { if (!androidSettingsUI?.back()) closeSettings(); }
     else if (dom.mobilePlaylistSheet.getAttribute('aria-hidden') === 'false') mobileUI?.closeSheet();
+    else if (mobileExploreView === 'wall' && dom.mobileChartsSheet.getAttribute('aria-hidden') === 'false' && musicWall?.handleBack()) return true;
     else if (dom.mobileChartsSheet.getAttribute('aria-hidden') === 'true' && mobileUI?.currentMode === 'lyrics') mobileUI.resetView();
     else if (dom.mobileChartsSheet.getAttribute('aria-hidden') === 'true') setMobileExploreOpen(true);
     else if (mobileExploreView !== 'discovery') setMobileExploreView('discovery');
@@ -1900,7 +1907,7 @@ document.addEventListener('keydown', event => {
     if (!dialog) return;
 
     if (event.key === 'Escape') {
-        if (dialog.id === 'settingsModal') { event.preventDefault(); closeSettings(); }
+        if (dialog.id === 'settingsModal') { event.preventDefault(); if (!androidSettingsUI?.back()) closeSettings(); }
         if (dialog.id === 'mobilePlaylistSheet') { event.preventDefault(); mobileUI?.closeSheet(); }
         return;
     }
@@ -1920,7 +1927,8 @@ document.addEventListener('keydown', event => {
     }
 });
 
-function openSettings() {
+function openSettings(options = {}) {
+    androidSettingsUI?.open(options);
     void musicKeySettings?.refresh();
     dom.settingsModal.classList.remove('hidden');
     // Allow reflow
@@ -1933,7 +1941,7 @@ function openSettings() {
     const idInput = document.getElementById('playlistIdInput');
     const savedId = localStorage.getItem('cp_playlistId');
     if (idInput && savedId) idInput.value = savedId;
-    activateDialog(dom.settingsModal, dom.closeSettingsBtn);
+    activateDialog(dom.settingsModal, androidPlayer ? document.getElementById('androidSettingsBack') : dom.closeSettingsBtn);
 
     // 刷新歌单来源状态
     updateSourceDisplay();
@@ -1973,6 +1981,7 @@ function closeSettings() {
     setTimeout(() => {
         if (dom.settingsModal.getAttribute('aria-hidden') === 'true') dom.settingsModal.classList.add('hidden');
     }, 300);
+    androidSettingsUI?.closed();
 }
 
 function syncPlaybackControls(playing = Boolean(audio.src && !audio.paused && !audio.ended)) {
@@ -3392,6 +3401,8 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
     discoveryHome?.beforePlay(songOverride);
     return playback.load(id, songOverride, {
         onLoading() {
+            playerSourceUI?.close();
+            playerSourceUI?.sync();
             artworkRecoveryUI?.update(songOverride || { id });
             queueStore.select(songOverride || { id });
             mobileUI?.syncCoverCarousel({ song: songOverride || { id }, loading: true });
@@ -3445,6 +3456,8 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
             showToast('歌曲已加载，请点击播放键继续');
         },
         onStarted(data, playbackData, session) {
+            playerExperience?.started();
+            playerSourceUI?.sync();
             const { isCurrent } = session;
             if (position > 0 && !session.recovering) {
                 const resume = () => {
@@ -3479,6 +3492,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
 
         },
         onPreload: preloadNextSong,
+        onSourceRestored() { playerExperience?.started(); },
         onLyrics(qjLyrics, data, playbackData) {
             const lrc = qjLyrics?.lrc || data.lrc || '';
             const tlrc = qjLyrics?.tlrc || data.tlrc || '';
@@ -3518,6 +3532,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
         }
         },
         onSettled() {
+            playerSourceUI?.sync();
             mobileUI?.syncCoverCarousel({ loading: false });
             discoveryLoadingSong = null;
             dom.desktopPlayerBar?.classList.remove('is-buffering');

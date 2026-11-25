@@ -24,6 +24,7 @@ final class CoverCachePolicy {
 
   static String target(String request) {
     try {
+      if (allowed(request)) return request;
       URI uri = URI.create(request);
       if (!BridgePolicy.trusted(request) || !"/api/cover".equals(uri.getPath())) return null;
       String query = uri.getRawQuery();
@@ -37,6 +38,7 @@ final class CoverCachePolicy {
     if (value == null) return null;
     String type = value.split(";", 2)[0].trim().toLowerCase(java.util.Locale.ROOT);
     if (type.equals("image/jpg") || type.equals("image/pjpeg")) type = "image/jpeg";
+    if (type.equals("image/x-png")) type = "image/png";
     return type.matches("image/(jpeg|png|webp|avif|gif)") ? type : null;
   }
 }

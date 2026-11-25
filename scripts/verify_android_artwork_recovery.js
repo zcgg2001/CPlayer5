@@ -73,6 +73,7 @@ async (originalPage) => {
     if (await discovery.isVisible()) await discovery.click();
     else await page.locator('#mobileSettingsBtn').click();
     await page.waitForFunction(() => document.getElementById('settingsModal').getAttribute('aria-hidden') === 'false');
+    await page.locator('.android-settings-overview [data-preference="player"]').click();
     const details = page.locator('.cover-recovery-details');
     if (!await details.evaluate(node => node.open)) await details.locator('summary').click();
   };

@@ -1,11 +1,17 @@
-const SHELL_CACHE = 'cplayer5-shell-v110';
+const SHELL_CACHE = 'cplayer5-shell-v113';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
 
 const CORE_ASSETS = [
+  './js/android-profile.js',
+  './js/android-settings.js',
+  './css/android-personal.css',
+  './js/player-source.js',
+  './css/player-source.css',
   './css/music-wall.css',
   './js/music-wall.js',
+  './js/music-wall-field.js',
   './css/android-player.css',
   './js/android-updates.js',
   './img/turntable.webp',

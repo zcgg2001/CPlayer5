@@ -1,6 +1,6 @@
 import { boundedBytes } from './channel-http.js';
 import { opsError } from './operations-store.js';
-const HOSTS = ['music.126.net', 'gtimg.cn', 'qpic.cn', 'kugou.com', 'kuwo.cn', 'hdslb.com', 'mzstatic.com'];
+const HOSTS = ['music.126.net', 'gtimg.cn', 'qpic.cn', 'kugou.com', 'kgimg.com', 'kuwo.cn', 'hdslb.com', 'mzstatic.com'];
 export function safeCover(value) {
   try {
     const url = new URL(value);

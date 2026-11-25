@@ -4,8 +4,10 @@ import { cleanSong, songKey, imageURL } from './library-data.js';
 import { exportCSV, exportM3U, parseTransfer, mergeImport }  from './library-transfer.js';
 import { createOfflineAudio } from './offline-audio.js';
 import { cleanRecords } from './account-data.js';
+import { androidIcon, renderAndroidProfile } from './android-profile.js';
 
-export function initPersonalLibrary({ document, storage, account, musicService, audio, getSong, getQueue, onPlay, onQueue, onCollection, onSearch, notify, refreshFavorites }) {
+export function initPersonalLibrary({ document, storage, account, musicService, audio, getSong, getQueue, onPlay, onQueue, onCollection, onSearch, onSettings, notify, refreshFavorites }) {
+  const android = document.documentElement.classList.contains('android-player');
   const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n;};
   const button=(label,action,cls='pl-button')=>{const b=el('button',cls,label);b.type='button';b.addEventListener('click',()=>run(action,b));return b;};
   const label=(title,input)=>{const n=el('label','pl-field');n.append(el('span','',title),input);return n;};
@@ -38,12 +40,51 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
     const n=el('div','pl-art'),img=el('img');img.alt='';img.loading='lazy';
     bindArtwork(img,{...song,cover:url,name},{size:song.id && !song.type ? 160 : 320});n.append(img);return n;
   }
-  function resetBody(root=false){sectionRoot=root;viewVersion++;body.replaceChildren();dirty=false;body.scrollTop=0;return viewVersion;}
+  function resetBody(root=false){sectionRoot=root;viewVersion++;body.replaceChildren();dirty=false;body.scrollTop=0;if(android && !root)dialog.dataset.profileView='detail';return viewVersion;}
   function guard(){return !dirty || confirm('有未保存的编辑，确定放弃吗？');}
-  async function navigate(key){if(!guard())return;tab=key;resetBody(true);message('');for(const [id,b] of navButtons)b.setAttribute('aria-current',id===key?'page':'false');identity.textContent=account.user()?`${account.user().username || account.user().name} · ${account.isOffline()?'离线资料，联网验证后同步':'私人资料随账号同步'}`:'游客个人库 · 保存在当前浏览器';await ({favorites:renderFavorites,playlists:renderPlaylists,history:renderHistory,stats:renderStats,offline:renderOffline,transfer:renderTransfer})[key]();}
-  dialog.addEventListener('keydown',e=>e.stopPropagation());dialog.addEventListener('cancel',e=>{if(!guard())e.preventDefault();});
+  async function navigate(key){
+    if(!guard())return;const changed=key!==tab;tab=key;const version=resetBody(true);message('');
+    for(const [id,b] of navButtons)b.setAttribute('aria-current',id===key?'page':'false');
+    identity.textContent=account.user()?`${account.user().username || account.user().name} · ${account.isOffline()?'离线资料，联网验证后同步':'私人资料随账号同步'}`:android?'本机音乐库 · 为热爱留一片空间':'游客个人库 · 保存在当前浏览器';
+    if(android){
+      dialog.dataset.profileView=key==='home'?'home':'detail';
+      title.textContent=key==='home'?'我的':tabs.find(([id])=>id===key)?.[1]||'我的音乐';
+      const back=header.querySelector('[data-profile-back]');back?.setAttribute('aria-label',key==='home'?'返回播放器':'返回个人中心');
+    }
+    if(android && key==='home') await renderAndroidProfile({document,body,account,store,offline,navigate:key=>run(()=>navigate(key)),
+      settings:openSettingsFromLibrary,viewPlaylist:(...args)=>run(()=>viewPlaylist(...args)),
+      createPlaylist:()=>run(()=>{tab='playlists';dialog.dataset.profileView='detail';title.textContent='歌单';editPlaylist({name:'',songs:[]});}),
+      art,isCurrent:()=>dialog.open && viewVersion===version});
+    else {
+      const pending=({favorites:renderFavorites,playlists:renderPlaylists,history:renderHistory,stats:renderStats,offline:renderOffline,transfer:renderTransfer})[key]();
+      // Optional page reads must not hold the action lock or prevent Android
+      // navigation. Each async renderer already ignores superseded views.
+      if(android && pending?.then)void pending.catch(error=>{if(version===viewVersion && error.name!=='AbortError')message(error.message,true);});
+      else await pending;
+    }
+    if(android && changed && dialog.open && version===viewVersion){title.tabIndex=-1;title.focus({preventScroll:true});}
+  }
+  function openSettingsFromLibrary(section){
+    if(!guard())return;
+    const trigger=opener;dialog.close();onSettings?.({section,onClose:()=>void open({section:'home',trigger})});
+  }
+  function backToLibrary(){
+    if(!android || (tab==='home' && sectionRoot))return false;
+    if(!guard())return true;
+    dirty=false;void run(()=>navigate(sectionRoot?'home':tab));return true;
+  }
+  if(android){
+    const back=el('button','android-profile-toolbar-button');back.type='button';back.addEventListener('click',()=>{if(!backToLibrary())dialog.close();});back.dataset.profileBack='';back.append(androidIcon(document,'ArrowLeft'));back.setAttribute('aria-label','返回播放器');
+    const actions=el('div','android-profile-toolbar-actions');
+    const sync=button('',()=>openSettingsFromLibrary('account'),'android-profile-toolbar-button');sync.append(androidIcon(document,'Cloud'));sync.setAttribute('aria-label','账号与同步');
+    const settings=button('',()=>openSettingsFromLibrary(),'android-profile-toolbar-button');settings.append(androidIcon(document,'Settings'));settings.setAttribute('aria-label','打开个人中心设置');
+    const closeButton=header.querySelector('.pl-close');closeButton.textContent='';closeButton.append(androidIcon(document,'X'));closeButton.setAttribute('aria-label','关闭个人中心');
+    header.prepend(back);actions.append(sync,settings,closeButton);header.append(actions);
+  }
+  dialog.addEventListener('keydown',e=>e.stopPropagation());dialog.addEventListener('cancel',e=>{if(backToLibrary() || !guard())e.preventDefault();});
   dialog.addEventListener('close',()=>{viewVersion++;downloadController?.abort();opener?.focus();});
-  window.addEventListener('cplayer:library-applied',()=>{if(dialog.open && sectionRoot && ['favorites','playlists','history'].includes(tab) && !dirty && !busy)void run(()=>navigate(tab));});
+  window.addEventListener('cplayer:library-applied',()=>{if(dialog.open && sectionRoot && ['home','favorites','playlists','history'].includes(tab) && !dirty && !busy)void run(()=>navigate(tab));});
+  window.addEventListener('cplayer:library-changed',()=>{if(android && dialog.open && tab==='home' && sectionRoot && !busy)void run(()=>navigate('home'));});
   function play(song,options){dialog.close();onPlay(song,options);}
   function saveFile(name,content,type){const url=URL.createObjectURL(new Blob([content],{type})),a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function exportSongs(songs,kind,name='ZPlayer'){saveFile(`${name.replace(/[\\/:*?"<>|]/g,'_').slice(0,80)}.${kind}`,kind==='csv'?exportCSV(songs):exportM3U(songs),kind==='csv'?'text/csv;charset=utf-8':'audio/x-mpegurl');}
@@ -95,6 +136,7 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
     }catch(error){if(version!==viewVersion)return;loading.textContent='协作歌单暂不可用；本地歌单仍可使用。';message(error.message,true);}
   }
   function viewPlaylist(list,shared){
+    if(android)title.textContent='歌单';
     resetBody();body.append(button('← 所有歌单',()=>navigate('playlists')));
     showHeader(list.name,list.description||`${list.songs.length} 首歌曲`,[button('播放全部',()=>{dialog.close();if(list.songs.length){onQueue(list.songs,true);onPlay(list.songs[0]);}},'pl-button is-primary')]);
     const actions=el('div','pl-actions');actions.append(button('导出 CSV',()=>exportSongs(list.songs,'csv',list.name)),button('导出 M3U',()=>exportSongs(list.songs,'m3u',list.name)),button('保存为离线歌单',()=>downloadList(list)));
@@ -158,8 +200,8 @@ export function initPersonalLibrary({ document, storage, account, musicService, 
     const file=input('','file');file.accept='.json,.csv,.m3u,.m3u8';file.addEventListener('change',()=>run(async()=>{pending=null;confirm.disabled=true;const selected=file.files[0];if(!selected)return;if(selected.size>1990000)throw new Error('文件不能超过 2 MB');const data=parseTransfer(await selected.text(),selected.name);if(version!==viewVersion)return;display({...data,name:selected.name.replace(/\.[^.]+$/,'')});}));body.append(label('选择歌单或迁移备份文件',file),preview,confirm);
     const exports=el('section','pl-export');exports.append(el('h4','','导出与跨设备迁移'),el('p','pl-muted','JSON 包含四类收藏、歌单、标签笔记、历史与统计。M3U 保存曲目资料和原平台链接，可重新导入 ZPlayer；它不包含音频文件。'),button('导出完整个人库 JSON',async()=>{tracker.flush();const records=account.library.capture();if(account.isSignedIn()){const data=await request('/api/library/playlists');for(const list of data.lists)records['playlist:shared-'+list.id]={...list,sharedId:undefined};}saveFile('ZPlayer-library.json',JSON.stringify({format:'cplayer-library-v2',exportedAt:new Date().toISOString(),records:cleanRecords(records)},null,2),'application/json');}),button('导出红心歌曲 CSV',()=>exportSongs(store.favorites(),'csv','我喜欢')),button('导出红心歌曲 M3U',()=>exportSongs(store.favorites(),'m3u','我喜欢')));body.append(exports);
   }
-  async function open({song=null,section='favorites',trigger=document.activeElement}={}){if(!account.canEnter())return;opener=trigger;if(!dialog.open)dialog.showModal();await navigate(section);if(song)showSong(song);}
-  document.querySelectorAll('[data-open-personal-library]').forEach(b=>b.addEventListener('click',()=>run(()=>open({trigger:b,section:b.dataset.openPersonalLibrary||'favorites'}))));
+  async function open({song=null,section=android?'home':'favorites',trigger=document.activeElement}={}){if(!account.canEnter())return;opener=trigger;if(!dialog.open)dialog.showModal();await navigate(section);if(song){if(android){tab='favorites';dialog.dataset.profileView='detail';title.textContent='歌曲资料';}showSong(song);}}
+  document.querySelectorAll('[data-open-personal-library]').forEach(b=>b.addEventListener('click',()=>run(()=>open({trigger:b,section:b.dataset.openPersonalLibrary||(android?'home':'favorites')}))));
   const shared=new URL(location.href).searchParams.get('sharedPlaylist');
   if(shared && /^[\w-]{1,80}$/.test(shared)){const load=()=>run(async()=>{await open({section:'playlists'});const value=await request(`/api/library/public/${shared}`);viewPlaylist({...value,id:undefined},false);const importButton=button('保存到我的歌单',()=>{store.create(value.name,value.songs);message('已保存为你的私密歌单');});body.prepend(importButton);});const entry=document.getElementById('accountEntryDialog');if(entry?.open)entry.addEventListener('close',load,{once:true});else void load();}
   return {open,store,offline,collect(item){const added=store.toggleEntity(item);notify(added?'已加入个人库':'已取消收藏');},song: song=>open({song}),tracker};

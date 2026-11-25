@@ -84,6 +84,8 @@
     <link rel="stylesheet" href="./css/personal-library.css">
     <link rel="stylesheet" href="./css/android-player.css">
     <link rel="stylesheet" href="./css/music-wall.css">
+    <link rel="stylesheet" href="./css/player-source.css">
+    <link rel="stylesheet" href="./css/android-personal.css">
 </head>
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
@@ -826,7 +828,11 @@
         <header class="flex-none h-14 flex items-center justify-center relative z-20">
             <button id="androidCollapsePlayer" class="android-only" type="button" aria-label="收起播放器"><i data-lucide="ChevronDown" aria-hidden="true"></i></button>
             <h1 class="text-lg font-bold tracking-wider opacity-90">ZPlayer</h1>
-            <span class="android-only android-playing-label">正在播放</span>
+            <button id="playerSourceButton" class="android-only" type="button" aria-label="切换音源" aria-haspopup="dialog" aria-controls="playerSourceDialog" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4m4-8v12m4-15v18m4-15v12m4-8v4"/></svg>
+                <span data-source-label>选择音源</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+            </button>
             <button id="mobileChartsBtn" type="button" aria-label="打开音乐发现"
                 aria-controls="mobileChartsSheet" aria-expanded="false">
                 <i class="fas fa-compass" aria-hidden="true"></i>
@@ -1323,7 +1329,7 @@
                 <button type="button" data-android-action="home" aria-current="page"><i data-lucide="Compass" aria-hidden="true"></i><span>发现</span></button>
                 <button type="button" data-android-action="search" aria-haspopup="dialog" aria-controls="mobilePlaylistSheet"><i data-lucide="Search" aria-hidden="true"></i><span>搜索</span></button>
                 <button type="button" data-android-action="wall" aria-controls="mobileExploreWallPane"><i data-lucide="Grid2X2" aria-hidden="true"></i><span>音乐墙</span></button>
-                <button type="button" data-open-personal-library aria-haspopup="dialog" aria-controls="personalLibraryDialog"><i data-lucide="Library" aria-hidden="true"></i><span>我的音乐</span></button>
+                <button type="button" data-open-personal-library aria-haspopup="dialog" aria-controls="personalLibraryDialog"><i data-lucide="Library" aria-hidden="true"></i><span>我的</span></button>
             </nav>
         </section>
     </div>
@@ -1601,7 +1607,7 @@
             </div>
 
             <div class="pt-3 border-t border-white/10 text-center text-xs opacity-40 font-mono tracking-wider">
-                ZPlayer · v1.13.0
+                ZPlayer
             </div>
         </div>
     </div>
