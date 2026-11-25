@@ -18,7 +18,7 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
   let appearance = readAppearance(storage), globalAppearance = { ...appearance }, studio = readStudio(storage), globalStudio = studio;
   let effective = appearance.effect === 'random' ? pickLyricEffect() : appearance.effect;
   let current = normalizeDocument({ lines: [] }), original = current, track = {}, key = '', generation = 0, perTrack = false, busy = false, sourceRequest = null, sourceChoices = [], manualDocument = false;
-  let richRequest = null, richPending = 0, primaryFailed = false;
+  let richRequest = null, richPending = 0, primaryPending = false;
   const richAttempted = new Set();
   const modal = document.getElementById('settingsModal'), select = document.getElementById('lyricEffectSelect'), feedback = document.getElementById('lyricEffectFeedback');
   const runtime = createLyricRuntime({ audio, analyser, onFollow, scrollers: [document.getElementById('lyricsScroller'), document.getElementById('mobileLyricsScroller')] });
@@ -32,6 +32,11 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
   function lookupBusy(value) {
     busy = value; refreshButton.disabled = bestButton.disabled = value;
     document.querySelectorAll('[data-lyric-lookup]').forEach(button => { button.disabled = value || !key; button.setAttribute('aria-busy', String(value)); });
+    showEmptyStatus();
+  }
+  function showEmptyStatus() {
+    if (key && !hasLyrics(current)) runtime.status(primaryPending || richPending || busy
+      ? '正在获取歌词…' : '暂未找到歌词，可重试补全');
   }
   const section = document.querySelector('.lyric-settings');
   const extras = element('div', 'lyric-settings-extra'); section.querySelector('.lyric-settings__footer').before(extras);
@@ -117,6 +122,7 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     sourceSelect.replaceChildren(...sourceChoices.map((doc, i) => { const option = element('option', '', `${doc.source} · ${doc.format.toUpperCase()} · ${doc.hasWordLevel ? '逐字' : doc.lines.length ? '逐行' : doc.plain ? '纯文本' : '暂无歌词'}`); option.value = i; return option; }));
     sourceSelect.value = sourceChoices.indexOf(current);
     sourceStatus.textContent = `${current.source} · ${current.format.toUpperCase()}\n${current.lines.length} 行 · ${current.hasWordLevel ? '包含真实逐字时间' : current.plain ? '纯文本，可自由滚动' : '按句同步'}`;
+    showEmptyStatus();
   }
   function linkedTracks() {
     return matchingLyricSources(track, [...(track.artworkSource ? [track.artworkSource] : []), ...getCandidates(track)]).slice(0, 4);
@@ -143,9 +149,7 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
         .finally(() => {
           if (token !== generation) return;
           richPending--;
-          if (!richPending && primaryFailed && !hasLyrics(current)) {
-            runtime.status('歌词加载失败，请稍后重试'); lookupMessage('可重试补全，或导入歌词文件');
-          }
+          showEmptyStatus();
         });
     }
   }
@@ -248,8 +252,10 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     const nextKey = trackKey(song);
     document.getElementById('mobileLyricTitle').textContent = song.name || '未命名歌曲';
     document.getElementById('mobileLyricArtist').textContent = song.artist || '未知歌手';
-    if (nextKey && nextKey === key) { track = song; supplementWords(); return hasLyrics(current); }
-    generation++; sourceRequest?.abort(); richRequest?.abort(); richRequest = null; richPending = 0; primaryFailed = false; richAttempted.clear(); sourceChoices = [];
+    if (nextKey && nextKey === key) {
+      track = song; primaryPending = true; supplementWords(); showEmptyStatus(); return hasLyrics(current);
+    }
+    generation++; sourceRequest?.abort(); richRequest?.abort(); richRequest = null; richPending = 0; primaryPending = true; richAttempted.clear(); sourceChoices = [];
     track = song; key = nextKey;
     // The audio element may still describe the previous song at this point.
     const duration = Number(song.duration || song.metadata?.duration) * 1000 || Infinity;
@@ -276,7 +282,7 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     handlesTiming: true, activateLine() {}, deactivateLine() {}, resetLyrics() {},
     load(payload, song = {}) {
       prepare(song);
-      primaryFailed = false;
+      primaryPending = false;
       const online = parseLyricsPayload(payload, audio.duration * 1000 || Infinity);
       const chosen = chooseBestLyrics([{ document: online }, { document: original }])?.document || online;
       original = mergeLyricLayers(chosen, chosen === online ? original : online);
@@ -289,9 +295,12 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
       return current;
     },
     refreshFailed() {
-      primaryFailed = true;
-      if (!hasLyrics(current) && richPending) { lookupMessage('正在补充在线歌词…'); return true; }
-      if (!hasLyrics(current)) return false;
+      primaryPending = false;
+      if (!hasLyrics(current)) {
+        if (!key || ['bilibili', 'local'].includes(track.provider)) return false;
+        void requestSources(true, true);
+        showEmptyStatus(); return true;
+      }
       lookupMessage('暂时无法更新，继续显示已有歌词');
       return true;
     },

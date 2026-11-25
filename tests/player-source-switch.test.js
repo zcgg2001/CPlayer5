@@ -5,6 +5,7 @@ import { createPlaybackRouter } from '../js/playback-router.js';
 import { createQueueStore } from '../js/queue-store.js';
 import { createPlayerAudio } from '../js/native-audio.js';
 import { MusicService } from '../js/music-service.js';
+import { createLxSources } from '../js/lx-music-sources.js';
 
 const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 const gate = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
@@ -287,4 +288,90 @@ test('manual channel survives quality changes without imported scripts, offline 
         const nextTrack=(await service.playbackCandidates('456',{song:{...track,id:'456'}}).next()).value;
         assert.equal(nextTrack.playbackSource,'lx-primary');
     } finally { if(previousDocument===undefined)delete globalThis.document;else globalThis.document=previousDocument; }
+});
+
+async function customSetup() {
+    const h = setup(), service = new MusicService({ storage: null });
+    service.getRuntimePolicy = async () => null;
+    service.getSongAtLevel = async (id, level, options) => ({ ...media(options.source, id), level });
+    service.getLyric = async () => null;
+    service.search = async () => [];
+    service.lxSources = createLxSources(null, {
+        download: async url => `/**\n * @name 我的音源\n */\n${url}`,
+        open: async code => ({ sources: { wy: { qualitys: ['flac', '320k', '128k'] } }, close() {},
+            resolve: async () => `https://audio.example.org/custom/${code.includes('backup') ? 'backup' : 'primary'}.mp3` }),
+    });
+    await service.lxSources.save({ enabled: true, primary: 'https://example.org/main.js', backup: 'https://example.org/backup.js' });
+    service.setPlaybackPreference('gd');
+    h.controller = createPlaybackController({ audio: h.audio, musicService: service, queueStore: h.queue, mediaTimeoutMs: 40 });
+    h.service = service;
+    await h.controller.load(track.id, track, h.view);
+    return h;
+}
+
+test('switching to an imported slot preserves progress, pause, queue identity and manual preference through quality changes', async () => {
+    const previousDocument = globalThis.document; globalThis.document = {};
+    const h = await customSetup();
+    try {
+        h.audio.pause(); h.audio.currentTime = 53;
+        assert.equal(await h.controller.changeSource('lx-backup'), true);
+        assert.equal(h.controller.state.currentSong.provider, 'gd');
+        assert.equal(h.controller.state.currentSong.playbackSource, 'lx-backup');
+        assert.equal(h.controller.state.currentSong.source, '我的音源');
+        assert.equal(h.controller.state.currentSong.id, track.id);
+        assert.equal(h.audio.currentTime, 53); assert.equal(h.audio.paused, true);
+        assert.equal(h.queue.state.playlist[0].playbackSource, undefined);
+        h.service.offlineAudio = { resolve() { assert.fail('manual quality change used offline copy'); } };
+        await h.controller.changeQuality('exhigh');
+        assert.equal(h.controller.state.currentSong.playbackSource, 'lx-backup');
+        assert.equal(h.audio.currentTime, 53); assert.equal(h.audio.paused, true);
+        assert.equal(await h.controller.changeSource('netease'), true);
+        assert.equal(h.controller.state.currentSong.playbackSource, undefined);
+        assert.equal(h.controller.state.currentSong.playbackSourceUrl, undefined);
+        assert.equal(h.controller.state.currentSong.provider, 'netease');
+        await h.controller.changeQuality('standard');
+        assert.equal(h.controller.state.currentSong.playbackSource, undefined);
+        assert.equal(h.controller.state.currentSong.provider, 'netease');
+        assert.equal(h.audio.currentTime, 53);
+    } finally { h.controller.stop(); if (previousDocument === undefined) delete globalThis.document; else globalThis.document = previousDocument; }
+});
+
+test('an imported URL decode failure restores original audio and does not commit a new source', async () => {
+    const h = await customSetup();
+    try {
+        h.audio.currentTime = 39;
+        h.audio.behavior = async () => { if (h.audio.src.includes('/custom/')) throw Error('decode failed'); };
+        let restored;
+        assert.equal(await h.controller.changeSource('lx-primary', { onError: (_, state) => restored = state.restored }), false);
+        assert.equal(restored, true); assert.equal(h.audio.currentTime, 39); assert.equal(h.audio.paused, false);
+        assert.equal(h.controller.state.currentSong.playbackSource, undefined);
+        assert.equal(h.audio.src, media('gd').url);
+    } finally { h.controller.stop(); }
+});
+
+test('a newer source choice cancels pending custom resolution before it can commit', async () => {
+    const h = await customSetup(), ready = gate();
+    const candidates = h.service.lxSources.candidates;
+    h.service.lxSources.candidates = async function* (...args) { await ready.promise; yield* candidates(...args); };
+    try {
+        const old = h.controller.changeSource('lx-backup'); await tick();
+        assert.equal(await h.controller.changeSource('netease'), true);
+        ready.resolve(); assert.equal(await old, false);
+        assert.equal(h.controller.state.currentSong.provider, 'netease');
+        assert.equal(h.audio.loads.some(url => url.includes('/custom/')), false);
+    } finally { ready.resolve(); h.controller.stop(); }
+});
+
+test('replacing an imported configuration during media installation rolls back rather than relabeling old audio', async () => {
+    const h = await customSetup(), ready = gate();
+    h.audio.behavior = () => h.audio.src.includes('/custom/') ? ready.promise : Promise.resolve();
+    try {
+        h.audio.currentTime = 28;
+        const switching = h.controller.changeSource('lx-backup'); await tick();
+        assert.equal(h.controller.state.sourceSwitch.stage, 'installing');
+        await h.service.lxSources.save({ enabled: true, primary: 'https://example.org/main.js', backup: 'https://example.org/replaced.js' });
+        ready.resolve(); assert.equal(await switching, false);
+        assert.equal(h.controller.state.currentSong.playbackSource, undefined);
+        assert.equal(h.audio.src, media('gd').url); assert.equal(h.audio.currentTime, 28);
+    } finally { ready.resolve(); h.controller.stop(); }
 });

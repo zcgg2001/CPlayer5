@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v113';
+const SHELL_CACHE = 'cplayer5-shell-v118';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -80,6 +80,7 @@ const CORE_ASSETS = [
   './js/lyrics/sources.js',
   './js/lyrics/lookup.js',
   './js/lyrics/native-lookup.js',
+  './js/lyrics/providers.js',
   './js/lyrics/encoded.js',
   './js/vendor/qrc/qrc-codec.js',
   './js/lyrics/card.js',

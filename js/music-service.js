@@ -17,7 +17,10 @@ import {
 } from './music-data.js?v=41';
 import { downloadFallbackLevels } from './music-download.js';
 import { createPlaybackRouter, DEFAULT_PLAYBACK_QUALITY } from './playback-router.js';
-import { createLxSources } from './lx-music-sources.js';
+import { createLxSources, isLxSource, lxSourceLabel } from './lx-music-sources.js';
+import { lyricRequestCandidates } from './lyrics/providers.js';
+import { parseLyricsPayload } from './lyrics/document.js';
+import { hasLyrics } from './lyrics/sources.js';
 
 export const MUSIC_API_BASE_URL = '/api/v1/music';
 export const NEW_SONGS_PLAYLIST_ID = '3779629';
@@ -80,9 +83,15 @@ export class MusicService {
   constructor({ storage = globalThis.localStorage, location = globalThis.location } = {}) {
     this.storage = storage;
     this.location = location;
+    this.lxSources = createLxSources(storage);
+    this.playbackPreferenceListeners = new Set();
     this.loadSettings();
     this.baseUrl = MUSIC_API_BASE_URL;
-    this.lxSources = createLxSources(storage);
+    this.lxSources.subscribe(() => {
+      if (isLxSource(this.config.playbackSource) && !this.playbackPreferenceOptions().some(option => option.id === this.config.playbackSource)) {
+        this.setPlaybackPreference();
+      } else this.notifyPlaybackPreferences();
+    });
     this.playbackRouter = createPlaybackRouter(this, { storage });
   }
 
@@ -98,15 +107,35 @@ export class MusicService {
     } catch (error) {
       console.warn('无法读取播放器偏好:', error);
     }
-    this.config = { quality, source, playbackSource: Object.hasOwn(MUSIC_SOURCE_OPTIONS, playbackSource) && !['chksz','bilibili'].includes(playbackSource) ? playbackSource : '' };
+    this.config = { quality, source, playbackSource: this.playbackPreferenceOptions().some(option => option.id === playbackSource) ? playbackSource : '' };
+    if (playbackSource && !this.config.playbackSource) {
+      try { this.storage?.setItem('cp_playback_source', ''); } catch { /* Invalid preferences stay cleared for this session. */ }
+    }
   }
 
   setPlaybackPreference(provider = '') {
-    if (provider && (!Object.hasOwn(MUSIC_SOURCE_OPTIONS, provider) || ['chksz','bilibili'].includes(provider))) return false;
+    if (provider && !this.playbackPreferenceOptions().some(option => option.id === provider)) return false;
     this.config.playbackSource = provider;
     try { this.storage?.setItem('cp_playback_source', provider); } catch { /* Session preference still works. */ }
+    this.notifyPlaybackPreferences();
     return true;
   }
+
+  playbackPreferenceOptions() {
+    return [
+      ...(this.lxSources.list?.() || []).filter(option => option.enabled).map(option => ({ id: option.id, label: `${option.label} · 自定义${option.role}` })),
+      ...Object.entries(MUSIC_SOURCE_OPTIONS).filter(([id]) => !['chksz', 'bilibili'].includes(id)).map(([id, option]) => ({ id, label: option.label })),
+    ];
+  }
+  playbackSourceLabel(provider) {
+    return this.lxSources.list?.().find(option => option.id === provider)?.label || lxSourceLabel(provider) || MUSIC_SOURCE_OPTIONS[provider]?.label || '当前音源';
+  }
+  subscribePlaybackPreferences(listener) {
+    this.playbackPreferenceListeners.add(listener);
+    return () => this.playbackPreferenceListeners.delete(listener);
+  }
+  notifyPlaybackPreferences() { for (const listener of this.playbackPreferenceListeners) listener(); }
+  isPlaybackSourceCurrent(data) { return this.lxSources.isCurrent?.(data) !== false; }
 
   saveSettings(key, value) {
     if (key === 'quality') value = supportedQuality(value);
@@ -223,17 +252,28 @@ export class MusicService {
     if (offline) { yield offline; return; }
     if (this.offlineOnly?.()) throw new Error('离线模式只能播放此设备已保存的音频，请联网登录后重试');
     if (options.song?.provider === 'local') throw new Error('此设备没有该本地音频，请在个人库重新导入');
-    if (!manualChoice && !this.config.playbackSource && !options.prefetch && globalThis.document && !bilibiliVideoUrl(options.song)
-        && options.song?.provider !== 'bilibili') {
-      yield* this.lxSources.candidates(id, { ...options, defaultProvider: this.config.source });
+    const preferredSource = options.song?.routing?.manual ? options.song.preferredProvider : this.config.playbackSource;
+    const explicitLx = isLxSource(options.onlyProvider);
+    const allowLx = explicitLx || (!options.onlyProvider && (!manualChoice || isLxSource(preferredSource)) && (!preferredSource || isLxSource(preferredSource)));
+    if (allowLx && !options.prefetch && (explicitLx || globalThis.document) && !bilibiliVideoUrl(options.song) && options.song?.provider !== 'bilibili') {
+      yield* this.lxSources.candidates(id, { ...options, preferredSource, defaultProvider: this.config.source });
     }
+    if (explicitLx) return; // A manual choice must never silently select another source.
     yield* this.playbackRouter.candidates(id, {
-      preferredSource: options.song?.routing?.manual ? options.song.preferredProvider : this.config.playbackSource,
+      preferredSource: isLxSource(preferredSource) ? '' : preferredSource,
       ...options,
     });
   }
-  recordPlaybackSuccess(data, elapsedMs) { if (!data.offline && !data.playbackSource) this.playbackRouter.success(data, elapsedMs); }
-  recordPlaybackFailure(data, error) { if (!data?.offline && !data?.playbackSource) this.playbackRouter.failure(data, error); }
+  recordPlaybackSuccess(data, elapsedMs) {
+    if (data?.offline) return;
+    if (isLxSource(data?.playbackSource)) this.lxSources.success?.(data);
+    else this.playbackRouter.success(data, elapsedMs);
+  }
+  recordPlaybackFailure(data, error) {
+    if (data?.offline) return;
+    if (isLxSource(data?.playbackSource)) this.lxSources.failure?.(data);
+    else this.playbackRouter.failure(data, error);
+  }
 
   async getSong(id, { signal, level = this.config.quality, song: queueSong = null, fetchImpl } = {}) {
     if (queueSong?.sources?.length) {
@@ -263,25 +303,37 @@ export class MusicService {
     throw new Error('音乐源未返回可播放地址');
   }
 
-  async getLyric(id, { song = null, signal, fetchImpl } = {}) {
+  async getLyric(id, { song = null, signal, fetchImpl, timeoutMs, totalTimeoutMs = 12000 } = {}) {
     if (song?.provider === 'local') return { lrc: '' };
-    // NetEase IDs are shared: even explicitly selected ChKSz audio does not
-    // need another paid request for lyrics.
-    const option = song?.provider === 'chksz' ? musicSourceOption('netease')
-      : song?.provider === 'gd' ? musicSourceOption('gd') : this.sourceForSong(song);
-    const params = new URLSearchParams({ source: option.provider, id: isMusicChannel(option.provider) ? channelSourceId(option.provider, song?.sourceId || id) : (song?.sourceId || id) });
-    try {
-      const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal, fetchImpl, timeoutMs: isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 30_000 : 10_000 });
-      if (option.provider === 'bilibili') return json.data;
-      return normalizeLyricsPayload(json);
-    } catch (error) {
-      if (!(error instanceof RequestCancelledError) && !signal?.aborted) {
-        console.warn(`${option.label} 歌词获取失败:`, error);
-      }
-      if (option.provider === 'bilibili') {
-        return { status: 'error', message: requestErrorMessage(error), lrc: '' };
+    const provider = song?.provider === 'bilibili' || bilibiliVideoUrl(song) ? 'bilibili'
+      : song?.provider || this.sourceForSong(song).provider;
+    timeoutMs ??= provider === 'bilibili' ? 10_000 : 4000;
+    const original = { ...song, id: song?.id || id, provider };
+    const candidates = provider === 'bilibili'
+      ? [{ provider, id: original.sourceId || original.id }]
+      : lyricRequestCandidates(original, this.config.source);
+    const budget = AbortSignal.timeout(totalTimeoutMs), lifetime = signal ? AbortSignal.any([signal, budget]) : budget;
+    let plain = null;
+    for (const candidate of candidates) {
+      signal?.throwIfAborted();
+      if (budget.aborted) break;
+      const params = new URLSearchParams({ source: candidate.provider, id: candidate.id });
+      try {
+        const json = await requestJson(`${this.baseUrl}/lyric?${params}`, { signal: lifetime, fetchImpl, timeoutMs });
+        signal?.throwIfAborted();
+        if (candidate.provider === 'bilibili') return json.data;
+        const payload = normalizeLyricsPayload(json);
+        const document = parseLyricsPayload(payload || {});
+        if (!hasLyrics(document)) continue;
+        const result = { ...payload, source: musicSourceOption(candidate.provider).label };
+        if (document.lines.length) return result;
+        plain ||= result;
+      } catch (error) {
+        signal?.throwIfAborted();
+        if (candidate.provider === 'bilibili') return { status: 'error', message: requestErrorMessage(error), lrc: '' };
+        if (budget.aborted || error.code === 'site_rate_limited') break;
       }
     }
-    return null;
+    return plain;
   }
 }

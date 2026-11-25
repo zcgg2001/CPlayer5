@@ -1,27 +1,8 @@
-import { MUSIC_CHANNELS, channelSourceId } from '../music-channels.js';
 import { decodeOnlineLyrics } from './encoded.js';
 import { parseLyricsPayload } from './document.js';
 import { hasLyrics } from './sources.js';
-
-// A channel ID is not automatically a platform ID. Decode only known wrappers.
-export function nativeLyricIdentity(song) {
-  const provider = MUSIC_CHANNELS[song?.provider]?.platform || song?.provider;
-  if (!['qq', 'kugou'].includes(provider)) return null;
-  try {
-    let id = channelSourceId(song.provider, song.sourceId || song.id);
-    if (song.provider.startsWith('jianbin-')) {
-      const url = new URL(id);
-      if (!['https:', 'http:'].includes(url.protocol) || url.hostname !== 'www.jbsou.cn' || url.port
-          || url.username || url.password || url.pathname !== '/api.php'
-          || url.searchParams.get('type') !== (provider === 'qq' ? 'qq' : 'kg') || url.searchParams.getAll('id').length !== 1) return null;
-      id = url.searchParams.get('id');
-    }
-    if (provider === 'qq') {
-      if (/^[A-Za-z0-9]{14}$/.test(id) || /^[1-9]\d{0,11}$/.test(id)) return { provider, id };
-    } else if (/^[a-f0-9]{32}$/i.test(id)) return { provider, id: id.toLowerCase() };
-  } catch { /* Malformed imported IDs are not sent to the native route. */ }
-  return null;
-}
+import { lyricPlatformIdentity as nativeLyricIdentity } from './providers.js';
+export { lyricPlatformIdentity as nativeLyricIdentity } from './providers.js';
 
 export function createNativeLyricLookup({ fetchImpl = globalThis.fetch, timeoutMs = 10_000, now = Date.now } = {}) {
   const cache = new Map();

@@ -55,8 +55,26 @@ test('native identities unwrap known channels and reject opaque IDs or foreign j
   assert.deepEqual(nativeLyricIdentity({ provider: 'jianbin-kugou', id: `jianbin-kugou:${encodeURIComponent(url)}` }), { provider: 'kugou', id: hash.toLowerCase() });
   for (const bad of [url.replace('www.jbsou.cn', 'other.test'), url.replace('type=kg', 'type=qq'), url + '&id=other', url.replace('/api.php', '/other')])
     assert.equal(nativeLyricIdentity({ provider: 'jianbin-kugou', id: bad }), null);
-  for (const track of [{ provider: 'local', id: song.id }, { provider: 'netease', id: '97773' }, { provider: 'qq', id: 'qq:%XX' }, { provider: 'qq', id: 'opaque-id' }])
+  assert.deepEqual(nativeLyricIdentity({ provider: 'gd', id: '97773' }), { provider: 'netease', id: '97773' });
+  assert.deepEqual(nativeLyricIdentity({ provider: 'jianbin-netease', id: 'https://www.jbsou.cn/api.php?type=wy&id=97773' }), { provider: 'netease', id: '97773' });
+  for (const track of [{ provider: 'local', id: song.id }, { provider: 'netease', id: 'opaque' }, { provider: 'qq', id: 'qq:%XX' }, { provider: 'qq', id: 'opaque-id' }])
     assert.equal(nativeLyricIdentity(track), null);
+});
+
+test('native NetEase lookup keeps real YRC, ordinary LRC and auxiliary layers, and caches the exact ID', async () => {
+  let calls = 0;
+  const lookup = createNativeLyricLookup({ fetchImpl: async url => {
+    calls++; assert.equal(url, '/android-player/online-lyrics?provider=netease&id=186016');
+    return Response.json({ encoding: 'netease-json', provider: 'netease', id: '186016',
+      lrc: '[00:01]风吹来', yrc: '[1000,3000](1000,1000,0)风(2000,1000,0)吹(3000,1000,0)来', tlrc: '[00:01]Wind arrives' });
+  } });
+  const track = { provider: 'gd', id: '186016', duration: 30 };
+  const result = (await lookup(track))[0].document;
+  assert.equal(result.hasWordLevel, true); assert.equal(result.lines[0].text, '风吹来');
+  assert.equal(result.lines[0].translation, 'Wind arrives'); assert.equal(result.source, '网易云音乐');
+  await lookup({ ...track, provider: 'xinghai-netease' }); assert.equal(calls, 1);
+  const plain = parseLyricsPayload(await decodeOnlineLyrics({ provider: 'netease', encoding: 'netease-json', lrc: '[00:01]真实逐行' }));
+  assert.equal(plain.hasWordLevel, false); assert.equal(plain.lines[0].text, '真实逐行');
 });
 
 test('native lookup enforces exact response identity, short failure cooldown and explicit refresh', async () => {

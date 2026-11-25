@@ -39,7 +39,7 @@ export function lyricSearchCandidates(song, results) {
 }
 
 async function readBoundedJson(response) {
-  if (!response.ok) throw new Error(response.status === 429 ? '歌词补全请求较多，请稍后重试' : '歌词补全服务暂时不可用');
+  if (!response.ok) throw Object.assign(new Error(response.status === 429 ? '歌词补全请求较多，请稍后重试' : '歌词补全服务暂时不可用'), { status: response.status });
   const reader = response.body.getReader(), chunks = []; let length = 0;
   try {
     while (true) {
@@ -61,12 +61,22 @@ export async function lookupLyrics(song, { signal, fetchImpl = globalThis.fetch,
   signal?.addEventListener('abort', abort, { once: true });
   const timer = setTimeout(() => request.abort(), timeoutMs);
   try {
-    for (const params of [new URLSearchParams({ track_name: song.name, artist_name: song.artist }), new URLSearchParams({ q: `${song.name} ${song.artist}` })]) {
-      const response = await fetchImpl(`https://lrclib.net/api/search?${params}`, { signal: request.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
-      const matches = lyricSearchCandidates(song, await readBoundedJson(response));
-      request.signal.throwIfAborted();
-      if (matches.length) return matches;
+    let lastError;
+    const structured = new URLSearchParams({ track_name: song.name, artist_name: song.artist });
+    if (albumName(song)) structured.set('album_name', albumName(song));
+    for (const params of [structured, new URLSearchParams({ q: `${song.name} ${song.artist}` })]) {
+      try {
+        const response = await fetchImpl(`https://lrclib.net/api/search?${params}`, { signal: request.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
+        const matches = lyricSearchCandidates(song, await readBoundedJson(response));
+        request.signal.throwIfAborted();
+        if (matches.length) return matches;
+      } catch (error) {
+        request.signal.throwIfAborted();
+        if (error.status === 429) throw error;
+        lastError = error;
+      }
     }
+    if (lastError) throw lastError;
     return [];
   } catch (error) {
     signal?.throwIfAborted();

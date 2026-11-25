@@ -204,6 +204,14 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 1.18.0 Android 预览构建参考 myMusic 的个人中心与设置布局：新增「我的」首页，集中展示收藏、最近播放、本地离线和自建歌单；设置按外观、播放页、歌词、音乐源、资料与更新分组，并展示当前配置摘要。手机逐级进入子页，平板使用双栏；返回操作保留未保存编辑保护。详见 [个人中心与设置说明](docs/android-personal-center.md)。
 
+1.18.1 Android 预览构建修复音乐墙拖动迟钝：移除封面继承的 220ms 位移缓动，让封面直接跟随手势，并减少逐帧重复计算。详见 [拖动响应修复与验证](docs/android-music-wall.md#1181-拖动响应修复)。
+
+1.18.3 Android 预览构建将默认播放音量设为 60%，并包含音乐墙滑动修复。
+
+1.18.4 Android 预览构建补齐自定义音源换源逻辑：快捷菜单显示已导入的主用、备用脚本，完整面板增加「自定义」页签；播放器和设置均可将其设为后续优先。导入后列表即时更新，关闭或移除音源会清理失效偏好；切换失败保留原播放。详见 [播放器换源说明](docs/android-source-switch.md)。
+
+1.18.5 Android 预览构建改善音乐墙选歌偶发「暂无歌词」：新增网易云精确歌曲 ID 的原生歌词通道，主渠道空结果或超时后继续回退；换音源后保留原歌曲的歌词身份，请求与音频准备并行。后台仍在补全时显示加载状态，全部未命中后可留在当前歌曲重试。参考逻辑、渠道差异与验收见 [音乐墙歌词修复](docs/android-wall-lyrics.md)。
+
 新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署

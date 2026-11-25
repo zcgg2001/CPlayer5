@@ -39,6 +39,19 @@ test('public lookup retries combined search only when the structured query has n
   } });
   assert.equal(calls.length, 2); assert.match(calls[1], /\?q=/); assert.equal(result.length, 1);
 });
+
+test('a failed structured query can still recover via the combined query, while 429 is not retried', async () => {
+  let calls = 0;
+  const result = await lookupLyrics(song, { fetchImpl: async url => {
+    calls++;
+    if (calls === 1) { assert.match(url, /album_name=/); return new Response('', { status: 503 }); }
+    assert.match(url, /\?q=/); return response([row]);
+  } });
+  assert.equal(calls, 2); assert.equal(result.length, 1);
+  calls = 0;
+  await assert.rejects(lookupLyrics(song, { fetchImpl: async () => { calls++; return new Response('', { status: 429 }); } }));
+  assert.equal(calls, 1);
+});
 test('aborting or timing out a lyric lookup cannot return a late result', async () => {
   const abort = new AbortController(); let finish;
   const pending = lookupLyrics(song, { signal: abort.signal, fetchImpl: () => new Promise(resolve => { finish = resolve; }) });

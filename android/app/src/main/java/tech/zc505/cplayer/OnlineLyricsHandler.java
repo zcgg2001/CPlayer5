@@ -51,11 +51,36 @@ final class OnlineLyricsHandler {
     String provider = route.queryParameter("provider"), id = route.queryParameter("id");
     try {
       JSONObject data;
-      if ("qq".equals(provider) && id != null && id.matches("(?:[A-Za-z0-9]{14}|[1-9][0-9]{0,11})")) data = qq(id);
+      if ("netease".equals(provider) && id != null && id.matches("[1-9][0-9]{0,19}")) data = netease(id);
+      else if ("qq".equals(provider) && id != null && id.matches("(?:[A-Za-z0-9]{14}|[1-9][0-9]{0,11})")) data = qq(id);
       else if ("kugou".equals(provider) && id != null && id.matches("[a-fA-F0-9]{32}")) data = kugou(id);
       else throw new IOException("Unsupported lyric identity");
       return data.put("provider", provider).put("id", id).toString();
     } catch (JSONException invalid) { throw new IOException("Invalid lyric data", invalid); }
+  }
+
+  private JSONObject netease(String id) throws IOException, JSONException {
+    // Exact public catalog ID; independent of the audio resolver and GD's quota.
+    // Keep real YRC when present, and ordinary LRC as the fallback.
+    for (String path : new String[] { "/api/song/lyric/v1", "/api/song/lyric" }) {
+      try {
+        HttpUrl url = HttpUrl.get("https://music.163.com" + path).newBuilder()
+            .addQueryParameter("id", id).addQueryParameter("lv", "-1").addQueryParameter("kv", "-1")
+            .addQueryParameter("tv", "-1").addQueryParameter("rv", "-1").addQueryParameter("yv", "-1")
+            .addQueryParameter("ytv", "-1").addQueryParameter("yrv", "-1").build();
+        JSONObject data = json(new Request.Builder().url(url));
+        if (data.optInt("code", -1) != 200) throw new IOException("NetEase lyrics unavailable");
+        JSONObject result = new JSONObject().put("encoding", "netease-json");
+        for (String field : new String[] { "lrc", "yrc", "tlyric", "romalrc", "ytlrc", "yromalrc" }) {
+          JSONObject layer = data.optJSONObject(field);
+          result.put("tlyric".equals(field) ? "tlrc" : field, layer == null ? "" : layer.optString("lyric", ""));
+        }
+        if (!result.optString("lrc").trim().isEmpty() || !result.optString("yrc").trim().isEmpty()) return result;
+      } catch (IOException | JSONException error) {
+        if (path.equals("/api/song/lyric")) throw error;
+      }
+    }
+    throw new IOException("No NetEase lyrics");
   }
 
   private JSONObject qq(String id) throws IOException, JSONException {
@@ -115,7 +140,8 @@ final class OnlineLyricsHandler {
 
   private JSONObject json(Request.Builder builder) throws IOException, JSONException {
     Request request = builder.header("Accept", "application/json")
-        .header("Referer", builder.build().url().host().endsWith("qq.com") ? "https://y.qq.com/" : "https://www.kugou.com/")
+        .header("Referer", builder.build().url().host().endsWith("qq.com") ? "https://y.qq.com/"
+            : builder.build().url().host().endsWith("163.com") ? "https://music.163.com/" : "https://www.kugou.com/")
         .header("User-Agent", "ZPlayerLyrics/1").build();
     try (Response result = client.newCall(request).execute()) {
       if (!result.isSuccessful() || result.body() == null || result.body().contentLength() > MAX_BYTES)

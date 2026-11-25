@@ -57,6 +57,40 @@ async (originalPage) => {
     await coverage();
     if (await page.locator('.wall-pager').count()) throw Error('Wall still has pagination');
     checks.edgeToEdgeMosaic = true;
+    // Measure actual painted positions, not only camera data. A global button
+    // transform transition previously made every frame trail the drag target.
+    const responseCdp = await context.newCDPSession(page);
+    await responseCdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const responseBox = await viewport.boundingBox();
+    await viewport.evaluate(node => node.addEventListener('pointerdown', event => {
+      window.__wallResponsePointer = event.pointerId;
+    }, { once: true }));
+    await page.mouse.move(responseBox.x + responseBox.width * .8, responseBox.y + responseBox.height * .6);
+    await page.mouse.down();
+    const response = await root.evaluate(async (node, b) => {
+      const { wallMetrics } = await import('/js/music-wall-field.js');
+      const viewport = node.querySelector('.wall-viewport');
+      const tile = [...node.querySelectorAll('.wall-tile')].find(n => n.getAttribute('aria-hidden') === 'false');
+      const start = tile.getBoundingClientRect(), camera = { x: +node.dataset.wallX, y: +node.dataset.wallY };
+      const pitch = wallMetrics(viewport.clientWidth, viewport.clientHeight, +node.dataset.wallZoom).pitch;
+      const errors = [];
+      for (let i = 1; i <= 24; i++) {
+        window.dispatchEvent(new PointerEvent('pointermove', { pointerId: window.__wallResponsePointer, pointerType: 'mouse', buttons: 1,
+          clientX: b.x + b.width * .8 - i * 5, clientY: b.y + b.height * .6 - i * 2, bubbles: true }));
+        await new Promise(requestAnimationFrame);
+        const rect = tile.getBoundingClientRect();
+        errors.push(Math.hypot(rect.x - start.x + (+node.dataset.wallX - camera.x) * pitch,
+          rect.y - start.y + (+node.dataset.wallY - camera.y) * pitch));
+      }
+      window.dispatchEvent(new PointerEvent('pointercancel', { pointerId: window.__wallResponsePointer, pointerType: 'mouse' }));
+      return { maxLagPx: Math.max(...errors), distancePx: (+node.dataset.wallX - camera.x) * pitch,
+        transition: getComputedStyle(tile).transitionProperty };
+    }, responseBox);
+    await page.mouse.up();
+    await responseCdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await responseCdp.detach();
+    if (response.maxLagPx > 2 || Math.abs(response.distancePx - 120) > 1) throw Error('Wall trails pointer: ' + JSON.stringify(response));
+    checks.followsPointerWithoutInterpolation = response;
     await page.screenshot({ path: 'output/playwright/android-infinite-wall.png', animations: 'disabled' });
     const initial = await snapshot();
     const wheel = async (dx, dy) => {

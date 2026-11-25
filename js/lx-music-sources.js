@@ -19,6 +19,28 @@ const qualities = [
 ];
 
 export const lxSourceLabel = provider => labels[provider];
+export const isLxSource = provider => Object.hasOwn(labels, provider);
+const slots = { 'lx-primary': 'primary', 'lx-backup': 'backup' };
+
+function mappedTracks(original, defaultProvider, level) {
+  return [original, ...(Array.isArray(original.sources) ? original.sources : [])].flatMap(track => {
+    try {
+      const mapped = !sourceBlocked(track, level) && lxTrack(track, defaultProvider);
+      return mapped ? [mapped] : [];
+    } catch { return []; }
+  });
+}
+
+function sourceDetails(name, sources) {
+  return {
+    name: typeof name === 'string' ? name.trim().slice(0, 60) : '',
+    sources: Object.fromEntries(Object.values(platforms).flatMap(key => {
+      const supported = sources?.[key]?.qualitys;
+      if (Array.isArray(sources?.[key]?.actions) && !sources[key].actions.includes('musicUrl')) return [];
+      return Array.isArray(supported) ? [[key, { qualitys: supported.filter(tag => qualities.some(([, tags]) => tags.includes(tag))) }]] : [];
+    })),
+  };
+}
 
 function lxTrack(track, defaultProvider) {
   const provider = track.provider || defaultProvider;
@@ -63,6 +85,7 @@ async function fetchScript(url, signal) {
 
 export function createLxSources(storage, { open = openLxSource, download = fetchScript } = {}) {
   let settings = { ...LX_DEFAULTS };
+  const details = new Map();
   try {
     const saved = JSON.parse(storage?.getItem(STORAGE_KEY) || 'null');
     if (saved) settings = {
@@ -70,14 +93,51 @@ export function createLxSources(storage, { open = openLxSource, download = fetch
       primary: saved.primary ? publicLxUrl(saved.primary).href : '',
       backup: saved.backup ? publicLxUrl(saved.backup).href : '',
     };
+    for (const url of [settings.primary, settings.backup].filter(Boolean)) {
+      const info = saved?.details?.[url];
+      if (info) details.set(url, sourceDetails(info.name, info.sources));
+    }
   } catch {}
   const scripts = new Map();
   const cooldown = new Map();
+  const listeners = new Set();
+  let revision = 0;
+  const notify = () => { for (const listener of listeners) listener(); };
+  const storedSettings = (values, metadata) => JSON.stringify({ ...values,
+    details: Object.fromEntries([...metadata].filter(([url]) => [values.primary, values.backup].includes(url))),
+  });
+  const rememberDetails = (url, code, sources) => {
+    const info = sourceDetails(/^\s*\*\s*@name\s+(.+)$/m.exec(code)?.[1], sources);
+    if (JSON.stringify(info) === JSON.stringify(details.get(url))) return;
+    details.set(url, info);
+    try { storage?.setItem(STORAGE_KEY, storedSettings(settings, details)); } catch { /* Metadata can stay in memory. */ }
+    notify();
+  };
+  const isCurrent = data => !isLxSource(data?.playbackSource) || Boolean(settings.enabled
+    && settings[slots[data.playbackSource]] && settings[slots[data.playbackSource]] === data.playbackSourceUrl);
+
+  function list({ song, defaultProvider, level = DEFAULT_PLAYBACK_QUALITY } = {}) {
+    const tracks = song ? mappedTracks(song, defaultProvider, level) : null;
+    const tags = qualities.slice(Math.max(0, qualities.findIndex(([key]) => key === level))).flatMap(([, tags]) => tags);
+    return Object.entries(slots).flatMap(([id, slot]) => {
+      const url = settings[slot];
+      if (!url) return [];
+      const info = details.get(url);
+      const disabledReason = !settings.enabled ? '自定义音源已关闭，请在设置中启用'
+        : cooldown.get(url) > Date.now() ? '冷却中，请稍后重试'
+        : tracks && !tracks.length ? '该歌曲暂无可用的平台标识'
+        : tracks && info && !tracks.some(track => tags.some(tag => info.sources[track.source]?.qualitys.includes(tag)))
+          ? '不支持这首歌的平台或音质' : '';
+      return [{ id, url, label: info?.name || labels[id], role: slot === 'primary' ? '主用' : '备用',
+        enabled: settings.enabled, disabledReason }];
+    });
+  }
   const freshScript = async (url, signal) => {
     const cached = scripts.get(url);
     if (cached?.until > Date.now()) return cached.code;
+    const startedRevision = revision;
     const code = await download(url, signal);
-    scripts.set(url, { code, until: Date.now() + 30 * 60_000 });
+    if (startedRevision === revision) scripts.set(url, { code, until: Date.now() + 30 * 60_000 });
     return code;
   };
 
@@ -89,38 +149,47 @@ export function createLxSources(storage, { open = openLxSource, download = fetch
     };
     if (next.enabled && !next.primary && !next.backup) throw new Error('至少填写一个音源链接');
     const checked = new Map();
+    const metadata = new Map(details);
     if (next.enabled) await Promise.all([...new Set([next.primary, next.backup].filter(Boolean))].map(async url => {
       const signal = AbortSignal.timeout(8500);
       const code = await download(url, signal);
       const runtime = await open(code, signal);
-      runtime.close();
+      try { metadata.set(url, sourceDetails(/^\s*\*\s*@name\s+(.+)$/m.exec(code)?.[1], runtime.sources)); }
+      finally { runtime.close(); }
       checked.set(url, { code, until: Date.now() + 30 * 60_000 });
     }));
-    storage?.setItem(STORAGE_KEY, JSON.stringify(next));
+    storage?.setItem(STORAGE_KEY, storedSettings(next, metadata));
     settings = next;
+    revision++;
     scripts.clear();
     cooldown.clear();
+    details.clear();
+    for (const url of [next.primary, next.backup].filter(Boolean)) if (metadata.has(url)) details.set(url, metadata.get(url));
     for (const [url, entry] of checked) scripts.set(url, entry);
+    notify();
   }
 
-  async function* candidates(id, { song, defaultProvider, level = DEFAULT_PLAYBACK_QUALITY, signal, onAttempt } = {}) {
+  async function* candidates(id, { song, defaultProvider, level = DEFAULT_PLAYBACK_QUALITY, signal, onAttempt, onlyProvider, preferredSource } = {}) {
+    const manual = Boolean(onlyProvider);
+    if (manual) {
+      const choice = list({ song: song || { id }, defaultProvider, level }).find(item => item.id === onlyProvider);
+      if (!choice || choice.disabledReason) throw new Error(choice?.disabledReason || '该自定义音源尚未导入');
+    }
     if (!settings.enabled) return;
+    const startedRevision = revision;
     const original = song || { id };
-    let tracks;
-    try {
-      tracks = [original, ...(original.sources || [])].flatMap(track => {
-        if (sourceBlocked(track, level)) return [];
-        try {
-          const mapped = lxTrack(track, defaultProvider);
-          return mapped ? [mapped] : [];
-        } catch { return []; }
-      });
-    } catch { return; }
+    const tracks = mappedTracks(original, defaultProvider, level);
     if (!tracks.length) return;
     const qualityIndex = Math.max(0, qualities.findIndex(([key]) => key === level));
     const seen = new Set();
-    for (const [provider, url] of [['lx-primary', settings.primary], ['lx-backup', settings.backup]]) {
+    const order = [...new Set([preferredSource, ...Object.keys(slots)].filter(isLxSource))];
+    for (const provider of manual ? [onlyProvider] : order) {
       signal?.throwIfAborted();
+      if (startedRevision !== revision) {
+        if (manual) throw new Error('自定义音源设置已更新，请重新选择');
+        return;
+      }
+      const url = settings[slots[provider]];
       if (!url || seen.has(url) || cooldown.get(url) > Date.now()) continue;
       seen.add(url);
       const began = Date.now();
@@ -133,40 +202,52 @@ export function createLxSources(storage, { open = openLxSource, download = fetch
         onAttempt?.({ provider, level, stage: 'resolving' });
         const code = await freshScript(url, lifetime);
         runtime = await open(code, lifetime);
+        if (startedRevision === revision) rememberDetails(url, code, runtime.sources);
+        const supported = sourceDetails('', runtime.sources).sources;
         for (const [requestedLevel, tags] of qualities.slice(qualityIndex)) {
-          const track = tracks.find(item => tags.some(tag => runtime.sources[item.source]?.qualitys?.includes(tag)));
-          if (!track) continue;
-          const type = tags.find(tag => runtime.sources[track.source].qualitys.includes(tag));
-          try {
-            const audio = await runtime.resolve({ source: track.source, action: 'musicUrl', info: { type, musicInfo: track.musicInfo } });
-            if (!audio) continue;
-            const resolved = new URL(audio);
-            if (resolved.protocol === 'http:') resolved.protocol = 'https:';
-            const audioUrl = publicLxUrl(resolved.href).href;
-            const format = /\.(?:flac|mp3|m4a|aac|ogg|opus)$/i.exec(resolved.pathname)?.[0].slice(1).toLowerCase();
-            const sourceName = /^\s*\*\s*@name\s+(.+)$/m.exec(code)?.[1].trim().slice(0, 60) || labels[provider];
-            result = actualPlaybackQuality({
-              ...original, id: original.id || id, provider: original.provider || defaultProvider,
-              url: audioUrl, playbackSource: provider, source: sourceName,
-              level: requestedLevel, requestedLevel, format, br: requestedLevel === 'exhigh' && type === '320k' ? 320000 : 0,
-              downloadAllowed: false, routing: { automatic: true, resolveMs: Date.now() - began },
-            });
-            break;
-          } catch { lifetime.throwIfAborted(); }
+          for (const track of tracks.filter(item => tags.some(tag => supported[item.source]?.qualitys.includes(tag)))) {
+            const type = tags.find(tag => supported[track.source].qualitys.includes(tag));
+            try {
+              const audio = await runtime.resolve({ source: track.source, action: 'musicUrl', info: { type, musicInfo: track.musicInfo } });
+              if (!audio) continue;
+              const resolved = new URL(audio);
+              if (resolved.protocol === 'http:') resolved.protocol = 'https:';
+              const audioUrl = publicLxUrl(resolved.href).href;
+              const format = /\.(?:flac|mp3|m4a|aac|ogg|opus)$/i.exec(resolved.pathname)?.[0].slice(1).toLowerCase();
+              const sourceName = details.get(url)?.name || labels[provider];
+              result = actualPlaybackQuality({
+                ...original, id: original.id || id, provider: original.provider || defaultProvider,
+                url: audioUrl, playbackSource: provider, playbackSourceUrl: url, source: sourceName,
+                level: requestedLevel, requestedLevel, format, br: requestedLevel === 'exhigh' && type === '320k' ? 320000 : 0,
+                downloadAllowed: false, routing: { automatic: true, manual: manual || Boolean(original.routing?.manual), resolveMs: Date.now() - began },
+              });
+              break;
+            } catch { lifetime.throwIfAborted(); }
+          }
+          if (result) break;
         }
       } catch {
         signal?.throwIfAborted();
-        if (!runtime || deadline.aborted) cooldown.set(url, Date.now() + 30_000);
+        if (startedRevision === revision && (!runtime || deadline.aborted)) { cooldown.set(url, Date.now() + 30_000); notify(); }
       } finally {
         runtime?.close();
         controller.abort();
       }
       signal?.throwIfAborted();
+      if (startedRevision !== revision) {
+        if (manual) throw new Error('自定义音源设置已更新，请重新选择');
+        return;
+      }
       if (result) yield result;
+      else if (manual) throw new Error('该自定义音源暂时无法解析这首歌');
     }
   }
 
-  return { get settings() { return { ...settings }; }, save, candidates };
+  return { get settings() { return { ...settings }; }, save, candidates, list, isCurrent,
+    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
+    success(data) { if (isCurrent(data) && cooldown.delete(data.playbackSourceUrl)) notify(); },
+    failure(data) { if (isCurrent(data)) { cooldown.set(data.playbackSourceUrl, Date.now() + 30_000); notify(); } },
+  };
 }
 
 export function bindLxSettings(sources, documentRef = document) {
@@ -191,7 +272,7 @@ export function bindLxSettings(sources, documentRef = document) {
     try {
       await sources.save({ enabled: enabled.checked, primary: primary.value, backup: backup.value });
       render();
-      status.textContent = enabled.checked ? '已导入，下次播放时优先使用' : '已关闭导入音源优先播放';
+      status.textContent = enabled.checked ? '已导入，可在播放器切换或设为后续优先' : '已关闭自定义音源';
     } catch {
       status.textContent = '保存失败。请检查 HTTPS 链接、网络和 LX 脚本格式。';
       status.dataset.error = 'true';

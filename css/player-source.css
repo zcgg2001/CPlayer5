@@ -28,6 +28,7 @@ html.android-player #playerSourceButton {
 .player-source-close { display: grid; place-items: center; flex: none; width: 48px; height: 48px; border: 0; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); }
 .player-source-close svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .player-source-list { display: grid; gap: 8px; }
+.player-source-group { margin: 8px 2px 0; font-size: .75rem; color: var(--md-on-surface-variant); }
 .player-source-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; width: 100%; padding: 10px 14px; border: 1px solid var(--md-outline-variant); border-radius: 16px; background: var(--md-surface); color: var(--md-on-surface); text-align: left; }
 .player-source-row > span:first-child { min-width: 0; }
 .player-source-row strong { display: block; font-size: .875rem; font-weight: 650; overflow-wrap: anywhere; }

@@ -16,6 +16,7 @@ export function musicWallSongs(snapshot, source) {
 export function createMusicWall({ document, root, storage, getSnapshot, getCurrentSong, onPlay, onQueue, onDetails, onSearch, onRetry }) {
   const win = document.defaultView, reduced = win.matchMedia('(prefers-reduced-motion: reduce)');
   let source = 'recommendations', zoom = 1, active = false, songs = [], signature = '', currentKey = '';
+  let songRenders = [];
   let width = 0, height = 0, camera = { x: 2.2, y: 2.15 }, selectedKey = '', selectedCell = '';
   let frame = 0, moving = false, lastFrame = 0, velocity = { x: 0, y: 0 }, drag = null, pinch = null, suppressClickUntil = 0;
   const tiles = new Map(), pointers = new Map(), listeners = [];
@@ -123,7 +124,7 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
     const cells = wallWindow({ width, height, camera, zoom, count: songs.length }), keep = new Set();
     const central = cells.reduce((best, cell) => !best || Math.hypot(cell.center.x - camera.x, cell.center.y - camera.y) < Math.hypot(best.center.x - camera.x, best.center.y - camera.y) ? cell : best, null);
     for (const cell of cells) {
-      const song = songs[cell.index], key = recordingKey(song); keep.add(cell.key);
+      const song = songs[cell.index], presentation = songRenders[cell.index], key = presentation.key; keep.add(cell.key);
       let tile = tiles.get(cell.key);
       if (!tile) {
         const node = el('button', 'wall-tile'); node.type = 'button';
@@ -136,7 +137,7 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
       }
       tile.song = song; tile.center = cell.center;
       const rendition = cell.size > 170 ? 300 : 150;
-      const fingerprint = JSON.stringify([key, song.name, song.artist, song.cover, rendition]);
+      const fingerprint = presentation[rendition];
       if (fingerprint !== tile.fingerprint) {
         tile.fingerprint = fingerprint;
         tile.node.replaceChildren(image(song, rendition), el('span', 'wall-tile-caption', song.name), el('span', 'wall-playing', '播放中'));
@@ -151,7 +152,8 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
         tile.node.classList.toggle('is-playing', key === currentKey);
         tile.node.classList.toggle('is-selected', cell.key === selectedCell);
         tile.node.classList.toggle('is-central', cell === central);
-        tile.node.setAttribute('aria-label', `${song.name}，${song.artist || '未知歌手'}${key === currentKey ? '，正在播放' : ''}，展开封面`);
+        const label = `${song.name}，${song.artist || '未知歌手'}${key === currentKey ? '，正在播放' : ''}，展开封面`;
+        if (tile.label !== label) { tile.label = label; tile.node.setAttribute('aria-label', label); }
         tile.node.setAttribute('aria-hidden', String(!cell.visible));
         // The viewport is the keyboard stop; arrows explore and Enter opens its
         // central cover. Recycling must never trap Tab among repeating tiles.
@@ -176,9 +178,13 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
     if (!active) return;
     const snapshot = getSnapshot(), next = musicWallSongs(snapshot, source);
     const current = getCurrentSong(); currentKey = current ? recordingKey(current) : '';
-    const nextSignature = JSON.stringify([source, currentKey, snapshot.loading, next.map(song => [recordingKey(song), song.name, song.artist, song.cover])]);
+    const metadata = next.map(song => [recordingKey(song), song.name, song.artist, song.cover]);
+    const nextSignature = JSON.stringify([source, currentKey, snapshot.loading, metadata]);
     if (!force && signature === nextSignature) return;
     signature = nextSignature; songs = next;
+    // Artwork identity changes with the data or rendition, not with the camera.
+    // Avoid normalizing IDs and serializing cover URLs for every tile per frame.
+    songRenders = metadata.map(fields => ({ key: fields[0], 150: JSON.stringify([...fields, 150]), 300: JSON.stringify([...fields, 300]) }));
     filters.querySelectorAll('button').forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.wallSource === source)));
     updateZoomControls(); locate.hidden = !current;
     const loading = snapshot.loading && source === 'recommendations';

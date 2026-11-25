@@ -12,6 +12,14 @@ WebView 通过 `WebViewAssetLoader` 从应用内读取 `/android-player/` 下的
 
 1.18.0 预览构建参考 myMusic 重排「我的」首页与设置。个人中心以收藏大卡、最近播放、本地离线和自建歌单承载真实资料；设置首页改为带当前值摘要的分组列表，进入独立页面修改。宽度达到 840 CSS 像素时，设置分类与详情并排显示。详细入口、参考来源和验收范围见 [个人中心与设置说明](android-personal-center.md)。
 
+1.18.1 预览构建修复音乐墙拖动跟手慢的问题：封面不再继承全局按钮的 220ms 位移过渡，每帧直接到达手势对应的位置；同时将重复封面信息计算移出逐帧渲染。惯性、缩放与点击展开保持可用，测量和回归记录见 [音乐墙拖动响应修复](android-music-wall.md#1181-拖动响应修复)。
+
+1.18.3 预览构建将 Android 应用内默认播放音量设为 60%，音量控件同步实际值。原生 Media3 和本地音频沿用同一音量，切歌、暂停恢复与静音仍按现有控制生效；手机媒体音量由系统音量键调节。此版本包含 1.18.1 的音乐墙滑动修复。
+
+1.18.4 预览构建在播放器换源菜单中展示已导入脚本的名称和主用、备用身份，完整面板新增「自定义」页签。已启用的自定义音源也能在「设置 → 音乐源 → 后续播放优先」选择；关闭或移除后自动清理对应偏好。手动换源失败会保留原音频，进度和暂停状态接续；后续优先允许自动回退。包含上述音乐墙和 60% 默认音量调整。
+
+1.18.5 预览构建补充网易云原生歌词通道，音乐墙推荐歌曲按精确 ID 读取歌词，音频换源仍保留原曲身份。空结果和超时可继续尝试同平台渠道及 LRCLIB；后台请求未结束时继续显示加载状态，未找到时可直接重试。缓存、手动导入与时间校正继续保留。实现和验证范围见 [音乐墙歌词修复](android-wall-lyrics.md)。
+
 ## 安装与构建
 
 - Android 8.0（API 26）及以上；需要可用的 Android System WebView / Chrome。
@@ -96,7 +104,7 @@ adb install -r output/android/ZPlayer-android-preview.apk
 | `js/music-wall.js` / `js/music-wall-field.js` / `css/music-wall.css` | 无限封面几何、视口回收、惯性拖动、双指缩放与点选展开 |
 | `LyricShareBridge.java` / `LyricCardImage.java` | 独立的本站主框架图片桥、大小限制、系统文档保存与 FileProvider 分享 |
 | `js/lyrics/lookup.js` / `card.js` / `share.js` | LRCLIB 匹配、卡片排版、选句与预览 |
-| `OnlineLyricsHandler.java` / `js/lyrics/native-lookup.js` / `encoded.js` | Android 精确歌曲 QRC / KRC 获取、格式解码、逐字歌词后台补充 |
+| `OnlineLyricsHandler.java` / `js/lyrics/native-lookup.js` / `providers.js` / `encoded.js` | 精确歌曲身份路由；Android 网易云 LRC / YRC、QQ QRC、酷狗 KRC 获取与解码 |
 
 返回桌面保留播放，系统媒体控制可暂停、继续、切歌。播放服务保留同一个网页实例，Activity 重建不重复创建队列。网页重载或渲染器崩溃时停止原生播放，避免音乐继续但界面失去控制。用户从最近任务划掉应用时主动结束播放。
 

@@ -221,21 +221,27 @@ test('login-required subtitle responses leave audio playback intact', async () =
   assert.equal(context.audio.src, selected.url);
 });
 
-test('an obsolete play promise cannot launch old lyrics or show an old error', async () => {
-  const { context, songs, lyrics, errors } = playbackHarness();
+test('an obsolete play promise cannot commit early lyrics or show an old error', async () => {
+  const { context, songs, lyrics, errors, parsed } = playbackHarness();
   const play = deferred();
   const playStarted = deferred();
   context.audio.play = () => { playStarted.resolve(); return play.promise; };
   const first = context.loadAndPlaySong('A');
   songs.get('A').resolve(song('A'));
   await playStarted.promise;
+  assert.equal(lyrics.has('A'), true, 'lyrics may load while audio is preparing');
   const second = context.loadAndPlaySong('B');
+  assert.equal(lyrics.get('A').options.signal.aborted, true);
   context.audio.play = async () => {};
   songs.get('B').resolve(song('B'));
   await second;
   play.reject(new Error('Interrupted by new source'));
   await first;
-  assert.equal(lyrics.has('A'), false);
+  lyrics.get('B').resolve({ lrc: 'B lyrics' });
+  lyrics.get('A').resolve({ lrc: 'A lyrics' });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.deepEqual(parsed, ['B lyrics']);
   assert.deepEqual(errors, []);
   assert.equal(context.currentPlaybackSong.id, 'B');
 });

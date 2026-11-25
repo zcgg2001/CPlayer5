@@ -23,7 +23,7 @@ public class OnlineLyricsHandlerTest {
     server = new MockWebServer(); server.start();
     handler = new OnlineLyricsHandler(new OkHttpClient.Builder().addInterceptor(chain -> {
       String host = chain.request().url().host();
-      assertTrue(host.equals("c.y.qq.com") || host.equals("u.y.qq.com") || host.equals("lyrics.kugou.com"));
+      assertTrue(host.equals("c.y.qq.com") || host.equals("u.y.qq.com") || host.equals("lyrics.kugou.com") || host.equals("music.163.com"));
       assertTrue(chain.request().url().isHttps());
       assertNull(chain.request().header("Cookie")); assertNull(chain.request().header("Authorization"));
       return chain.proceed(chain.request().newBuilder().url(server.url(chain.request().url().encodedPath()
@@ -33,6 +33,39 @@ public class OnlineLyricsHandlerTest {
   @After public void close() throws Exception { server.shutdown(); }
   private void enqueue(String json) { server.enqueue(new MockResponse().setHeader("Content-Type", "application/json").setBody(json)); }
   private String qqResult(int id) { return "{\"code\":0,\"request\":{\"code\":0,\"data\":{\"songID\":" + id + ",\"lyric\":\"0123456789abcdef\",\"trans\":\"translation\",\"roma\":\"roma\"}}}"; }
+
+  @Test public void neteaseUsesExactIdAndKeepsWordLineAndTranslationLayers() throws Exception {
+    enqueue("{\"code\":200,\"lrc\":{\"lyric\":\"[00:01]原创测试\"},\"yrc\":{\"lyric\":\"[1000,1000](1000,1000,0)风\"},\"tlyric\":{\"lyric\":\"[00:01]Wind\"},\"romalrc\":{\"lyric\":\"[00:01]feng\"}}");
+    JSONObject result = new JSONObject(handler.read(route("netease", "186016")));
+    assertEquals("netease-json", result.getString("encoding"));
+    assertEquals("186016", result.getString("id"));
+    assertEquals("[00:01]Wind", result.getString("tlrc"));
+    assertEquals("[00:01]feng", result.getString("romalrc"));
+    assertTrue(result.getString("yrc").contains("(1000,1000,0)"));
+    RecordedRequest request = server.takeRequest();
+    assertEquals("/api/song/lyric/v1", request.getRequestUrl().encodedPath());
+    assertEquals("186016", request.getRequestUrl().queryParameter("id"));
+    assertEquals("https://music.163.com/", request.getHeader("Referer"));
+    assertEquals(1, server.getRequestCount());
+  }
+
+  @Test public void neteaseFallsBackFromAnEmptyPrimaryToTheOrdinaryEndpoint() throws Exception {
+    enqueue("{\"code\":200,\"lrc\":{\"lyric\":\"\"}}");
+    enqueue("{\"code\":200,\"lrc\":{\"lyric\":\"[00:01]备用接口歌词\"}}");
+    JSONObject result = new JSONObject(handler.read(route("netease", "186016")));
+    assertEquals("[00:01]备用接口歌词", result.getString("lrc"));
+    server.takeRequest();
+    assertEquals("/api/song/lyric", server.takeRequest().getRequestUrl().encodedPath());
+  }
+
+  @Test public void neteaseRecoversFromPrimaryTransportFailureAndRejectsTwoEmptyResponses() throws Exception {
+    server.enqueue(new MockResponse().setResponseCode(503));
+    enqueue("{\"code\":200,\"lrc\":{\"lyric\":\"[00:01]恢复歌词\"}}");
+    assertEquals("[00:01]恢复歌词", new JSONObject(handler.read(route("netease", "186016"))).getString("lrc"));
+    enqueue("{\"code\":200}"); enqueue("{\"code\":200}");
+    assertThrows(IOException.class, () -> handler.read(route("netease", "186017")));
+    assertEquals(4, server.getRequestCount());
+  }
 
   @Test public void qqResolvesExactMidAndPreservesAllLayers() throws Exception {
     enqueue("{\"code\":0,\"data\":[{\"mid\":\"004Fs2FP1EvZYc\",\"id\":1},{\"mid\":\"" + MID + "\",\"id\":97773}]}");
@@ -78,7 +111,7 @@ public class OnlineLyricsHandlerTest {
 
   @Test public void validatesRoutesBeforeNetworkAndBoundsResponses() throws Exception {
     for (String value : new String[] { route("qq", "wrong"), route("qq", MID) + "&url=https://other.test",
-        route("qq", MID).replace(BuildConfig.PLAYER_ORIGIN, "https://other.test"), route("kugou", MID), route("netease", "1") })
+        route("qq", MID).replace(BuildConfig.PLAYER_ORIGIN, "https://other.test"), route("kugou", MID), route("netease", "bad"), route("netease", "0") })
       assertThrows(IOException.class, () -> handler.read(value));
     assertEquals(0, server.getRequestCount());
     server.enqueue(new MockResponse().setResponseCode(302).setHeader("Location", "https://other.test"));

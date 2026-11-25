@@ -140,5 +140,12 @@ async (originalPage) => {
     for (const item of [...gates.values(), ...primaryGates.values()]) item.release();
     await context.close();
   }
-  } catch (error) { await context.close(); throw error; }
+  } catch (error) {
+    const startup = page.isClosed() ? null : await page.evaluate(() => ({
+      ready: document.readyState, player: typeof window.insertSongToPlaylist,
+      runtime: document.querySelector('#mobileLyricsScroller')?.dataset.lyricRuntime,
+    }));
+    await context.close();
+    throw Error(error.message + '\n' + JSON.stringify({ errors, startup }));
+  }
 }

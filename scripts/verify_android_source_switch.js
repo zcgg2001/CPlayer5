@@ -8,6 +8,12 @@ async (originalPage) => {
   const gates = new Map();
   const gate = () => {let release;const promise=new Promise(r=>release=r);return {promise,release};};
   const modes = new Map();
+  const customOrigin = 'https://sources.example.org';
+  const scriptFor = slot => `/**\n * @name ${slot === 'primary' ? '晨光音源' : '晚风音源'}\n */
+    lx.on(lx.EVENT_NAMES.request, query => new Promise((resolve, reject) => {
+      lx.request('${customOrigin}/resolve/${slot}?id=' + query.info.musicInfo.id, {}, (error, response) => error ? reject(error) : resolve(response.body));
+    }));
+    lx.send(lx.EVENT_NAMES.inited, { sources: { wy: { actions: ['musicUrl'], qualitys: ['128k'] } } });`;
   const wav = Buffer.alloc(44 + 180 * 8000 * 2);
   wav.write('RIFF'); wav.writeUInt32LE(wav.length-8,4); wav.write('WAVEfmt ',8);
   wav.writeUInt32LE(16,16); wav.writeUInt16LE(1,20); wav.writeUInt16LE(1,22);
@@ -20,7 +26,15 @@ async (originalPage) => {
   });
   await page.route('**/*',async route=>{
     const url=new URL(route.request().url());
-    if(url.origin!==base)return route.abort();
+    if(url.origin===customOrigin && url.pathname.endsWith('.js')) {
+      requests.push({kind:'script',slot:url.pathname});
+      return route.fulfill({body:scriptFor(url.pathname.includes('backup')?'backup':'primary'),contentType:'application/javascript',headers:{'Access-Control-Allow-Origin':'*'}});
+    }
+    if(url.origin===customOrigin && url.pathname.startsWith('/resolve/')) {
+      const slot=url.pathname.split('/').at(-1);requests.push({kind:'custom-resolve',slot,id:url.searchParams.get('id')});
+      return route.fulfill({body:`${customOrigin}/__source/lx-${slot}/${modes.get(slot)==='broken'?'broken':'song'}.wav`,headers:{'Access-Control-Allow-Origin':'*'}});
+    }
+    if(url.origin!==base && url.origin!==customOrigin)return route.abort();
     if(url.pathname.startsWith('/__source/')) {
       if(url.pathname.includes('broken'))return route.fulfill({body:'broken audio',contentType:'audio/mpeg'});
       const match=route.request().headers().range?.match(/bytes=(\d+)-(\d*)/);
@@ -67,7 +81,7 @@ async (originalPage) => {
     await page.screenshot({path:'output/playwright/android-source-c-player.png',animations:'disabled'});
     await open();
     await page.screenshot({path:'output/playwright/android-source-c-menu.png',animations:'disabled'});
-    if(await page.locator('[data-player-source]').count()!==3)throw Error('Compact menu should have three choices');
+    if(await page.locator('[data-player-source]').count()!==5)throw Error('Compact menu should show two custom slots and three platform choices');
     checks.compactMenu=true;
     await page.keyboard.press('Escape');
     if(await page.locator('#playerSourceDialog').isVisible())throw Error('Escape did not close');
@@ -124,6 +138,73 @@ async (originalPage) => {
     await waitToast();
     await page.screenshot({path:'output/playwright/android-source-c-light.png',animations:'disabled'});
     checks.responsiveLightLargeTextAndReset=true;
+    await page.keyboard.press('Escape');
+    await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+    const openSourceSettings=async()=>{
+      await page.locator('#androidCollapsePlayer').click();
+      await page.locator('.android-nav [data-open-personal-library]').click();
+      await page.getByRole('button',{name:'打开个人中心设置',exact:true}).click();
+      await page.locator('.android-settings-overview [data-preference=sources]').click();
+    };
+    const saveImport=async({enabled=true,backup=`${customOrigin}/backup.js`}={})=>{
+      await page.locator('[name=lxSourceEnabled]').setChecked(enabled);
+      await page.locator('#lxSourcePrimary').fill(`${customOrigin}/primary.js`);
+      await page.locator('#lxSourceBackup').fill(backup);
+      await page.locator('[name=lxSourceSave]').click();
+      await page.waitForFunction(()=>!document.getElementById('lxSourceForm').hasAttribute('aria-busy'));
+      if(await page.locator('#lxSourceFeedback').getAttribute('data-error')==='true')throw Error('Import failed');
+    };
+    const closeSourceSettings=async()=>{
+      await page.locator('#closeSettingsBtn').click();
+      await page.locator('[data-profile-back]').click();
+      await page.locator('#mobileBrowseOpen').click();
+    };
+    await openSourceSettings();await saveImport();
+    if(!await page.locator('#androidPlaybackPreference option[value=lx-backup]').textContent().then(text=>text.includes('晚风音源')))throw Error('Settings did not refresh imported name');
+    await page.locator('#androidPlaybackPreference').selectOption('gd');
+    await page.screenshot({path:'output/playwright/android-source-custom-settings.png',animations:'disabled'});
+    await closeSourceSettings();await play('789');await seek(37,true);await open();
+    if(!await page.locator('[data-player-source=lx-backup]').textContent().then(text=>text.includes('晚风音源')))throw Error('Imported source absent from compact menu');
+    await page.screenshot({path:'output/playwright/android-source-custom-menu.png',animations:'disabled'});
+    await choose('lx-backup');await waitSource('lx-backup');await waitIdle();
+    state=await audioState();if(!state.paused||Math.abs(state.time-37)>1||state.label!=='晚风音源')throw Error('Custom switch lost pause/progress/name '+JSON.stringify(state));
+    await all();
+    if(await page.locator('[role=tab][data-platform=custom]').getAttribute('aria-selected')!=='true')throw Error('Current custom tab not selected');
+    await page.locator('.player-source-preference input').check();
+    await choose('lx-backup');
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='lx-backup')throw Error('Custom preference missing');
+    await waitToast();await all();await page.screenshot({path:'output/playwright/android-source-custom-all.png',animations:'disabled'});
+    for(const size of [{width:320,height:640},{width:844,height:390}]){
+      await page.setViewportSize(size);await page.evaluate(()=>document.documentElement.style.fontSize='20px');
+      const bounds=await page.locator('#playerSourceDialog').boundingBox();
+      if(bounds.x<0||bounds.y<0||bounds.x+bounds.width>size.width+1||bounds.y+bounds.height>size.height+1)throw Error('Custom panel overflow');
+    }
+    await page.setViewportSize({width:390,height:844});await page.evaluate(()=>document.documentElement.style.fontSize='');
+    await page.keyboard.press('Escape');
+    const nextCustomResponse=page.waitForResponse(response=>response.url()===`${customOrigin}/resolve/backup?id=790`);
+    await page.evaluate(()=>{const index=window.insertSongToPlaylist({id:'790',sourceId:'790',provider:'gd',name:'下一首歌',artist:'林间来信'});void window.playSongAtIndex(index);});
+    await nextCustomResponse;
+    await page.waitForFunction(()=>document.getElementById('mobileTitle').textContent==='下一首歌');
+    await waitSource('lx-backup');await waitIdle();
+    await page.waitForFunction(()=>window.__sourceAudio.some(audio=>audio.currentSrc.includes('/lx-backup/')&&audio.readyState>=2&&!audio.paused&&audio.currentTime<5));
+    if(!requests.some(r=>r.kind==='custom-resolve'&&r.slot==='backup'&&r.id==='790'))throw Error('Next song did not honor custom preference');
+    checks.importRealWorkerNamesPauseProgressAndPreference=true;
+    await seek(26);modes.set('primary','broken');await all();await choose('lx-primary');await waitIdle();
+    state=await audioState();if(!state.src.includes('/lx-backup/')||state.label!=='晚风音源'||state.time<25)throw Error('Custom rollback failed');
+    if(!await page.locator('.player-source-status').textContent().then(text=>text.includes('保留原音源')))throw Error('No custom rollback message');
+    await page.locator('[role=tab][data-platform=netease]').click();await choose('netease');await waitSource('netease');await waitIdle();
+    state=await audioState();if(!state.label.includes('Meting'))throw Error('Stale custom source label');
+    checks.customDecodeRollbackAndReturnToBuiltin=true;
+    await openSourceSettings();await saveImport({enabled:false});
+    if(await page.locator('#androidPlaybackPreference').inputValue()!=='')throw Error('Disabled preference not cleared');
+    if(await page.locator('#androidPlaybackPreference option[value=lx-backup]').count())throw Error('Disabled import still offered as default');
+    await closeSourceSettings();await all();await page.locator('[role=tab][data-platform=custom]').click();
+    if(!await page.locator('[data-player-source=lx-backup]').isDisabled())throw Error('Disabled custom source selectable');
+    await page.keyboard.press('Escape');await openSourceSettings();await saveImport({backup:''});await closeSourceSettings();
+    await all();await page.locator('[role=tab][data-platform=custom]').click();
+    if(await page.locator('[data-player-source=lx-backup]').count())throw Error('Removed custom source remains');
+    if(await page.locator('[data-player-source=lx-primary]').isDisabled())throw Error('Re-enabled import unavailable');
+    checks.disableRemovalAndLiveMenuRefresh=true;
     if(errors.length)throw Error(errors.join('; '));
     console.log(JSON.stringify({checks,requests,errors,final:await audioState()}));
     return {checks,requests,errors};

@@ -200,7 +200,8 @@ let listeningRoom = null;
 let lyricEffects = null;
 let audio = createPlayerAudio();
 audio.crossOrigin = 'anonymous';
-audio.volume = 0.5;
+// Android uses Media3 output without the browser's gain/compressor chain.
+audio.volume = androidPlayer ? 0.6 : 0.5;
 
 // 预加载音频（用于无缝播放）
 let preloadAudio = new Audio();
@@ -554,7 +555,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // [需求4] 检测移动端并显示设置内的按钮
     // initMobileSettingsButtons(); // Removed
 
-    updateVolumeIcon(0.5);
+    dom.volumeSlider.value = String(audio.volume);
+    updateVolumeIcon(audio.muted ? 0 : audio.volume);
     updateDoraemonProgress(0, 0, 0);
 
     // ★ MediaSession API (锁屏控制)

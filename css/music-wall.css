@@ -23,6 +23,10 @@
 .wall-navigation [data-direction='ArrowDown'] { grid-column: 2; grid-row: 2; }
 .wall-navigation [data-direction='ArrowRight'] { grid-column: 3; grid-row: 2; }
 #mobileExploreWallPane .wall-tile { position: absolute; top: 0; left: 0; overflow: hidden; isolation: isolate; border-radius: 9px; border: 0; padding: 0; color: #fff; background: var(--md-surface-container); cursor: pointer; touch-action: none; contain: layout style; }
+/* Camera coordinates already advance once per frame. The global mobile button
+   transition is !important; interpolating these positions makes covers lag
+   behind the finger and animates newly recycled tiles in from the origin. */
+#mobileExploreWallPane .wall-tile { transition: none !important; }
 #mobileExploreWallPane .wall-tile.is-large { border-radius: 13px; }
 .wall-tile img, .wall-focus-image { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .wall-tile-caption { position: absolute; inset: auto 0 0; padding: 24px 10px 9px; background: linear-gradient(transparent,rgb(0 0 0 / .82)); text-align: start; font-size: .75rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }

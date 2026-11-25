@@ -41,6 +41,12 @@ export async function decodeQrc(value) {
 }
 
 export async function decodeOnlineLyrics(data) {
+  if (data?.encoding === 'netease-json' && data.provider === 'netease') {
+    const fields = ['lrc', 'yrc', 'tlrc', 'romalrc', 'ytlrc', 'yromalrc'];
+    const payload = Object.fromEntries(fields.map(key => [key, typeof data[key] === 'string' ? data[key] : '']));
+    if (fields.reduce((total, key) => total + payload[key].length, 0) > MAX_LYRIC_BYTES) throw new Error('在线歌词结果过大');
+    return { ...payload, source: '网易云音乐' };
+  }
   if (data?.encoding === 'qrc-hex') {
     const qrc = await decodeQrc(data.lyric);
     // A broken optional layer cannot discard a valid main timeline.
