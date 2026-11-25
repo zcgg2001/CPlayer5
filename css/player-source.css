@@ -43,9 +43,6 @@ html.android-player #playerSourceButton {
 .player-source-platforms button { min-height: 48px; padding: 8px 14px; border: 1px solid var(--md-outline-variant); border-radius: 24px; background: transparent; color: var(--md-on-surface-variant); font: inherit; }
 .player-source-platforms [aria-selected=true] { color: var(--md-on-primary); background: var(--md-primary); border-color: var(--md-primary); }
 .player-source-preference { border-top: 1px solid var(--md-outline-variant); padding-top: 12px; }
-.player-source-preference label { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; padding: 8px 0; line-height: 1.5; }
-.player-source-preference input { flex: none; width: 20px; height: 20px; margin-top: 2px; accent-color: var(--md-primary); }
-.player-source-preference small { display: block; margin-top: 4px; color: var(--md-on-surface-variant); font-size: .75rem; }
 .player-source-preference p { margin: 8px 0 0; font-size: .75rem; color: var(--md-on-surface-variant); }
 .player-source-preference button { min-height: 48px; padding: 8px 0; background: transparent; color: var(--md-primary); border: 0; font: inherit; }
 .player-source-dialog [hidden] { display: none !important; }

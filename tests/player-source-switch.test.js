@@ -24,7 +24,8 @@ function setup({ audio = new Audio(), resolve = async () => {}, getLyric = async
     const queue = createQueueStore(); queue.insert(track);
     const attempts = [], events = [], failures = [];
     const service = {
-        config:{quality:'lossless'},
+        config:{quality:'lossless',playbackSource:''},
+        setPlaybackPreference(provider) { this.config.playbackSource = provider; },
         async *playbackCandidates(id, options) {
             attempts.push(options); await resolve(id, options);
             yield media(options.onlyProvider || options.song?.preferredProvider || 'gd', id);
@@ -44,6 +45,7 @@ test('source resolution leaves audio running; commit uses the latest clock, real
     const switchSource = h.controller.changeSource('netease');
     await tick();
     assert.equal(h.audio.paused, false); assert.equal(h.audio.loads.length, 1);
+    assert.equal(h.service.config.playbackSource, '');
     assert.equal(h.controller.state.currentSong.provider, 'gd');
     h.audio.currentTime = 47;
     ready.resolve(); assert.equal(await switchSource, true);
@@ -51,6 +53,7 @@ test('source resolution leaves audio running; commit uses the latest clock, real
     assert.equal(h.controller.state.currentSong.provider, 'netease');
     assert.equal(h.controller.state.currentSong.id, track.id);
     assert.equal(h.queue.state.playlist[0].provider, 'gd');
+    assert.equal(h.service.config.playbackSource, 'netease');
     assert.ok(h.events.some(event => event[0] === 'started' && event[1] === 'netease' && event[2] === true));
     h.controller.stop();
 });
@@ -70,6 +73,7 @@ test('failed resolution preserves audio, song, lyrics and does not enter the mai
     const before = h.events.length; let restored;
     assert.equal(await h.controller.changeSource('netease', {onError:(_,state) => {restored = state.restored;}}), false);
     assert.equal(restored, true); assert.equal(h.audio.loads.length, 1);
+    assert.equal(h.service.config.playbackSource, '');
     assert.equal(h.controller.state.currentSong.provider, 'gd'); assert.equal(h.events.length, before);
     assert.equal(h.controller.state.sourceSwitch, null); h.controller.stop();
 });
@@ -81,6 +85,7 @@ test('decode failure restores the original source at the captured position and k
     let restored;
     await h.controller.changeSource('netease', {onError:(_,state) => {restored = state.restored;}});
     assert.equal(restored, true); assert.equal(h.audio.src, media('gd').url);
+    assert.equal(h.service.config.playbackSource, '');
     assert.equal(h.audio.currentTime, 63); assert.equal(h.audio.paused, false);
     assert.equal(h.controller.state.currentSong.provider, 'gd');
     assert.ok(!h.events.some(e=>e[0]==='resolved' && e[1]==='netease'));
@@ -93,6 +98,7 @@ test('rapid successive choices ignore an older resolution and only commit the la
     const old = h.controller.changeSource('netease'); await tick();
     assert.equal(await h.controller.changeSource('qq'), true); ready.resolve();
     assert.equal(await old, false); assert.equal(h.controller.state.currentSong.provider, 'qq');
+    assert.equal(h.service.config.playbackSource, 'qq');
     assert.equal(h.audio.loads.filter(url=>url.includes('netease')).length, 0); h.controller.stop();
 });
 
@@ -102,6 +108,7 @@ for (const action of ['load','stop']) test(`${action} cancels a pending source r
     const switching = h.controller.changeSource('netease'); await tick();
     if (action === 'load') await h.controller.load('456', {...track,id:'456'}, h.view); else h.controller.stop();
     ready.resolve(); assert.equal(await switching, false);
+    assert.equal(h.service.config.playbackSource, '');
     assert.equal(h.controller.state.currentSong?.id || null, action === 'load' ? '456' : null);
     assert.equal(h.audio.loads.filter(url=>url.includes('netease')).length, 0); h.controller.stop();
 });
@@ -160,10 +167,10 @@ test('manual cross-platform switching requires strict recording evidence and use
     assert.equal(next.value.provider,'qq'); assert.equal(h.calls[0].id,'qq:mid123'); assert.equal(h.calls[0].song.sourceId,'mid123');
 });
 
-test('ChKSz requires explicit manual choice and persisted preferences cannot enable it', async () => {
+test('ChKSz supports both explicit switching and subsequent playback preference', async () => {
     const h=routing();
     assert.equal((await h.router.candidates(track.id,{song:track,onlyProvider:'chksz'}).next()).value.provider,'chksz');
-    assert.equal((await h.router.candidates(track.id,{song:track,preferredSource:'chksz'}).next()).value.provider,'netease');
+    assert.equal((await h.router.candidates(track.id,{song:track,preferredSource:'chksz'}).next()).value.provider,'chksz');
 });
 
 test('future playback preference searches the selected platform first and persists separately from search filters', async () => {
@@ -171,7 +178,8 @@ test('future playback preference searches the selected platform first and persis
     const service=new MusicService({storage,location:{search:''}});
     assert.equal(service.setPlaybackPreference('qq'),true); assert.equal(saved.get('cp_source'),'gd');
     assert.equal(new MusicService({storage,location:{search:''}}).config.playbackSource,'qq');
-    assert.equal(service.setPlaybackPreference('chksz'),false);
+    assert.equal(service.setPlaybackPreference('chksz'),true);
+    assert.equal(new MusicService({storage}).config.playbackSource,'chksz');
     const h=routing(); h.service.search=async()=>[{...track,provider:'qq',id:'qq:mid',sourceId:'mid'}];
     assert.equal((await h.router.candidates(track.id,{song:track,preferredSource:'qq'}).next()).value.provider,'qq');
     service.setPlaybackPreference(); assert.equal(saved.get('cp_playback_source'),'');
@@ -317,6 +325,7 @@ test('switching to an imported slot preserves progress, pause, queue identity an
         assert.equal(await h.controller.changeSource('lx-backup'), true);
         assert.equal(h.controller.state.currentSong.provider, 'gd');
         assert.equal(h.controller.state.currentSong.playbackSource, 'lx-backup');
+        assert.equal(h.service.config.playbackSource, 'lx-backup');
         assert.equal(h.controller.state.currentSong.source, '我的音源');
         assert.equal(h.controller.state.currentSong.id, track.id);
         assert.equal(h.audio.currentTime, 53); assert.equal(h.audio.paused, true);
@@ -346,6 +355,7 @@ test('an imported URL decode failure restores original audio and does not commit
         assert.equal(restored, true); assert.equal(h.audio.currentTime, 39); assert.equal(h.audio.paused, false);
         assert.equal(h.controller.state.currentSong.playbackSource, undefined);
         assert.equal(h.audio.src, media('gd').url);
+        assert.equal(h.service.config.playbackSource, 'gd');
     } finally { h.controller.stop(); }
 });
 
@@ -358,6 +368,7 @@ test('a newer source choice cancels pending custom resolution before it can comm
         assert.equal(await h.controller.changeSource('netease'), true);
         ready.resolve(); assert.equal(await old, false);
         assert.equal(h.controller.state.currentSong.provider, 'netease');
+        assert.equal(h.service.config.playbackSource, 'netease');
         assert.equal(h.audio.loads.some(url => url.includes('/custom/')), false);
     } finally { ready.resolve(); h.controller.stop(); }
 });

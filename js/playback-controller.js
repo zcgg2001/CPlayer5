@@ -276,6 +276,7 @@ export function createPlaybackController({
                 active.original = { ...playbackData, preferredProvider:provider, routing:{...playbackData.routing, manual:true}, sources:[...sources, sourceRecord(playbackData)] };
                 previousProvider = data.playbackSource || data.provider;
                 musicService.recordPlaybackSuccess?.(data, Date.now() - began + (data.routing?.resolveMs || 0));
+                musicService.setPlaybackPreference?.(provider);
                 // A later network failure can still use automatic recovery. Include
                 // the actual matched ID without changing the queue/catalog identity.
                 void iterator.return?.().catch(() => {});

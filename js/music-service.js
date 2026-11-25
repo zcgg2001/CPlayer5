@@ -28,17 +28,17 @@ export const DEFAULT_QUALITY = DEFAULT_PLAYBACK_QUALITY;
 export const DEFAULT_MUSIC_SOURCE = 'gd';
 
 export const MUSIC_SOURCE_OPTIONS = Object.freeze({
+  chksz: Object.freeze({
+    label: 'ChKSz · 网易云',
+    detail: '优先平台渠道 · 额度用尽后冷却至次日，不参与预解析',
+    provider: 'chksz',
+  }),
   gd: Object.freeze({
     label: 'GD 音乐台 · 网易云',
     detail: '搜索、播放与歌词免密钥；首页按主题发现音乐',
     provider: 'gd',
   }),
   ...MUSIC_CHANNELS,
-  chksz: Object.freeze({
-    label: 'ChKSz · 网易云',
-    detail: '限额备用源 · 仅手动选中时播放，不参与自动切源或预解析',
-    provider: 'chksz',
-  }),
   bilibili: Object.freeze({
     label: 'Bilibili · 哔哩哔哩',
     detail: '公开音乐视频 · AAC 音轨',
@@ -124,7 +124,7 @@ export class MusicService {
   playbackPreferenceOptions() {
     return [
       ...(this.lxSources.list?.() || []).filter(option => option.enabled).map(option => ({ id: option.id, label: `${option.label} · 自定义${option.role}` })),
-      ...Object.entries(MUSIC_SOURCE_OPTIONS).filter(([id]) => !['chksz', 'bilibili'].includes(id)).map(([id, option]) => ({ id, label: option.label })),
+      ...Object.entries(MUSIC_SOURCE_OPTIONS).filter(([id]) => id !== 'bilibili').map(([id, option]) => ({ id, label: option.label })),
     ];
   }
   playbackSourceLabel(provider) {
@@ -225,7 +225,10 @@ export class MusicService {
       level: String(level),
     });
     if (exactQuality) params.set('exact', '1');
-    const json = await requestJson(`${this.baseUrl}/song?${params}`, { signal, fetchImpl, timeoutMs: timeoutMs ?? (isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 50_000 : 10_000) });
+    const json = await requestJson(`${this.baseUrl}/song?${params}`, {
+      signal, fetchImpl, timeoutMs: timeoutMs ?? (isMusicChannel(option.provider) ? 45_000 : option.provider === 'gd' ? 50_000 : 10_000),
+      onResponse: response => this.playbackRouter.observeQuota?.(option.provider, response),
+    });
     if (option.provider === 'bilibili') return normalizeBilibiliPayload(json)[0] || null;
     const normalized = normalizeSongPayload(json, level);
     if (!normalized) return null;
@@ -254,14 +257,17 @@ export class MusicService {
     if (options.song?.provider === 'local') throw new Error('此设备没有该本地音频，请在个人库重新导入');
     const preferredSource = options.song?.routing?.manual ? options.song.preferredProvider : this.config.playbackSource;
     const explicitLx = isLxSource(options.onlyProvider);
-    const allowLx = explicitLx || (!options.onlyProvider && (!manualChoice || isLxSource(preferredSource)) && (!preferredSource || isLxSource(preferredSource)));
-    if (allowLx && !options.prefetch && (explicitLx || globalThis.document) && !bilibiliVideoUrl(options.song) && options.song?.provider !== 'bilibili') {
-      yield* this.lxSources.candidates(id, { ...options, preferredSource, defaultProvider: this.config.source });
-    }
+    const allowLx = !options.prefetch && (explicitLx || (!options.onlyProvider && globalThis.document))
+      && !bilibiliVideoUrl(options.song) && options.song?.provider !== 'bilibili';
+    const customCandidates = allowLx
+      ? () => this.lxSources.candidates(id, { ...options, preferredSource, defaultProvider: this.config.source }) : null;
+    const customFirst = explicitLx || !preferredSource || isLxSource(preferredSource);
+    if (customCandidates && customFirst) yield* customCandidates();
     if (explicitLx) return; // A manual choice must never silently select another source.
     yield* this.playbackRouter.candidates(id, {
-      preferredSource: isLxSource(preferredSource) ? '' : preferredSource,
       ...options,
+      preferredSource: isLxSource(preferredSource) ? '' : preferredSource,
+      fallbackCandidates: customFirst ? null : customCandidates,
     });
   }
   recordPlaybackSuccess(data, elapsedMs) {

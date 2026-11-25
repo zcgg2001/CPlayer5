@@ -1527,7 +1527,7 @@
                     <h3 id="lxSourceTitle">导入音乐源</h3>
                     <label class="lx-source-toggle"><span>启用自定义音源</span>
                         <input type="checkbox" name="lxSourceEnabled" checked></label>
-                    <p id="lxSourceHint" class="music-key-hint">支持 LX 音源脚本的 HTTPS 链接。保存后可在播放器切换，或设为后续播放优先；自动选择时依次尝试主音源、备用音源与内置渠道。</p>
+                    <p id="lxSourceHint" class="music-key-hint">支持 LX 音源脚本的 HTTPS 链接。默认依次尝试主音源、备用音源与平台渠道；播放器换源成功后自动记住选择，后续优先沿用，失败自动回退。</p>
                     <label for="lxSourcePrimary">主音源 · 默认星澜</label>
                     <input id="lxSourcePrimary" name="lxSourcePrimary" type="url" placeholder="https://…"
                         aria-describedby="lxSourceHint lxSourceFeedback" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="4096">

@@ -272,7 +272,7 @@ export function bindLxSettings(sources, documentRef = document) {
     try {
       await sources.save({ enabled: enabled.checked, primary: primary.value, backup: backup.value });
       render();
-      status.textContent = enabled.checked ? '已导入，可在播放器切换或设为后续优先' : '已关闭自定义音源';
+      status.textContent = enabled.checked ? '已导入，默认优先使用；播放器换源成功后会记住选择' : '已关闭自定义音源';
     } catch {
       status.textContent = '保存失败。请检查 HTTPS 链接、网络和 LX 脚本格式。';
       status.dataset.error = 'true';

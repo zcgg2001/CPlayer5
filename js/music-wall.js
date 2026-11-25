@@ -78,6 +78,7 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
     return bindArtwork(node, song, { size });
   }
   function closeFocus(restore = false) {
+    if (focus.hidden) { if (restore) viewport.focus({ preventScroll: true }); return; }
     const hadFocus = focus.contains(document.activeElement);
     focus.hidden = true; focus.replaceChildren(); selectedKey = ''; selectedCell = ''; root.classList.remove('has-focus');
     if (restore || hadFocus) viewport.focus({ preventScroll: true });
@@ -166,7 +167,9 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
       tile.node.remove(); tiles.delete(key);
     }
     root.dataset.wallX = camera.x.toFixed(3); root.dataset.wallY = camera.y.toFixed(3);
-    root.classList.toggle('is-moving', moving || !!drag?.moved || !!pinch);
+    // A new class on first drag makes the runtime utility compiler scan and
+    // rebuild the page. Motion is state, so keep it outside that class observer.
+    root.dataset.wallMoving = String(moving || !!drag?.moved || !!pinch);
     if (moving) schedule();
   }
   function measure() {
@@ -255,7 +258,9 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
   }
   listen(win, 'pointerup', event => endPointer(event));
   listen(win, 'pointercancel', event => endPointer(event, true));
-  listen(viewport, 'lostpointercapture', event => endPointer(event, true));
+  // Touch starts with implicit capture on the cover button. Its loss bubbles
+  // here when the viewport takes over; only losing our own capture ends a drag.
+  listen(viewport, 'lostpointercapture', event => { if (event.target === viewport) endPointer(event, true); });
   listen(viewport, 'dragstart', event => event.preventDefault());
   listen(viewport, 'wheel', event => {
     if (event.ctrlKey || event.metaKey || !songs.length) return;
@@ -281,7 +286,7 @@ export function createMusicWall({ document, root, storage, getSnapshot, getCurre
     stop(); drag = pinch = null;
     const captured = [...pointers.keys()]; pointers.clear();
     for (const id of captured) if (viewport.hasPointerCapture(id)) viewport.releasePointerCapture(id);
-    if (frame) win.cancelAnimationFrame(frame); frame = 0; root.classList.remove('is-moving');
+    if (frame) win.cancelAnimationFrame(frame); frame = 0; root.dataset.wallMoving = 'false';
   }
   listen(document, 'visibilitychange', () => { if (document.hidden) cancelMotion(); else schedule(); });
   listen(win, 'blur', cancelMotion);

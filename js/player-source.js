@@ -16,21 +16,20 @@ export function createPlayerSource({ document, playback, musicService, toast = (
     dialog.className = 'player-source-dialog';
     dialog.setAttribute('aria-labelledby', 'playerSourceTitle');
     dialog.innerHTML = `
-      <div class="player-source-heading"><div><h2 id="playerSourceTitle">仅切当前歌曲</h2><p data-source-subtitle></p></div>
+      <div class="player-source-heading"><div><h2 id="playerSourceTitle">切换音源</h2><p data-source-subtitle></p></div>
         <button type="button" class="player-source-close" aria-label="关闭音源选择"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <div class="player-source-platforms" role="tablist" aria-label="音乐平台" hidden></div>
       <div id="playerSourceChannels" class="player-source-list" role="group" aria-label="选择音源渠道"></div>
       <p class="player-source-status" role="status" aria-live="polite"></p>
-      <div class="player-source-preference" hidden>
-        <label><input type="checkbox"><span>后续播放也优先使用<small>切换成功后生效；不可用时自动尝试其他音源</small></span></label>
-        <p data-source-preferred></p><button type="button" data-source-reset>恢复自动选择</button>
+      <div class="player-source-preference">
+        <p data-source-preferred></p><button type="button" data-source-reset>恢复自定义优先</button>
       </div>
       <button type="button" class="player-source-more">全部平台与渠道 <span aria-hidden="true">→</span></button>`;
     document.body.append(dialog);
     const title = dialog.querySelector('h2'), subtitle = dialog.querySelector('[data-source-subtitle]');
     const tabs = dialog.querySelector('.player-source-platforms'), list = dialog.querySelector('.player-source-list');
     const status = dialog.querySelector('.player-source-status'), preference = dialog.querySelector('.player-source-preference');
-    const checkbox = preference.querySelector('input'), more = dialog.querySelector('.player-source-more');
+    const more = dialog.querySelector('.player-source-more');
     const reset = dialog.querySelector('[data-source-reset]');
     let expanded = false, selectedPlatform = 'netease', policy = null, message = '', failed = false;
     const actualSource = () => playback.state.currentSong?.playbackSource || playback.state.currentSong?.provider;
@@ -53,8 +52,10 @@ export function createPlayerSource({ document, playback, musicService, toast = (
     const unavailable = provider => {
         if (isLxSource(provider)) return customChoices().find(option => option.id === provider)?.disabledReason || '';
         if (policy?.sources?.[provider]?.enabled === false) return '暂不可用';
-        const until = Math.max(policy?.sources?.[provider]?.coolingUntil || 0, musicService.playbackRouter.health()[provider]?.until || 0);
-        return until > Date.now() ? '冷却中，请稍后重试' : '';
+        const health = musicService.playbackRouter.health()[provider];
+        const until = Math.max(policy?.sources?.[provider]?.coolingUntil || 0, health?.until || 0);
+        return until > Date.now() ? health?.reason === 'daily_quota'
+            ? '今日额度已用尽，明日 00:00 恢复（北京时间）' : '冷却中，请稍后重试' : '';
     };
     const position = () => {
         if (expanded) { dialog.style.removeProperty('top'); dialog.style.removeProperty('left'); return; }
@@ -70,16 +71,16 @@ export function createPlayerSource({ document, playback, musicService, toast = (
         trigger.querySelector('[data-source-label]').textContent = label;
         trigger.setAttribute('aria-label', `${label}，${pending ? '正在切换' : '切换音源'}`);
         trigger.classList.toggle('is-switching', Boolean(pending));
-        trigger.title = reason() || '切换当前歌曲的音源';
+        trigger.title = reason() || '切换音源，后续歌曲优先沿用';
         if (!dialog.open) return;
         dialog.classList.toggle('is-expanded', expanded);
-        title.textContent = expanded ? '切换音源' : '仅切当前歌曲';
-        subtitle.textContent = expanded ? '同一首歌，从这里继续听' : '已导入音源与当前平台渠道';
+        title.textContent = '切换音源';
+        subtitle.textContent = '切换成功后，后续歌曲优先沿用';
         tabs.hidden = !expanded;
         list.setAttribute('role', expanded ? 'tabpanel' : 'group');
         if (expanded) list.setAttribute('aria-labelledby', `playerSourcePlatform-${selectedPlatform}`);
         else list.removeAttribute('aria-labelledby');
-        preference.hidden = !expanded || Boolean(reason());
+        preference.hidden = Boolean(reason());
         more.hidden = expanded || Boolean(reason());
         tabs.querySelectorAll('button').forEach(button => {
             const selected = button.dataset.platform === selectedPlatform;
@@ -91,7 +92,7 @@ export function createPlayerSource({ document, playback, musicService, toast = (
         const custom = customChoices(), platform = expanded ? selectedPlatform : platformFor(song?.provider);
         let providers = platform === 'custom' ? custom.map(option => option.id)
             : PLAYBACK_SOURCE_ORDER.filter(provider => platformFor(provider) === platform);
-        if (!expanded) providers = [...custom.map(option => option.id), ...[...new Set([current, 'gd', 'netease', 'xinghai-netease', ...providers])]
+        if (!expanded) providers = [...custom.map(option => option.id), ...[...new Set(['chksz', current, ...providers])]
             .filter(provider => MUSIC_SOURCE_OPTIONS[provider] && platformFor(provider) === platform).slice(0, 3)];
         let previousGroup;
         for (const provider of reason() ? [] : providers) {
@@ -108,7 +109,7 @@ export function createPlayerSource({ document, playback, musicService, toast = (
             const name = document.createElement('strong'), detail = document.createElement('small'), text = document.createElement('span');
             name.textContent = option ? option.label : sourceLabel(provider).split(' · ')[0];
             const note = blocked || (selected ? `当前播放 · ${QUALITY_DETAILS[song?.level]?.name || '音质待确认'}`
-                : provider === 'chksz' ? '限额备用 · 仅当前歌曲'
+                : provider === 'chksz' ? '限额渠道 · 用尽后冷却至明日'
                 : option || platformFor(song?.provider) === platform ? '尝试同曲音频' : '严格匹配同一版本');
             detail.textContent = option ? `${option.role} · ${note}` : note;
             text.append(name, detail);
@@ -122,22 +123,20 @@ export function createPlayerSource({ document, playback, musicService, toast = (
         if (focusProvider) [...list.children].find(button => button.dataset.playerSource === focusProvider && !button.disabled)?.focus({preventScroll:true});
         status.textContent = reason() || message || (expanded && selectedPlatform === 'custom' && !custom.length
             ? '尚未导入自定义音源，请前往「设置 → 音乐源」导入。'
-            : expanded ? '默认仅切当前歌曲；匹配不到同一版本时保留原音源。' : '切换后接续进度');
+            : '接续当前进度；后续播放失败时自动尝试其他音源');
         status.classList.toggle('is-error', failed);
         const preferred = musicService.config.playbackSource;
-        dialog.querySelector('[data-source-preferred]').textContent = preferred ? `后续优先：${sourceLabel(preferred)}` : '后续播放：自动选择';
+        dialog.querySelector('[data-source-preferred]').textContent = preferred ? `后续优先：${sourceLabel(preferred)}` : '后续播放：自定义主用 → 备用 → 平台渠道';
         reset.hidden = !preferred;
-        checkbox.disabled = pending?.stage === 'installing';
+        reset.disabled = pending?.stage === 'installing';
         position();
     }
     async function choose(provider) {
         if (playback.state.sourceSwitch?.stage === 'installing') return;
         if (reason()) { message = reason(); render(); return; }
         if (unavailable(provider)) { message = unavailable(provider); render(); return; }
-        const remember = expanded && checkbox.checked && provider !== 'chksz';
-        if (provider === 'chksz' && checkbox.checked) { checkbox.checked = false; toast('ChKSz 仅用于当前歌曲，不设为后续默认'); }
         if (isSelected(provider) && !playback.state.sourceSwitch) {
-            if (remember && musicService.setPlaybackPreference(provider)) toast(`后续优先使用 ${sourceLabel(provider)}`);
+            if (musicService.setPlaybackPreference(provider)) toast(`后续优先使用 ${sourceLabel(provider)}`);
             close(); return;
         }
         await playback.changeSource(provider, {
@@ -147,8 +146,7 @@ export function createPlayerSource({ document, playback, musicService, toast = (
                     : info.stage === 'installing' ? '正在接续播放进度…' : '正在准备新音源，保留当前播放状态…'; render();
             },
             onSuccess(song) {
-                if (remember) musicService.setPlaybackPreference(provider);
-                message = ''; failed = false; close(); toast(`已切换至 ${isLxSource(provider) && song.source || sourceLabel(provider)}`);
+                message = ''; failed = false; close(); toast(`已切换至 ${isLxSource(provider) && song.source || sourceLabel(provider)}，后续优先使用`);
             },
             onError(error, { restored }) {
                 failed = true;
@@ -176,12 +174,12 @@ export function createPlayerSource({ document, playback, musicService, toast = (
     trigger.addEventListener('click', () => {
         if (dialog.open) return close();
         expanded = false; selectedPlatform = isLxSource(actualSource()) ? 'custom' : platformFor(playback.state.currentSong?.provider);
-        message = playback.state.sourceSwitch ? '正在准备新音源…' : ''; failed = false; checkbox.checked = false;
+        message = playback.state.sourceSwitch ? '正在准备新音源…' : ''; failed = false;
         dialog.showModal(); trigger.setAttribute('aria-expanded', 'true'); render();
         void musicService.getRuntimePolicy().then(value => { policy = value; render(); }).catch(() => {});
     });
     more.addEventListener('click', () => { expanded = true; render(); tabs.querySelector('[aria-selected=true]')?.focus(); });
-    reset.addEventListener('click', () => { musicService.setPlaybackPreference(); checkbox.checked = false; message = '后续播放已恢复自动选择'; render(); });
+    reset.addEventListener('click', () => { musicService.setPlaybackPreference(); message = '后续播放已恢复自定义音源优先'; render(); });
     dialog.querySelector('.player-source-close').addEventListener('click', close);
     let outside = false;
     const isOutside = event => { const r = dialog.getBoundingClientRect(); return event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom; };

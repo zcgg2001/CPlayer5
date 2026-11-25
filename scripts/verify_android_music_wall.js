@@ -62,6 +62,63 @@ async (originalPage) => {
     const responseCdp = await context.newCDPSession(page);
     await responseCdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
     const responseBox = await viewport.boundingBox();
+    // Start on actual covers: Android implicitly captures touch on the button.
+    // A mouse-only drag cannot expose a bubbled lostpointercapture cancelling it.
+    const touchOrigin = () => viewport.evaluate(node => {
+      const b = node.getBoundingClientRect();
+      for (const fraction of [.8, .75, .7]) {
+        const x = b.x + b.width * fraction, y = b.y + b.height * .55;
+        if (document.elementFromPoint(x, y)?.closest('.wall-tile')) return { x, y };
+      }
+      throw Error('No cover under touch start');
+    });
+    const pitch = await viewport.evaluate(async node => {
+      const { wallMetrics } = await import('/js/music-wall-field.js');
+      return wallMetrics(node.clientWidth, node.clientHeight, 1).pitch;
+    });
+    const touch = (type, points = []) => responseCdp.send('Input.dispatchTouchEvent', { type, touchPoints: points.map((point, i) => ({ ...point, id: i + 1 })) });
+    const cameraAt = async (start, dx, dy) => {
+      await page.waitForFunction(({ start, dx, dy, pitch }) => {
+        const node = document.getElementById('mobileExploreWallPane');
+        return Math.abs((+node.dataset.wallX - start.x) * pitch - dx) < .2
+          && Math.abs((+node.dataset.wallY - start.y) * pitch - dy) < .2;
+      }, { start, dx, dy, pitch }, { timeout: 2500 });
+    };
+    const dragDistances = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const start = await snapshot(), point = await touchOrigin();
+      await touch('touchStart', [point]);
+      for (let step = 1; step <= 12; step++) {
+        await touch('touchMove', [{ x: point.x - step * 8, y: point.y - step * 3 }]);
+        await cameraAt(start, step * 8, step * 3);
+      }
+      const dragged = await snapshot(); dragDistances.push((dragged.x - start.x) * pitch);
+      await touch('touchCancel'); await page.waitForTimeout(60);
+      const canceled = await snapshot(); await page.waitForTimeout(120);
+      if (canceled.focused || (await snapshot()).x !== canceled.x) throw Error('Canceled touch kept moving or opened a cover');
+    }
+    checks.coverTouchTracksEveryMoveAfterCaptureTransfer = dragDistances;
+    // Genuine loss of the viewport's own capture must still cancel the gesture.
+    await viewport.evaluate(node => node.addEventListener('pointerdown', event => { window.__wallLostPointer = event.pointerId; }, { once: true }));
+    const lostPoint = await touchOrigin(), lostStart = await snapshot();
+    await touch('touchStart', [lostPoint]);
+    await touch('touchMove', [{ x: lostPoint.x - 16, y: lostPoint.y - 4 }]); await cameraAt(lostStart, 16, 4);
+    await touch('touchMove', [{ x: lostPoint.x - 32, y: lostPoint.y - 8 }]); await cameraAt(lostStart, 32, 8);
+    await viewport.evaluate(node => node.releasePointerCapture(window.__wallLostPointer));
+    await touch('touchMove', [{ x: lostPoint.x - 48, y: lostPoint.y - 12 }]); await page.waitForTimeout(60);
+    if (Math.abs((await snapshot()).x - (lostStart.x + 32 / pitch)) * pitch > .2) throw Error('Lost viewport capture did not cancel');
+    await touch('touchCancel'); checks.ownCaptureLossStillCancels = true;
+    // A fresh finger can stop coasting and immediately drag in the other direction.
+    const inertiaStart = await touchOrigin();
+    await touch('touchStart', [inertiaStart]);
+    for (let step = 1; step <= 4; step++) await touch('touchMove', [{ x: inertiaStart.x - step * 18, y: inertiaStart.y }]);
+    await touch('touchEnd'); const releasedTouch = await snapshot(); await page.waitForTimeout(70);
+    if ((await snapshot()).x <= releasedTouch.x) throw Error('Real touch did not start inertia');
+    const interruptPoint = await touchOrigin(); await touch('touchStart', [interruptPoint]);
+    const interrupted = await snapshot(); await page.waitForTimeout(70);
+    if ((await snapshot()).x !== interrupted.x) throw Error('Finger down did not stop inertia');
+    await touch('touchMove', [{ x: interruptPoint.x + 24, y: interruptPoint.y }]); await cameraAt(interrupted, -24, 0);
+    await touch('touchCancel'); checks.touchInertiaAndImmediateReverse = true;
     await viewport.evaluate(node => node.addEventListener('pointerdown', event => {
       window.__wallResponsePointer = event.pointerId;
     }, { once: true }));

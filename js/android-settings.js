@@ -76,7 +76,7 @@ export function createAndroidSettings({ document, musicService, account, library
     const preferred = document.createElement('section'); preferred.className = 'android-playback-preference';
     const prefLabel = document.createElement('label'); prefLabel.htmlFor = 'androidPlaybackPreference'; prefLabel.textContent = '后续播放优先';
     const preference = document.createElement('select'); preference.id = 'androidPlaybackPreference';
-    const hint = document.createElement('p'); hint.textContent = '用于接下来的歌曲；当前歌曲可在播放器顶部换源。不可用时自动尝试其他渠道。';
+    const hint = document.createElement('p'); hint.textContent = '默认先用自定义音源。播放器换源成功后自动记住选择，后续歌曲优先沿用，不可用时自动回退。';
     preferred.append(prefLabel, preference, hint); panels.get('sources').children[0].after(preferred);
     preference.addEventListener('change', () => { musicService.setPlaybackPreference(preference.value); sync(); notify('后续播放偏好已保存'); });
     let preferenceSignature = '';
@@ -84,7 +84,7 @@ export function createAndroidSettings({ document, musicService, account, library
     function sync() {
         const options = musicService.playbackPreferenceOptions(), signature = JSON.stringify(options);
         if (preferenceSignature !== signature) {
-            preference.replaceChildren(new Option('自动选择', ''), ...options.map(option => new Option(option.label, option.id)));
+            preference.replaceChildren(new Option('自动选择（自定义音源优先）', ''), ...options.map(option => new Option(option.label, option.id)));
             preferenceSignature = signature;
         }
         const doc = document.documentElement;
@@ -94,7 +94,7 @@ export function createAndroidSettings({ document, musicService, account, library
             appearance:`${doc.dataset.theme === 'light' ? '浅色' : '深色'} · ${doc.lang === 'en' ? 'English' : '简体中文'}`,
             player:`${shape}封面 · 氛围光${doc.dataset.coverAmbient === 'false' ? '已关闭' : '已开启'}`,
             lyrics:`${document.getElementById('lyricEffectSelect').selectedOptions[0]?.textContent || '默认效果'} · ${document.getElementById('lyricFontSize').value} px`,
-            sources: musicService.config.playbackSource ? `播放优先 ${musicService.playbackSourceLabel(musicService.config.playbackSource)}` : `自动换源 · 搜索 ${MUSIC_SOURCE_OPTIONS[musicService.config.source]?.label || '默认渠道'}`,
+            sources: musicService.config.playbackSource ? `播放优先 ${musicService.playbackSourceLabel(musicService.config.playbackSource)}` : `自定义优先 · 搜索 ${MUSIC_SOURCE_OPTIONS[musicService.config.source]?.label || '默认渠道'}`,
             account:user ? `${user.username || user.name} · ${account.isOffline() ? '离线资料' : account.isSignedIn() ? '已登录' : '需要重新登录'}` : '未登录 · 本机优先',
             library:`${library.store.lists().length} 张歌单 · 导入在线歌单`,
             about:version,

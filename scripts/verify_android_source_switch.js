@@ -1,7 +1,7 @@
-// Playwright CLI callback, with CPlayer5 served at 127.0.0.1:8794.
+// Playwright CLI callback, with CPlayer5 served at 127.0.0.1:8795.
 // Real HTML audio is used; only provider responses and the WAV transport are fixtures.
 async (originalPage) => {
-  const base = 'http://127.0.0.1:8794';
+  const base = 'http://127.0.0.1:8795';
   const context = await originalPage.context().browser().newContext({serviceWorkers:'block',viewport:{width:390,height:844}});
   const page = await context.newPage(); await page.bringToFront();
   const requests=[], errors=[], checks={};
@@ -44,6 +44,7 @@ async (originalPage) => {
     if(url.pathname==='/api/v1/music/song'){
       const provider=url.searchParams.get('source'), id=url.searchParams.get('id');requests.push({kind:'song',provider,id});
       await gates.get(provider)?.promise;
+      if(modes.get(provider)==='quota')return route.fulfill({status:402,json:{error:{code:'chksz_error',message:'今日额度已用尽'}}});
       if(modes.get(provider)==='fail')return route.fulfill({status:503,json:{error:{message:'fixture unavailable'}}}).catch(()=>{});
       return route.fulfill({json:{code:200,data:{id,name:'风经过的地方',artist:'林间来信',album:'慢一点',duration:180,
         url:`${base}/__source/${provider}/${modes.get(provider)==='broken'?'broken':'song'}.wav`,cover:`${base}/design-preview/source-switch/cover.svg`,level:'standard'}}}).catch(()=>{});
@@ -66,9 +67,9 @@ async (originalPage) => {
   const open=async()=>{if(!await page.locator('#playerSourceDialog').isVisible())await page.locator('#playerSourceButton').click();};
   const all=async()=>{await open();if(await page.locator('.player-source-more').isVisible())await page.locator('.player-source-more').click();};
   const choose=provider=>page.locator(`[data-player-source="${provider}"]`).click();
-  const play=async(id='123')=>{
-    await page.evaluate(id=>{const i=window.insertSongToPlaylist({id,sourceId:id,provider:'gd',preferredProvider:'gd',name:'风经过的地方',artist:'林间来信',album:'慢一点',duration:180,cover:`${location.origin}/design-preview/source-switch/cover.svg`});void window.playSongAtIndex(i);},id);
-    await waitSource('gd');await waitIdle();
+  const play=async(id='123',source='gd')=>{
+    await page.evaluate(async id=>{const i=window.insertSongToPlaylist({id,sourceId:id,provider:'gd',preferredProvider:'gd',name:'风经过的地方',artist:'林间来信',album:'慢一点',duration:180,cover:`${location.origin}/design-preview/source-switch/cover.svg`});await window.playSongAtIndex(i);},id);
+    await waitSource(source);await waitIdle();
     if(await page.locator('#mobileBrowseOpen').isVisible())await page.locator('#mobileBrowseOpen').click();
   };
   try {
@@ -82,6 +83,7 @@ async (originalPage) => {
     await open();
     await page.screenshot({path:'output/playwright/android-source-c-menu.png',animations:'disabled'});
     if(await page.locator('[data-player-source]').count()!==5)throw Error('Compact menu should show two custom slots and three platform choices');
+    if(await page.locator('[data-player-source]').nth(2).getAttribute('data-player-source')!=='chksz')throw Error('ChKSz must lead platform choices');
     checks.compactMenu=true;
     await page.keyboard.press('Escape');
     if(await page.locator('#playerSourceDialog').isVisible())throw Error('Escape did not close');
@@ -96,11 +98,12 @@ async (originalPage) => {
     let state=await audioState();if(!state.src.includes('/gd/')||state.paused||!state.label.includes('GD'))throw Error('Resolution interrupted old audio');
     await seek(54,true);pending.release();gates.delete('netease');await waitSource('netease');await waitIdle();
     state=await audioState();if(!state.paused||Math.abs(state.time-54)>1||!state.label.includes('Meting'))throw Error('Pause/progress/source lost '+JSON.stringify(state));
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='netease')throw Error('Compact switch did not automatically persist');
     checks.keepOldAudioAndPausedProgress=true;
     // Reuse the shared header while the lyrics surface is active.
     await page.locator('.cover-carousel-card[aria-current=true]').click();
     await page.waitForFunction(()=>!document.getElementById('mobileLyricsPage').inert);
-    await open();await choose('xinghai-netease');await waitSource('xinghai-netease');await waitIdle();
+    await all();await choose('xinghai-netease');await waitSource('xinghai-netease');await waitIdle();
     if(await page.locator('#mobileLyricsPage').evaluate(el=>el.inert))throw Error('Switch left lyrics view');
     await open();await page.screenshot({path:'output/playwright/android-source-c-lyrics.png',animations:'disabled'});
     await page.keyboard.press('Escape');checks.lyricsViewPreserved=true;
@@ -113,9 +116,8 @@ async (originalPage) => {
     modes.delete('at38-netease');await page.keyboard.press('Escape');
     await all();
     if(!await page.locator('[data-player-source="op-netease"]').isDisabled())throw Error('Policy disabled source enabled');
-    if(await page.locator('.player-source-preference input').isChecked())throw Error('Preference must start unchecked');
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='xinghai-netease')throw Error('Failed switch replaced preference');
     await page.locator('[role=tab][data-platform=qq]').click();
-    await page.locator('.player-source-preference input').check();
     await waitToast();
     await page.screenshot({path:'output/playwright/android-source-c-all.png',animations:'disabled'});
     await choose('qq');await waitSource('qq');await waitIdle();
@@ -167,10 +169,10 @@ async (originalPage) => {
     if(!await page.locator('[data-player-source=lx-backup]').textContent().then(text=>text.includes('晚风音源')))throw Error('Imported source absent from compact menu');
     await page.screenshot({path:'output/playwright/android-source-custom-menu.png',animations:'disabled'});
     await choose('lx-backup');await waitSource('lx-backup');await waitIdle();
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='lx-backup')throw Error('Compact custom switch did not persist automatically');
     state=await audioState();if(!state.paused||Math.abs(state.time-37)>1||state.label!=='晚风音源')throw Error('Custom switch lost pause/progress/name '+JSON.stringify(state));
     await all();
     if(await page.locator('[role=tab][data-platform=custom]').getAttribute('aria-selected')!=='true')throw Error('Current custom tab not selected');
-    await page.locator('.player-source-preference input').check();
     await choose('lx-backup');
     if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='lx-backup')throw Error('Custom preference missing');
     await waitToast();await all();await page.screenshot({path:'output/playwright/android-source-custom-all.png',animations:'disabled'});
@@ -195,7 +197,10 @@ async (originalPage) => {
     await page.locator('[role=tab][data-platform=netease]').click();await choose('netease');await waitSource('netease');await waitIdle();
     state=await audioState();if(!state.label.includes('Meting'))throw Error('Stale custom source label');
     checks.customDecodeRollbackAndReturnToBuiltin=true;
-    await openSourceSettings();await saveImport({enabled:false});
+    await openSourceSettings();
+    if(await page.locator('#androidPlaybackPreference').inputValue()!=='netease')throw Error('Settings did not follow successful switch');
+    await page.locator('#androidPlaybackPreference').selectOption('lx-backup');
+    await saveImport({enabled:false});
     if(await page.locator('#androidPlaybackPreference').inputValue()!=='')throw Error('Disabled preference not cleared');
     if(await page.locator('#androidPlaybackPreference option[value=lx-backup]').count())throw Error('Disabled import still offered as default');
     await closeSourceSettings();await all();await page.locator('[role=tab][data-platform=custom]').click();
@@ -205,6 +210,31 @@ async (originalPage) => {
     if(await page.locator('[data-player-source=lx-backup]').count())throw Error('Removed custom source remains');
     if(await page.locator('[data-player-source=lx-primary]').isDisabled())throw Error('Re-enabled import unavailable');
     checks.disableRemovalAndLiveMenuRefresh=true;
+    modes.delete('primary'); await page.keyboard.press('Escape');
+    await openSourceSettings();
+    await page.locator('#androidPlaybackPreference').selectOption('');
+    await closeSourceSettings(); await play('792','lx-primary');
+    if(!requests.some(r=>r.kind==='custom-resolve'&&r.slot==='primary'&&r.id==='792'))throw Error('Default did not use custom source');
+    await open();await choose('chksz');await waitSource('chksz');await waitIdle();
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='chksz')throw Error('ChKSz preference not saved');
+    await play('793','chksz');
+    modes.set('chksz','quota');await play('794','lx-primary');
+    if(await page.evaluate(()=>localStorage.getItem('cp_playback_source'))!=='chksz')throw Error('Fallback replaced chosen preference');
+    const quotaCalls=requests.filter(r=>r.kind==='song'&&r.provider==='chksz').length;
+    await play('795','lx-primary');
+    if(requests.filter(r=>r.kind==='song'&&r.provider==='chksz').length!==quotaCalls)throw Error('Daily quota was retried');
+    await all();await page.locator('[role=tab][data-platform=netease]').click();
+    const quotaRow=page.locator('[data-player-source=chksz]');
+    if(!await quotaRow.isDisabled()||!await quotaRow.textContent().then(text=>text.includes('明日 00:00')))throw Error('Daily quota state missing');
+    if(await page.locator('[data-player-source]').first().getAttribute('data-player-source')!=='chksz')throw Error('Expanded channel order wrong');
+    await waitToast();await page.screenshot({path:'output/playwright/android-source-daily-quota.png',animations:'disabled'});
+    const beforeReload=await page.evaluate(()=>JSON.parse(localStorage.getItem('cp_playback_health_v1')).chksz.until);
+    await page.reload();await page.waitForFunction(()=>typeof window.insertSongToPlaylist==='function');
+    if(await page.locator('#entryGuest').isVisible())await page.locator('#entryGuest').click();
+    await play('796','lx-primary');
+    const afterReload=await page.evaluate(()=>JSON.parse(localStorage.getItem('cp_playback_health_v1')).chksz.until);
+    if(beforeReload!==afterReload||requests.filter(r=>r.kind==='song'&&r.provider==='chksz').length!==quotaCalls)throw Error('Restart lost daily cooldown');
+    checks.defaultCustomAutoRememberFallbackAndDailyQuotaPersist=true;
     if(errors.length)throw Error(errors.join('; '));
     console.log(JSON.stringify({checks,requests,errors,final:await audioState()}));
     return {checks,requests,errors};

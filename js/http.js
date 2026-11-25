@@ -48,6 +48,7 @@ export async function requestJson(
     body,
     signal,
     timeoutMs = 10_000,
+    onResponse,
   } = {},
 ) {
   if (signal?.aborted) throw new RequestCancelledError();
@@ -73,6 +74,7 @@ export async function requestJson(
       body,
       signal: controller.signal,
     });
+    if (!controller.signal.aborted) onResponse?.(response);
 
     if (!response.ok) {
       let payload = null;

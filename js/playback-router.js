@@ -5,10 +5,12 @@ import { createPlaybackCache } from './playback-cache.js';
 
 // Default order for automatic choices and fallbacks. An explicitly selected
 // search/catalog channel takes precedence over this order and latency scores.
-export const PLAYBACK_SOURCE_ORDER = Object.freeze(['netease', 'gd', 'xinghai-netease', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'xinghai-qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou', 'chksz']);
+export const PLAYBACK_SOURCE_ORDER = Object.freeze(['chksz', 'netease', 'gd', 'xinghai-netease', 'op-netease', 'at38-netease', 'jianbin-netease', 'qq', 'xinghai-qq', 'op-qq', 'at38-qq', 'jianbin-qq', 'op-applemusic', 'gequke', 'jianbin-kuwo', 'jianbin-kugou']);
 const QUALITY_ORDER = ['jymaster', 'hires', 'lossless', 'exhigh', 'standard'];
 export const DEFAULT_PLAYBACK_QUALITY = 'lossless';
 const HEALTH_KEY = 'cp_playback_health_v1';
+// Retry exhausted ChKSz at the next China midnight, independently of device timezone.
+const nextQuotaReset = time => (Math.floor((time + 8 * 3600000) / 86400000) + 1) * 86400000 - 8 * 3600000;
 export function actualPlaybackQuality(data) {
   let path = '';
   try { path = new URL(data.url, 'https://player.invalid').pathname; } catch { /* Invalid URL is handled by the controller. */ }
@@ -46,12 +48,30 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
       if (item && Number.isFinite(item.at) && item.at > now() - 86400000) health.set(provider, {
         at:item.at, failures:Math.min(10, Math.max(0, Number(item.failures)||0)),
         latency:Math.min(30000, Math.max(0, Number(item.latency)||0)),
-        until:Math.min(now()+3600000, Math.max(0, Number(item.until)||0)),
+        until:Math.min(provider === 'chksz' && item.reason === 'daily_quota' ? nextQuotaReset(now()) : now()+3600000, Math.max(0, Number(item.until)||0)),
+        ...(provider === 'chksz' && item.reason === 'daily_quota' ? { reason:'daily_quota' } : {}),
       });
     }
   } catch { /* Storage is optional. */ }
   const persist = () => { try { storage?.setItem(HEALTH_KEY, JSON.stringify(Object.fromEntries(health))); } catch { /* optional */ } };
+  function expireQuota() {
+    const previous = health.get('chksz');
+    if (previous?.reason === 'daily_quota' && previous.until <= now()) {
+      health.set('chksz', { at:now(), failures:0, until:0, latency:previous.latency || 0 }); persist();
+    }
+  }
   const cooling = provider => (health.get(provider)?.until || 0) > now();
+  const quotaCooling = provider => health.get(provider)?.reason === 'daily_quota' && cooling(provider);
+  function exhaustQuota() {
+    if (quotaCooling('chksz')) return;
+    health.set('chksz', { ...health.get('chksz'), at:now(), until:nextQuotaReset(now()), reason:'daily_quota' }); persist();
+  }
+  function observeQuota(provider, response) {
+    if (provider !== 'chksz') return;
+    // Missing headers are unknown, not zero. Paid quota can still be available.
+    const empty = name => response.headers?.get(name)?.trim() === '0';
+    if (response.status === 402 || (response.ok && empty('x-quota-free-remaining') && empty('x-quota-paid-remaining'))) exhaustQuota();
+  }
   function success(data, ms) {
     if (!data?.provider) return;
     const match = data.routing?.match;
@@ -61,23 +81,29 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
       while (matches.size > 128) matches.delete(matches.keys().next().value);
     }
     const previous = health.get(data.provider);
-    health.set(data.provider, { at:now(), failures:0, until:0, latency:previous?.latency ? previous.latency*0.7+ms*0.3 : ms }); persist();
+    // The last allowed song may still start after quota exhaustion was reported.
+    health.set(data.provider, { at:now(), failures:0, until:0,
+      ...(quotaCooling(data.provider) ? { until:previous.until, reason:'daily_quota' } : {}),
+      latency:previous?.latency ? previous.latency*0.7+ms*0.3 : ms }); persist();
   }
   function failure(data, error) {
     if (!data?.provider || cancelled(error) || siteLimited(error)) return;
     resolutions.invalidate(data);
+    if (data.provider === 'chksz' && error?.status === 402) { exhaustQuota(); return; }
+    if (quotaCooling(data.provider)) return;
     const previous = health.get(data.provider) || {}, failures = Math.min(10,(previous.failures||0)+1);
     const retry = Number(error?.retryAfter) * 1000 || Math.max(0, Date.parse(error?.retryAfter) - now()) || 0;
     const cooldown = [401,402,403].includes(error?.status) ? 900000 : error?.status === 429 ? Math.max(300000,retry) : Math.min(300000,30000*failures);
-    health.set(data.provider, { ...previous, at:now(), failures, until:now()+Math.min(3600000,cooldown) }); persist();
+    health.set(data.provider, { ...previous, reason:undefined, at:now(), failures, until:now()+Math.min(3600000,cooldown) }); persist();
   }
   function order(providers) {
     const score = p => { const h=health.get(p); return (h?.failures||0)*20000 + (h?.latency||0) + Math.max(0,PLAYBACK_SOURCE_ORDER.indexOf(p))*900; };
     return [...providers].sort((a,b)=>score(a)-score(b));
   }
-  async function* candidates(id, { song, signal, fetchImpl, level = DEFAULT_PLAYBACK_QUALITY, prefetch = false, onlyProvider, preferredSource, onAttempt = () => {} } = {}) {
+  async function* candidates(id, { song, signal, fetchImpl, level = DEFAULT_PLAYBACK_QUALITY, prefetch = false, onlyProvider, preferredSource, fallbackCandidates, onAttempt = () => {} } = {}) {
     const policy = await service.getRuntimePolicy?.();
     signal?.throwIfAborted();
+    expireQuota();
     const input = song || { id };
     const original = { ...input, provider:input.provider || service.sourceForSong(input).provider };
     const sources = original.sources?.length ? original.sources : [original];
@@ -106,26 +132,30 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     }
     const video = sources.some(item=>item.provider==='bilibili');
     const primaryPlatform=platform(sources[0]?.provider || service.sourceForSong(original).provider);
-    // Quota-limited ChKSz is opt-in per track, never an automatic fallback or
-    // speculative request. Server priorities cannot silently opt it back in.
+    // ChKSz participates in actual playback, but speculative work spends no quota.
     const available=(video?['bilibili']:order(PLAYBACK_SOURCE_ORDER)).filter(p =>
       (!onlyProvider || p === onlyProvider) &&
-      (p !== 'chksz' || (!prefetch && (onlyProvider === 'chksz' || original.preferredProvider === 'chksz'))) &&
+      (p !== 'chksz' || !prefetch) &&
       policy?.sources?.[p]?.enabled !== false && !(policy?.sources?.[p]?.coolingUntil > now()));
     if (onlyProvider && (!available.includes(onlyProvider) || cooling(onlyProvider))) {
       throw Object.assign(new Error('该渠道暂不可用或正在冷却，请稍后重试'), { code:'source_unavailable' });
     }
-    if (prefetch && (video || original.preferredProvider === 'chksz')) return;
+    if (prefetch && (video || preferredSource === 'chksz' || original.preferredProvider === 'chksz')) return;
     if (policy?.sources) available.sort((a,b) => (policy.sources[a]?.priority ?? 100) - (policy.sources[b]?.priority ?? 100));
-    const preferred = available.includes(preferredSource) && preferredSource !== 'chksz' ? preferredSource
+    const preferred = preferredSource ? (available.includes(preferredSource) ? preferredSource : null)
       : available.includes(original.preferredProvider) && direct.has(original.preferredProvider) ? original.preferredProvider : null;
     const remaining = available.filter(provider => provider !== preferred);
-    const providers=[...(preferred ? [preferred] : []),...remaining.filter(p=>direct.has(p)),...remaining.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...remaining.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
+    const providers=[...(preferred ? [preferred] : []),
+      ...(!onlyProvider && !prefetch && fallbackCandidates ? [null] : []),
+      ...remaining.filter(p=>direct.has(p)),...remaining.filter(p=>!direct.has(p)&&platform(p)===primaryPlatform),...remaining.filter(p=>!direct.has(p)&&platform(p)!==primaryPlatform)];
     let attempts=0, searches=0, spent=0, lastError;
     const maxAttempts = prefetch ? 2 : 16;
     const bounded = async (fn, timeout) => { const start=now();try{return await fn(Math.max(1,Math.min(timeout,60000-spent)));}finally{spent+=Math.max(0,now()-start);} };
     for (const provider of providers) {
       signal?.throwIfAborted();
+      // A chosen built-in channel gets the first attempt; imported sources remain
+      // available before the other platform channels if that choice cannot play.
+      if (provider === null) { yield* fallbackCandidates(); continue; }
       if (attempts>=maxAttempts || spent>=60000) break;
       if (cooling(provider)) continue;
       let tracks=direct.get(provider);
@@ -146,7 +176,7 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
         let lastResolvedRank=-1;
         for(const requestedLevel of playbackLevels(provider,level)) {
           signal?.throwIfAborted();
-          if(skipProvider || attempts>=maxAttempts || spent>=60000)break;
+          if(skipProvider || quotaCooling(provider) || attempts>=maxAttempts || spent>=60000)break;
           if(sourceBlocked(track,requestedLevel))continue;
           if(QUALITY_ORDER.indexOf(requestedLevel)<=lastResolvedRank)continue;
           attempts++;
@@ -186,5 +216,5 @@ export function createPlaybackRouter(service, { storage, now = Date.now } = {}) 
     }
     if (!prefetch) { const error=new Error(onlyProvider ? '该渠道没有可播放的同一版本歌曲，请尝试其他渠道' : '暂时找不到可播放的同一版本歌曲，请稍后重试');error.code='playback_exhausted';error.cause=lastError;throw error; }
   }
-  return { candidates, success, failure, health:()=>Object.fromEntries(health) };
+  return { candidates, success, failure, observeQuota, health:()=>{ expireQuota(); return Object.fromEntries(health); } };
 }

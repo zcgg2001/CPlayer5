@@ -2,7 +2,7 @@
 .music-wall { position: relative; isolation: isolate; height: 100%; min-height: 0; overflow: hidden; color: var(--md-on-surface, var(--studio-ink)); background: var(--md-surface, var(--studio-bg)); }
 .wall-viewport, .music-wall-field { position: absolute; inset: 0; overflow: hidden; }
 .wall-viewport { touch-action: none; overscroll-behavior: none; user-select: none; -webkit-user-select: none; cursor: grab; outline-offset: -4px; }
-.music-wall.is-moving .wall-viewport { cursor: grabbing; }
+.music-wall[data-wall-moving='true'] .wall-viewport { cursor: grabbing; }
 .music-wall::after { content: ''; pointer-events: none; position: absolute; inset: 0; z-index: 2; background: linear-gradient(180deg, var(--md-surface) 0, transparent 110px, transparent calc(100% - 65px), var(--md-surface) 100%); }
 .wall-toolbar, .wall-tools, .wall-navigation, .wall-hint { position: absolute; z-index: 3; }
 .wall-toolbar { top: 8px; left: 16px; right: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; pointer-events: none; }
@@ -16,7 +16,7 @@
 .wall-icon-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .wall-tools { bottom: 12px; right: 16px; display: flex; padding: 3px; }
 .wall-hint { bottom: 22px; left: 16px; right: 180px; margin: 0; font-size: .75rem; line-height: 1.5; color: var(--md-on-surface-variant); pointer-events: none; text-wrap: balance; text-shadow: 0 1px 4px var(--md-surface); }
-.music-wall.is-moving .wall-hint { opacity: 0; }
+.music-wall[data-wall-moving='true'] .wall-hint { opacity: 0; }
 .wall-navigation { right: 16px; bottom: 78px; display: grid; grid-template-columns: repeat(3,48px); padding: 4px; }
 .wall-navigation [data-direction='ArrowUp'] { grid-column: 2; }
 .wall-navigation [data-direction='ArrowLeft'] { grid-column: 1; grid-row: 2; }
@@ -35,7 +35,7 @@
 .wall-tile.is-playing .wall-playing { display: block; }
 .wall-tile.is-playing { outline: 3px solid var(--md-primary); outline-offset: -3px; }
 .wall-tile:active { filter: brightness(.8); }
-.is-moving .wall-tile:active { filter: none; }
+.music-wall[data-wall-moving='true'] .wall-tile:active { filter: none; }
 .wall-button:active { opacity: .65; }
 .music-wall :is(button, .wall-viewport):focus-visible { outline: 3px solid var(--md-primary); outline-offset: -4px; }
 .wall-viewport:focus-visible .wall-tile.is-central { outline: 3px solid var(--md-primary); outline-offset: -3px; }
