@@ -1,4 +1,4 @@
-const SHELL_CACHE = 'cplayer5-shell-v107';
+const SHELL_CACHE = 'cplayer5-shell-v110';
 const COVER_CACHE = 'cplayer5-covers-v1';
 const ACTIVE_CACHES = new Set([SHELL_CACHE, COVER_CACHE]);
 const MAX_COVER_ENTRIES = 100;
@@ -73,6 +73,9 @@ const CORE_ASSETS = [
   './js/lyrics/settings.js',
   './js/lyrics/sources.js',
   './js/lyrics/lookup.js',
+  './js/lyrics/native-lookup.js',
+  './js/lyrics/encoded.js',
+  './js/vendor/qrc/qrc-codec.js',
   './js/lyrics/card.js',
   './js/lyrics/share.js',
   './css/lyrics/share.css',
@@ -148,6 +151,7 @@ function classifyRequest(request) {
   const url = new URL(request.url);
   if (url.origin === self.location.origin && ['/api/cover', '/api/v1/music/cover'].includes(url.pathname)) return 'cover';
   if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return 'api';
+  if (url.origin === self.location.origin && ['/android-player/online-lyrics', '/android-player/artwork-search'].includes(url.pathname)) return 'api';
   if (['api.chksz.com', 'api.bilibili.com'].includes(url.hostname)) return 'api';
 
   const imagePath = /\.(?:avif|gif|jpe?g|png|webp)(?:$|\?)/i.test(url.pathname);

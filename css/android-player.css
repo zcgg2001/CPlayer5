@@ -274,6 +274,17 @@ html:root.android-player #settingsCard #androidCoverShapes [aria-pressed='true']
 .android-player [data-cover-shape='circle'] .cover-shape-sample { border-radius: 50%; }
 .android-player [data-cover-shape='petal'] .cover-shape-sample { mask: url('../img/cover-petal.svg') center / contain no-repeat; -webkit-mask: url('../img/cover-petal.svg') center / contain no-repeat; }
 .android-player .android-ambient-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; margin-top: 8px; font-size: .875rem; }
+.android-player .cover-recovery-details { border-top: 1px solid var(--md-outline-variant); margin-top: 12px; padding-top: 8px; }
+.android-player .cover-recovery-details summary { min-height: 48px; display: list-item; align-content: center; cursor: pointer; font-size: .875rem; }
+.android-player .cover-recovery-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.android-player .cover-recovery-actions button { min-height: 48px; padding: 10px 16px; border-radius: 24px; background: var(--md-secondary-container); color: var(--md-on-secondary-container); font-size: .875rem; }
+.android-player .cover-choice-list { display: grid; gap: 8px; }
+.android-player .cover-choice { display: flex; gap: 12px; align-items: center; width: 100%; min-height: 88px; padding: 8px; border-radius: 16px; background: var(--md-surface-high); text-align: left; }
+.android-player .cover-choice img { width: 72px; height: 72px; object-fit: cover; border-radius: 12px; flex: none; }
+.android-player .cover-choice > span { display: grid; min-width: 0; gap: 6px; overflow-wrap: anywhere; }
+.android-player .cover-choice strong { font-size: .875rem; }
+.android-player .cover-choice small { font-size: .75rem; color: var(--md-on-surface-variant); }
+.android-player #androidCoverRecovery button:disabled { opacity: .45; }
 .android-player #androidCoverAmbient { width: 20px; height: 20px; flex: none; }
 .android-player #mobileCoverContainer > .text-center { padding: 0; margin: 0; width: 100%; text-align: start; }
 html.android-player #mobileLayout #mobileTitle { font-size: clamp(1.5rem, 6.2vw, 2rem) !important; font-weight: 500; line-height: 1.24; color: var(--studio-ink); }

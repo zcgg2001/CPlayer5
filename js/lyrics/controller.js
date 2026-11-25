@@ -3,7 +3,7 @@ import { parseLyricsPayload, normalizeDocument, readLyricFile } from './document
 import { createLyricRuntime } from './runtime.js';
 import { BACKGROUNDS, rendererFor, normalizeTuning } from './registry.js';
 import { readStudio, saveStudio, normalizeStudio, importStudio } from './settings.js';
-import { createLyricMemory, trackKey, chooseBestLyrics, matchingLyricSources, hasLyrics } from './sources.js';
+import { createLyricMemory, trackKey, chooseBestLyrics, matchingLyricSources, hasLyrics, mergeLyricLayers } from './sources.js';
 import { lookupLyrics } from './lookup.js';
 import { createLyricShare } from './share.js';
 
@@ -12,12 +12,14 @@ const previewDocument = normalizeDocument({ source: '示例歌词', format: 'yrc
   ['风穿过', '城市的', '窗'], ['让每一句', '落在', '心上'], ['We keep', ' the light', ' alive'], ['星光', '沿着旋律', '流淌'], ['此刻', '只听见', '你和我'],
 ].map((parts, i) => ({ start: i * 4200, end: (i + 1) * 4200 - 300, text: parts.join(''), translation: ['The wind passes through the city', 'Let every word find its place', '让微光继续亮着', 'Starlight follows the melody', 'Only you and me'][i], words: parts.map((text, j) => ({ text, start: i * 4200 + j * 1100, end: i * 4200 + j * 1100 + 950 })) })) });
 
-export function createLyricsController({ audio, analyser, artwork = () => '', onFollow, onLayoutChange, getCandidates = () => [], fetchLyrics, readAppearance, saveAppearance }) {
+export function createLyricsController({ audio, analyser, artwork = () => '', onFollow, onLayoutChange, getCandidates = () => [], fetchLyrics, fetchRicherLyrics, readAppearance, saveAppearance }) {
   let storage; try { storage = localStorage; } catch { /* Usable for this visit. */ }
   const memory = createLyricMemory(storage);
   let appearance = readAppearance(storage), globalAppearance = { ...appearance }, studio = readStudio(storage), globalStudio = studio;
   let effective = appearance.effect === 'random' ? pickLyricEffect() : appearance.effect;
   let current = normalizeDocument({ lines: [] }), original = current, track = {}, key = '', generation = 0, perTrack = false, busy = false, sourceRequest = null, sourceChoices = [], manualDocument = false;
+  let richRequest = null, richPending = 0, primaryFailed = false;
+  const richAttempted = new Set();
   const modal = document.getElementById('settingsModal'), select = document.getElementById('lyricEffectSelect'), feedback = document.getElementById('lyricEffectFeedback');
   const runtime = createLyricRuntime({ audio, analyser, onFollow, scrollers: [document.getElementById('lyricsScroller'), document.getElementById('mobileLyricsScroller')] });
   const preview = createLyricRuntime({ audio, preview: true, scrollers: [document.getElementById('lyricEffectPreview')] });
@@ -116,6 +118,37 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     sourceSelect.value = sourceChoices.indexOf(current);
     sourceStatus.textContent = `${current.source} · ${current.format.toUpperCase()}\n${current.lines.length} 行 · ${current.hasWordLevel ? '包含真实逐字时间' : current.plain ? '纯文本，可自由滚动' : '按句同步'}`;
   }
+  function linkedTracks() {
+    return matchingLyricSources(track, [...(track.artworkSource ? [track.artworkSource] : []), ...getCandidates(track)]).slice(0, 4);
+  }
+  function supplementWords() {
+    if (!fetchRicherLyrics || !key || manualDocument || original.hasWordLevel || track.provider === 'bilibili' || track.provider === 'local') return;
+    const token = generation;
+    richRequest ||= new AbortController();
+    const signal = richRequest.signal;
+    for (const candidate of linkedTracks()) {
+      const identity = `${candidate.provider}:${candidate.sourceId || candidate.id}`;
+      if (richAttempted.has(identity)) continue;
+      richAttempted.add(identity); richPending++;
+      void fetchRicherLyrics(candidate, { signal }).then(results => {
+        if (token !== generation || signal.aborted) return;
+        const next = chooseBestLyrics([{ document: original }, ...results])?.document;
+        if (!next || next === original) return;
+        original = mergeLyricLayers(next, original);
+        memory.save(key, { onlineDocument: original });
+        if (!manualDocument) current = original;
+        useDocument();
+        if (!busy) lookupMessage(manualDocument ? '已更新在线歌词，保留你选择的歌词' : `${original.source} · ${original.hasWordLevel ? '逐字歌词已补全' : '歌词已补全'}`);
+      }).catch(() => { /* The primary provider and cached lyrics remain usable. */ })
+        .finally(() => {
+          if (token !== generation) return;
+          richPending--;
+          if (!richPending && primaryFailed && !hasLyrics(current)) {
+            runtime.status('歌词加载失败，请稍后重试'); lookupMessage('可重试补全，或导入歌词文件');
+          }
+        });
+    }
+  }
   function apply(persist = false) {
     const mode = effective;
     document.documentElement.dataset.lyricEffect = mode;
@@ -156,15 +189,16 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     const token = generation; sourceRequest?.abort(); sourceRequest = new AbortController(); const signal = sourceRequest.signal;
     lookupBusy(true); lookupMessage('正在匹配这首歌的歌词…'); sourceStatus.textContent = '正在检查这首歌曲的歌词…';
     try {
-      const linked = best ? matchingLyricSources(track, getCandidates(track)).slice(0, 4) : [track];
+      const linked = best ? linkedTracks() : [track];
       const requests = (supplementOnly ? [] : linked).map(async candidate => [{ document: parseLyricsPayload({ ...await fetchLyrics(candidate, { signal }), source: candidate.provider || '在线歌词' }, audio.duration * 1000 || Infinity) }]);
+      if (fetchRicherLyrics && !supplementOnly) requests.push(...linked.map(candidate => fetchRicherLyrics(candidate, { signal, refresh: true })));
       if (best) requests.push(lookupLyrics({ ...track, duration: track.duration || track.metadata?.duration || audio.duration }, { signal }));
       const results = await Promise.allSettled(requests);
       if (token !== generation) return;
       const candidates = results.filter(result => result.status === 'fulfilled').flatMap(result => result.value).filter(item => hasLyrics(item.document));
-      const chosen = chooseBestLyrics(best ? [{ document: original }, ...candidates] : candidates);
+      const chosen = chooseBestLyrics(best || original.hasWordLevel ? [{ document: original }, ...candidates] : candidates);
       if (!chosen) throw new Error(results.find(result => result.status === 'rejected')?.reason?.message || '未找到匹配歌词，可稍后重试或在歌词设置中导入');
-      original = chosen.document;
+      original = mergeLyricLayers(chosen.document, original);
       sourceChoices = [original, ...candidates.map(item => item.document).filter(doc => doc !== original), ...(manualDocument ? [current] : [])];
       const keepManual = manualDocument;
       if (!keepManual) current = original;
@@ -210,31 +244,59 @@ export function createLyricsController({ audio, analyser, artwork = () => '', on
     const resolved = new Map([...sourceChoices, original, current].map(doc => [doc, normalizeDocument(doc, audio.duration * 1000 || Infinity)]));
     sourceChoices = sourceChoices.map(doc => resolved.get(doc)); original = resolved.get(original); current = resolved.get(current); useDocument();
   });
+  function prepare(song) {
+    const nextKey = trackKey(song);
+    document.getElementById('mobileLyricTitle').textContent = song.name || '未命名歌曲';
+    document.getElementById('mobileLyricArtist').textContent = song.artist || '未知歌手';
+    if (nextKey && nextKey === key) { track = song; supplementWords(); return hasLyrics(current); }
+    generation++; sourceRequest?.abort(); richRequest?.abort(); richRequest = null; richPending = 0; primaryFailed = false; richAttempted.clear(); sourceChoices = [];
+    track = song; key = nextKey;
+    // The audio element may still describe the previous song at this point.
+    const duration = Number(song.duration || song.metadata?.duration) * 1000 || Infinity;
+    const saved = memory.get(key) || memory.get(trackKey({ ...song, artworkSource: undefined }));
+    if (saved && saved.key !== key) memory.save(key, { ...saved, key });
+    original = normalizeDocument(saved?.onlineDocument || { lines: [] }, duration);
+    manualDocument = !!saved?.document;
+    current = manualDocument ? normalizeDocument(saved.document, duration) : original;
+    perTrack = !!saved?.studio;
+    lookupBusy(false);
+    lookupMessage(hasLyrics(current) ? '已载入本机歌词，正在检查更新' : '');
+    appearance = saved?.appearance || { ...globalAppearance }; studio = normalizeStudio(saved?.studio || globalStudio);
+    studio.offset = Number.isFinite(saved?.offset) ? saved.offset : 0;
+    effective = appearance.effect === 'random' ? pickLyricEffect(effective) : resolveLyricEffect(appearance.effect)?.id || 'amll';
+    apply(); useDocument();
+    if (!hasLyrics(current)) runtime.status('正在获取歌词…');
+    supplementWords();
+    return hasLyrics(current);
+  }
   apply(); preview.setDocument(previewDocument); syncPreview(); lookupBusy(false); share.update(current);
   return {
+    prepare,
     refreshArtwork() { runtime.setArtwork(artwork()); preview.setArtwork(artwork()); },
     handlesTiming: true, activateLine() {}, deactivateLine() {}, resetLyrics() {},
     load(payload, song = {}) {
-      generation++; sourceRequest?.abort(); sourceChoices = [];
-      track = song; key = trackKey(song); original = parseLyricsPayload(payload, audio.duration * 1000 || Infinity);
-      const saved = memory.get(key) || memory.get(trackKey({ ...song, artworkSource: undefined }));
-      if (saved && saved.key !== key) memory.save(key, { ...saved, key });
-      original = chooseBestLyrics([{ document: original }, { document: saved?.onlineDocument }])?.document || original;
+      prepare(song);
+      primaryFailed = false;
+      const online = parseLyricsPayload(payload, audio.duration * 1000 || Infinity);
+      const chosen = chooseBestLyrics([{ document: online }, { document: original }])?.document || online;
+      original = mergeLyricLayers(chosen, chosen === online ? original : online);
       if (hasLyrics(original)) memory.save(key, { onlineDocument: original });
-      manualDocument = !!saved?.document;
-      current = saved?.document ? normalizeDocument(saved.document, audio.duration * 1000 || Infinity) : original; perTrack = !!saved?.studio;
-      lookupBusy(false); lookupMessage(saved?.onlineDocument && original === saved.onlineDocument ? '已载入本机缓存歌词' : '');
-      document.getElementById('mobileLyricTitle').textContent = song.name || '未命名歌曲';
-      document.getElementById('mobileLyricArtist').textContent = song.artist || '未知歌手';
-      appearance = saved?.appearance || { ...globalAppearance }; studio = normalizeStudio(saved?.studio || globalStudio);
-      studio.offset = Number.isFinite(saved?.offset) ? saved.offset : 0;
-      effective = appearance.effect === 'random' ? pickLyricEffect(effective) : resolveLyricEffect(appearance.effect)?.id || 'amll';
-      apply(); useDocument();
-      if (!manualDocument && (!hasLyrics(original) || !original.lines.length)) void requestSources(true, true);
+      // Keep choices made while the background request was pending, even if storage is full.
+      if (!manualDocument) current = original;
+      useDocument();
+      if (!busy) lookupMessage(manualDocument ? '已保留你选择的歌词' : hasLyrics(online) ? '' : hasLyrics(current) ? '暂时无法更新，继续显示已有歌词' : '');
+      if (track.provider !== 'bilibili' && !manualDocument && (!hasLyrics(original) || !original.lines.length)) void requestSources(true, true);
       return current;
     },
-    status(message) { generation++; sourceRequest?.abort(); current = normalizeDocument({ lines: [] }); original = current; key = ''; track = {}; sourceChoices = []; manualDocument = false; lookupBusy(false); lookupMessage(''); share.update(current); document.getElementById('mobileLyricTitle').textContent = '每一句，都在此刻'; document.getElementById('mobileLyricArtist').textContent = message; runtime.status(message); },
+    refreshFailed() {
+      primaryFailed = true;
+      if (!hasLyrics(current) && richPending) { lookupMessage('正在补充在线歌词…'); return true; }
+      if (!hasLyrics(current)) return false;
+      lookupMessage('暂时无法更新，继续显示已有歌词');
+      return true;
+    },
+    status(message) { generation++; sourceRequest?.abort(); richRequest?.abort(); richRequest = null; richPending = 0; richAttempted.clear(); current = normalizeDocument({ lines: [] }); original = current; key = ''; track = {}; sourceChoices = []; manualDocument = false; lookupBusy(false); lookupMessage(''); share.update(current); document.getElementById('mobileLyricTitle').textContent = '每一句，都在此刻'; document.getElementById('mobileLyricArtist').textContent = message; runtime.status(message); },
     update(time) { runtime.update(time * 1000); },
-    destroy() { generation++; sourceRequest?.abort(); share.destroy(); if (previewFrame !== null) cancelAnimationFrame(previewFrame); modalObserver.disconnect(); previewVisibility.disconnect(); listeners.forEach(remove => remove()); runtime.destroy(); preview.destroy(); extras.remove(); modeCards.remove(); },
+    destroy() { generation++; sourceRequest?.abort(); richRequest?.abort(); share.destroy(); if (previewFrame !== null) cancelAnimationFrame(previewFrame); modalObserver.disconnect(); previewVisibility.disconnect(); listeners.forEach(remove => remove()); runtime.destroy(); preview.destroy(); extras.remove(); modeCards.remove(); },
   };
 }

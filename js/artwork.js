@@ -4,6 +4,7 @@ import { artworkIdentity, sameArtworkRelease } from './music-catalog.js?v=2';
 export { sameArtworkRelease };
 import { imageURL, qqAlbumMid } from './library-data.js';
 import { requestJson } from './http.js?v=37';
+import { createArtworkLookup, createArtworkRecovery } from './artwork-recovery.js';
 
 const text = value => typeof value === 'string' ? value.trim() : '';
 const key = value => text(value).normalize('NFKC').toLowerCase().replace(/\s+/g, '');
@@ -139,7 +140,7 @@ async function waitForMetadata(pending, signal) {
   finally { signal.removeEventListener('abort', abort); }
 }
 
-export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage = loadArtworkImage, now = Date.now, baseUrl = base(), timeoutMs = 12000, storage } = {}) {
+export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage = loadArtworkImage, now = Date.now, baseUrl = base(), timeoutMs = 12000, storage, lookupCovers } = {}) {
   const failures = new Map(), metadata = new Map(), successes = new Map(), pendingMetadata = new Map();
   const knownCovers = new Map(), readyImages = new Map(), pendingImages = new Map();
   // A request is shared by URL, even when several songs use the same album cover.
@@ -165,6 +166,10 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
       }
     }
   }
+  const recovery = lookupCovers ? createArtworkRecovery({ lookup: lookupCovers, storage,
+    toUrl: (url, size) => artworkUrl(url, size, baseUrl),
+    loadImage: (url, { signal } = {}) => probe(url, signal || new AbortController().signal),
+  }) : null;
   try {
     const saved = JSON.parse(storage?.getItem(COVER_INDEX) || '[]');
     for (const [id, url] of saved.slice(-200)) {
@@ -209,7 +214,7 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
     return artworkIdentity(original) || (original.sources || []).filter(other => sameArtworkRelease(song, other)).map(artworkIdentity).find(Boolean) || '';
   }
 
-  const cacheGroup = (song, id = identity(song), sources = artworkSources(song)) => JSON.stringify([id, sources]);
+  const cacheGroup = (song, id = identity(song), sources = artworkSources(song)) => JSON.stringify([id, sources, recovery?.get(song)?.cover || '']);
   const cacheKey = (group, size) => `${group}:${size}`;
   const peek = (song, { size = 640, anySize = false } = {}) => {
     const group = cacheGroup(song);
@@ -224,7 +229,7 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
     return null;
   };
   return {
-    peek,
+    peek, recovery,
     invalidate(url) {
       readyImages.delete(url); boundedSet(failures, url, now() + 30000);
       for (const [id, saved] of successes) if (saved.url === url) successes.delete(id);
@@ -237,11 +242,12 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
       signal?.addEventListener('abort', abort, { once: true });
       const timer = setTimeout(() => scope.abort(new DOMException('Artwork deadline', 'TimeoutError')), timeoutMs);
       const id = identity(song);
+      const choice = recovery?.get(song);
       const sources = artworkSources(song);
       const cacheId = cacheKey(cacheGroup(song, id, sources), size);
       const tried = new Set();
-      const attempt = async url => {
-        if (!url || tried.has(url) || tried.size >= 5 || failures.get(url) > now()) return null;
+      const attempt = async (url, persist = true) => {
+        if (!url || tried.has(url) || tried.size >= (choice?.cover ? 7 : 5) || failures.get(url) > now()) return null;
         scope.signal.throwIfAborted(); tried.add(url);
         try {
           await probe(url, scope.signal); scope.signal.throwIfAborted();
@@ -250,10 +256,13 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
           boundedSet(failures, url, now() + 30000); return null;
         }
         boundedSet(successes, cacheId, { url, expires: now() + 86400000 });
-        remember(id, url);
+        if (persist) remember(id, url);
         return { url, status: 'ready' };
       };
       try {
+        for (const url of imageVariants(choice?.cover ? [choice.cover] : [], size, baseUrl)) {
+          const result = await attempt(url, false); if (result) return result;
+        }
         const saved = successes.get(cacheId);
         const known = knownCovers.get(id);
         const candidates = imageVariants(known ? [known, ...sources] : sources, size, baseUrl);
@@ -277,7 +286,10 @@ export function createArtworkResolver({ fetchImpl = globalThis.fetch, loadImage 
 
 let localStore;
 try { localStore = globalThis.localStorage; } catch { /* Storage is optional. */ }
-export const artworkResolver = createArtworkResolver({ storage: localStore });
+const androidArtwork = globalThis.document?.documentElement?.classList.contains('android-player');
+export const artworkResolver = createArtworkResolver({ storage: localStore,
+  lookupCovers: androidArtwork ? createArtworkLookup({ native: Boolean(globalThis.CPlayerNative && new URL(base()).pathname.startsWith('/android-player/')) }) : undefined,
+});
 
 // One observer covers dynamic and virtualized lists. Dropped rows never take a network slot.
 const bindings = new WeakMap(), watching = new Set(), visible = new Set(), running = new Set();
@@ -340,11 +352,16 @@ export function bindArtwork(image, song, { size = 320, url = song?.cover, resolv
     paint(result);
   }
   load.cancel = () => controller.abort();
+  load.refresh = () => bindArtwork(image, song, { size, url, resolver });
   bindings.set(image, load);
   const cached = resolver.peek?.(track, { size });
   paint(cached || resolver.peek?.(track, { size, anySize: true }) || { ...fallback, status: 'loading' });
   if (!cached) watchArtwork(image);
   return image;
+}
+
+export function refreshArtworkBindings() {
+  globalThis.document?.querySelectorAll('.cplayer-artwork').forEach(image => bindings.get(image)?.refresh());
 }
 
 // One presentation transaction for all playback surfaces; stale requests cannot repaint.
@@ -377,6 +394,11 @@ export function createArtworkPresenter({ resolver = artworkResolver, images, onC
       try {
         const result = await resolver.resolve(song, { signal: current.signal });
         if (live()) paint(result, song);
+        if (live() && result.status === 'fallback' && resolver.recovery) {
+          const recovered = await resolver.recovery.recover(song, { signal: current.signal });
+          if (recovered && live()) { paint(recovered, song); refreshArtworkBindings(); }
+          return recovered || result;
+        }
         return result;
       } catch { /* Cancellation leaves the new selection in control. */ }
       finally { signal?.removeEventListener('abort', abort); }

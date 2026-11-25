@@ -107,7 +107,13 @@ export function createLyricRuntime({ audio, scrollers, onFollow, analyser = () =
   const visibility = new IntersectionObserver(refresh, { threshold: 0 }); surfaces.forEach(surface => visibility.observe(surface.host));
   const mutations = new MutationObserver(refresh);
   mutations.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
-  for (const element of [document.getElementById('mobileLyricsPage'), document.getElementById('desktopLayout')].filter(Boolean)) mutations.observe(element, { attributes: true, attributeFilter: ['class', 'inert', 'aria-hidden'] });
+  const visibilityTargets = [document.getElementById('mobileLyricsPage'), document.getElementById('desktopLayout')].filter(Boolean);
+  // A paused clock may sample while an opening page is still fully transparent.
+  const transitionEnd = event => { if (visibilityTargets.includes(event.target)) refresh(); };
+  for (const element of visibilityTargets) {
+    mutations.observe(element, { attributes: true, attributeFilter: ['class', 'inert', 'aria-hidden'] });
+    element.addEventListener('transitionend', transitionEnd);
+  }
   const motionChange = () => { if (settings) surfaces.forEach(surface => surface.setSettings(effective(settings))); refresh(); };
   reduced.addEventListener('change', motionChange);
   return {
@@ -116,6 +122,6 @@ export function createLyricRuntime({ audio, scrollers, onFollow, analyser = () =
     setArtwork(value) { artwork = value || ''; if (settings) surfaces.forEach(surface => surface.setArtwork(artwork)); refresh(); },
     status(message) { surfaces.forEach(surface => surface.status(message)); },
     update: render, refresh, visible,
-    destroy() { clock?.destroy(); visibility.disconnect(); mutations.disconnect(); reduced.removeEventListener('change', motionChange); surfaces.forEach(surface => surface.destroy()); },
+    destroy() { clock?.destroy(); visibility.disconnect(); mutations.disconnect(); visibilityTargets.forEach(element => element.removeEventListener('transitionend', transitionEnd)); reduced.removeEventListener('change', motionChange); surfaces.forEach(surface => surface.destroy()); },
   };
 }

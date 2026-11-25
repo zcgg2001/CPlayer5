@@ -30,7 +30,9 @@ import {
 import { createDownloadSession } from './download-session.js?v=22';
 import { createPlaybackController } from './playback-controller.js?v=7';
 import { createPlayerAudio } from './native-audio.js';
-import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtworkPresenter } from './artwork.js?v=1';
+import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtworkPresenter, refreshArtworkBindings } from './artwork.js?v=1';
+import { initArtworkRecovery } from './artwork-recovery-ui.js';
+import { artworkChoiceKey } from './artwork-recovery.js';
 import { createQueueStore } from './queue-store.js?v=1';
 import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
 import { createMusicWall } from './music-wall.js';
@@ -49,6 +51,7 @@ import { createPlayerExperience } from './player-experience.js?v=2';
 import { createDiscoveryTable } from './discovery-table.js?v=3';
 import { createListeningRoom } from './listening-room.js?v=2';
 import { createLyricEffects } from './lyric-effects.js?v=4';
+import { createNativeLyricLookup } from './lyrics/native-lookup.js';
 import {
     DEFAULT_QUALITY,
     DEFAULT_MUSIC_SOURCE,
@@ -137,6 +140,7 @@ function restoreLastCover() {
 
 let playbackArtworkUrl = '';
 let artworkColorController = null;
+let artworkRecoveryUI = null;
 const artworkPresenter = createArtworkPresenter({
     resolver: artworkResolver,
     images: () => [dom.albumArt, dom.mobileCoverImg, dom.desktopMiniCover, document.getElementById('mobileBrowseCover'), dom.androidCoverBackdrop],
@@ -145,6 +149,7 @@ const artworkPresenter = createArtworkPresenter({
         artworkColorController?.abort();
         artworkColorController = new AbortController();
         lyricEffects?.refreshArtwork();
+        if (result.recovered) artworkRecoveryUI?.sync();
         if (result.status === 'ready') {
             const picUrl = result.url;
             saveLastCover(picUrl);
@@ -350,7 +355,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.albumArtWrapper = document.getElementById('albumArtWrapper');
     dom.html = document.documentElement;
     initThemeControls();
-    if (androidPlayer) { initAndroidUpdates(dom); initPlayerAppearance(dom); }
+    if (androidPlayer) {
+        initAndroidUpdates(dom); initPlayerAppearance(dom);
+        artworkRecoveryUI = initArtworkRecovery({ root: dom.androidCoverRecovery, recovery: artworkResolver.recovery,
+            async onApplied(song) {
+                const current = playback.state.currentSong;
+                if (!current || artworkChoiceKey(current) !== artworkChoiceKey(song)) return;
+                refreshArtworkBindings();
+                await artworkPresenter.show(current, { isCurrent: () => playback.state.currentSong === current });
+            },
+        });
+    }
     initAnimeProgressThumbs();
     chartsController = createChartsController({
         onlineEnabled: () => navigator.onLine,
@@ -1956,7 +1971,7 @@ function closeSettings() {
     dom.settingsModal.querySelector('.modal-card').classList.add('scale-95');
     dom.settingsModal.querySelector('.modal-card').classList.remove('scale-100');
     setTimeout(() => {
-        dom.settingsModal.classList.add('hidden');
+        if (dom.settingsModal.getAttribute('aria-hidden') === 'true') dom.settingsModal.classList.add('hidden');
     }, 300);
 }
 
@@ -3377,6 +3392,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
     discoveryHome?.beforePlay(songOverride);
     return playback.load(id, songOverride, {
         onLoading() {
+            artworkRecoveryUI?.update(songOverride || { id });
             queueStore.select(songOverride || { id });
             mobileUI?.syncCoverCarousel({ song: songOverride || { id }, loading: true });
             artworkPresenter.reset(songOverride || { id });
@@ -3394,6 +3410,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
     resetBufferedProgress();
     if (mobileUI) mobileUI.updateProgress(0, 0, 0);
     setLyricsStatus('加载中...');
+    if (songOverride) lyricEffects?.prepare(songOverride);
     dom.sourceTag.textContent = musicSourceOption(playback.state.currentSong?.provider || musicService.config.source).label;
     dom.desktopPlayerBar?.classList.add('is-buffering');
     discoveryTable?.sync();
@@ -3408,8 +3425,11 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
         onRecovering(info) { playerExperience?.recovering(info.reason); },
         onSourceSwitched(info) { showToast(t('sourceSwitched', { source: lxSourceLabel(info.to) || musicSourceOption(info.to).label })); },
         onResolved(data, playbackData) {
+            artworkRecoveryUI?.update(playbackData);
             mobileUI?.syncCoverCarousel({ song: playbackData });
             audio.setMetadata?.(playbackData);
+            // Restore lyrics before audio preparation or the online lyric request can wait.
+            lyricEffects?.prepare(playbackData);
             playerExperience?.resolved(playbackData);
             syncQueueActions();
             discoveryLoadingSong = null;
@@ -3464,6 +3484,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
             const tlrc = qjLyrics?.tlrc || data.tlrc || '';
             if (playbackData.provider === 'bilibili') {
                 if (!lrc) {
+                    if (lyricEffects?.refreshFailed()) return;
                     const messages = {
                         login_required: '此视频字幕需要登录 Bilibili',
                         restricted: '此视频字幕暂不开放',
@@ -3481,7 +3502,7 @@ async function loadAndPlaySong(id, songOverride = null, {position = 0} = {}) {
             }
             parseLyrics(lrc, tlrc, qjLyrics);
         },
-        onLyricsError() { setLyricsStatus('歌词加载失败，请稍后重试'); },
+        onLyricsError() { if (!lyricEffects?.refreshFailed()) setLyricsStatus('歌词加载失败，请稍后重试'); },
         onError(e) {
         playerExperience?.failed(requestErrorMessage(e));
         discoveryHome?.playbackFailed(e);
@@ -6286,6 +6307,7 @@ function initCanvasRenderers() {
         onFollow: (id, top) => listeningRoom?.follow(id, top),
         getCandidates: song => [song, ...(song.sources || []).filter(source => source.id || source.sourceId).map(source => ({ ...song, ...source, sources: undefined }))],
         fetchLyrics: (song, { signal } = {}) => musicService.getLyric(song.id || song.sourceId, { song, signal }),
+        fetchRicherLyrics: androidPlayer ? createNativeLyricLookup() : null,
     });
     document.getElementById('desktopLyricSettingsBtn').addEventListener('click', () => {
         openSettings();

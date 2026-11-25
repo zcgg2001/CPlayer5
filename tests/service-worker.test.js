@@ -50,6 +50,10 @@ test('same-origin artwork is cached for offline use while metadata stays network
   assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/cover?url=https%3A%2F%2Fp1.music.126.net%2Fcover.jpg'}),'cover');
   assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/v1/music/cover?source=gd&id=123'}),'cover');
   assert.equal(classifyRequest({method:'GET',url:'https://player.example/api/v1/music/metadata?source=netease&id=1&artwork=1'}),'api');
+  // The shell cache ignores query strings on fallback; native API results must
+  // never be reused for another song or catalogue search.
+  assert.equal(classifyRequest({method:'GET',url:'https://player.example/android-player/online-lyrics?provider=qq&id=97773'}),'api');
+  assert.equal(classifyRequest({method:'GET',url:'https://player.example/android-player/artwork-search?term=Song'}),'api');
 });
 
 test('classifies API, navigation and local asset requests', () => {

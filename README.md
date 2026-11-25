@@ -35,7 +35,7 @@ ZPlayer 是一个基于浏览器原生能力的单页音乐播放器，支持播
 
 ## 最新功能
 
-- Android 8.0 及以上可安装预览版，使用触屏发现页、迷你播放器、全屏歌词和后台播放。后续更新会出现在应用内，也可在播放器设置中手动检查。[下载安装包](https://github.com/zcgg2001/CPlayer5/releases/tag/v1.9.1) · [Android 说明](docs/android.md)
+- Android 8.0 及以上可安装预览版，使用触屏发现页、迷你播放器、全屏歌词和后台播放。后续更新会出现在应用内，也可在播放器设置中手动检查。[下载安装包](https://github.com/zcgg2001/CPlayer5/releases/latest) · [Android 说明](docs/android.md)
 - 主页面结构、基础样式和应用入口已分离；完整代码目录见 [代码地图](docs/CODE_MAP.md)，本轮问题与验证见 [项目检查记录](docs/project-audit-2026-11-17.md)。
 - 收藏、歌单与云同步保留选定播放源，支持编码歌曲 ID；新产生的听歌统计按设备当地日期记账。
 
@@ -196,6 +196,8 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 安卓歌词页支持 LRCLIB 自动补全与本机缓存，可选句生成方形或竖版卡片并保存、分享。窄屏、平板和横屏分别适配布局。
 
+1.15.0 Android 预览版支持按歌曲 ID 补充 QQ QRC、酷狗 KRC 逐字歌词，保留翻译、罗马音及手动选择；已有歌词先显示，补充失败自动回退。详见 [在线逐字歌词说明](docs/android-online-lyrics.md)。
+
 新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署
@@ -301,6 +303,8 @@ CPlayer5/
 ## 许可证
 
 本项目采用 [MIT License](LICENSE) 开源发布，版权归 ChKSz 所有；使用、分发和二次开发时请保留原始许可证与版权声明。
+
+Android 封面匹配使用 OpenCC 做简繁名称归一化，随包的 `opencc-js` 代码为 MIT、词典数据为 Apache-2.0；来源和完整许可见 [资源说明](js/vendor/opencc/README.md)。
 
 ## 致谢
 

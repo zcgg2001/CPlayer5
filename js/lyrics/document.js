@@ -177,7 +177,8 @@ export function parseLyricsPayload(payload = {}, duration = Infinity) {
   }
   result ||= { lines: [] };
   for (const [name, raw] of [['translation', payload.ytlrc || payload.tlrc || payload.tlyric], ['romanization', payload.yromalrc || payload.romalrc || payload.romalyrics]]) {
-    const aux = parseLRC(field(raw)).lines;
+    let aux = [];
+    try { aux = parseText(field(raw)).lines; } catch { /* Keep the main lyric when an optional layer is invalid. */ }
     const used = new Set();
     for (const line of result.lines) {
       if (line[name] || line.harmony) continue;

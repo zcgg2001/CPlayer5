@@ -1396,6 +1396,20 @@
                         <button type="button" data-cover-shape="petal" aria-pressed="true"><span class="cover-shape-sample" aria-hidden="true"></span><span data-i18n="coverPetal">花瓣</span></button>
                     </div>
                     <label class="android-ambient-toggle"><span data-i18n="coverAmbient">封面氛围光</span><input id="androidCoverAmbient" type="checkbox" checked></label>
+                    <div id="androidCoverRecovery">
+                        <label class="android-ambient-toggle"><span>缺封面时自动匹配</span><input data-cover-auto type="checkbox" checked></label>
+                        <p class="cover-lookup-hint">原图加载失败后向 iTunes 查询歌名和歌手，匹配同歌曲、同专辑的封面。</p>
+                        <details class="cover-recovery-details">
+                            <summary>更换当前歌曲封面</summary>
+                            <p data-cover-track>播放歌曲后可更换封面</p>
+                            <div class="cover-recovery-actions">
+                                <button data-cover-search type="button" disabled>查找封面</button>
+                                <button data-cover-restore type="button" disabled>恢复原封面</button>
+                            </div>
+                            <p data-cover-status role="status" aria-live="polite"></p>
+                            <div data-cover-results class="cover-choice-list" role="group" aria-label="候选专辑封面"></div>
+                        </details>
+                    </div>
                 </section>
                 <section id="androidUpdateSettings" class="android-only" aria-labelledby="androidUpdateHeading" hidden>
                     <div class="android-update-row">

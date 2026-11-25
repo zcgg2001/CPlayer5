@@ -1,0 +1,10 @@
+{
+  "note": "Original synthetic lyrics; fixed vectors generated with unmodified qrc-decoder 1.0.2 encryptQrc, MIT.",
+  "text": "<QrcInfos><Lyric_1 LyricContent=\"[1000,3000]风(1000,700)吹(2000,600)来(3000,800)\n[10000,3000]听(10000,700)见(11000,600)你(12000,800)\n[20000,3000]云(20000,700)散(21000,600)开(22000,800)\"/></QrcInfos>",
+  "translation": "[00:01]The wind arrives\n[00:10]I hear you\n[00:20]The clouds part",
+  "roma": "[1000,3000]feng(1000,700) chui(2000,600) lai(3000,800)\n[10000,3000]ting(10000,700) jian(11000,600) ni(12000,800)",
+  "qrc": "ee7befb746f93831d42dcdf2e21f0d5d924943e250c9b32f6d731ce7c8a4cd017cccd426665af25c46f4da7b6faf9ab0c8315087dbdcf4b989ced8d7b9c7cbf5f38d1892ec96319a16b053f155e3d5307c628f87164bb78b19bdc6e7eb548fb46b058983e4140d3c905a5626becf884b3fe0696753e6de13e760029ab2d306617ce515b5d1000fcd5d4549e3add2b17d",
+  "qrcTranslation": "32dabb4c5e9846fa75d22700c0e5651dc5df620b1d585b1f1f72f555d55830da7390c86f0cc941097a04a85bfcc4fd907244e6c235a834fed9b4c6382e5a4130",
+  "qrcRomanization": "d6a2be95d6447372e55fa497280559f2de09753a2e18bb05f9386afb55b3b717c3875189fccb691cde454c61c6c90eb088e77a2be2768b56dbab916f58cae415ddd7294cdec4370564a21ee78effee00",
+  "krc": "a3JjMTjb6rkReV8JfIcDGftai+N2c1FHjgNyVeAANxcoktjonYykCmhSFXRhwdipU+QoSe5C+Ywy3CbPf0JcYul+L7+2JRhU7IRTPEZGdDavA5gNlwMFGpGUWgGHwEVizdJLh3LW"
+}

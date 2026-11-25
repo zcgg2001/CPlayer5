@@ -143,12 +143,14 @@ public final class PlaybackService extends MediaSessionService {
             0,
             new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+    DefaultHttpDataSource.Factory artworkFallback = new DefaultHttpDataSource.Factory()
+        .setUserAgent(WebSettings.getDefaultUserAgent(this) + " CPlayerAndroid/" + BuildConfig.VERSION_NAME)
+        .setConnectTimeoutMs(8000)
+        .setReadTimeoutMs(8000);
+    CoverImageCache covers = CoverImageCache.get(this);
     CacheBitmapLoader artworkLoader = new CacheBitmapLoader(
         new DataSourceBitmapLoader.Builder(this)
-            .setDataSourceFactory(new DefaultHttpDataSource.Factory()
-                .setUserAgent(WebSettings.getDefaultUserAgent(this) + " CPlayerAndroid/" + BuildConfig.VERSION_NAME)
-                .setConnectTimeoutMs(8000)
-                .setReadTimeoutMs(8000))
+            .setDataSourceFactory(() -> new CoverDataSource(covers, artworkFallback))
             .setMaximumOutputDimension(512)
             .build());
     session = new MediaSession.Builder(this, controls)

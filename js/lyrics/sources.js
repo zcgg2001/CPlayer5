@@ -37,7 +37,28 @@ export function hasLyrics(doc) {
 }
 export function lyricQuality(doc) { return (doc.lines.some(line => line.text) ? 100 : 0) + doc.lines.filter(line => line.words.length).length * 3 + doc.lines.filter(line => line.translation).length + doc.lines.filter(line => line.romanization).length; }
 const lyricCoverage = doc => (doc.lines.length ? doc.lines.map(line => line.text).join('') : doc.plain).replace(/\s/g, '').length;
-export function chooseBestLyrics(candidates) { return candidates.filter(item => hasLyrics(item.document)).sort((a, b) => lyricQuality(b.document) - lyricQuality(a.document) || lyricCoverage(b.document) - lyricCoverage(a.document))[0] || null; }
+export function chooseBestLyrics(candidates) {
+  const available = candidates.filter(item => hasLyrics(item.document));
+  const synced = available.filter(item => item.document.lines.length);
+  const coverage = Math.max(0, ...synced.map(item => lyricCoverage(item.document)));
+  // A short word-timed excerpt must not replace the full line-timed song.
+  return available.filter(item => !synced.length || (item.document.lines.length && lyricCoverage(item.document) >= coverage * .8))
+    .sort((a, b) => lyricQuality(b.document) - lyricQuality(a.document) || lyricCoverage(b.document) - lyricCoverage(a.document))[0] || null;
+}
+
+export function mergeLyricLayers(document, previous) {
+  if (document === previous || !previous?.lines.length) return document;
+  const used = new Set();
+  const lines = document.lines.map(line => {
+    const match = previous.lines.map((other, i) => ({ other, i, distance: Math.abs(other.start - previous.offset - line.start + document.offset) }))
+      .filter(item => !used.has(item.i) && !item.other.harmony && item.distance <= 500)
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (!match || line.harmony) return line;
+    used.add(match.i);
+    return { ...line, translation: line.translation || match.other.translation, romanization: line.romanization || match.other.romanization };
+  });
+  return normalizeDocument({ ...document, lines });
+}
 export function matchingLyricSources(track, candidates) {
   const seen = new Set();
   return [track, ...candidates.filter(candidate => samePlaybackRecording(track, candidate))].filter(candidate => {

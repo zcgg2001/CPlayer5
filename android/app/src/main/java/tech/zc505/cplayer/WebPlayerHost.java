@@ -119,6 +119,8 @@ final class WebPlayerHost {
           }
         });
     CoverImageCache covers = CoverImageCache.get(context);
+    ArtworkSearchHandler artworkSearch = new ArtworkSearchHandler();
+    OnlineLyricsHandler onlineLyrics = new OnlineLyricsHandler();
     WebViewAssetLoader assets = new WebViewAssetLoader.Builder()
         .setDomain(Uri.parse(BuildConfig.PLAYER_ORIGIN).getHost())
         .addPathHandler(UI_PATH + "qq-artwork/", new QqArtworkHandler())
@@ -130,6 +132,10 @@ final class WebPlayerHost {
       ServiceWorkerControllerCompat.getInstance().setServiceWorkerClient(new ServiceWorkerClientCompat() {
         @Override
         public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+          WebResourceResponse lyric = "GET".equals(request.getMethod()) ? onlineLyrics.intercept(request.getUrl().toString()) : null;
+          if (lyric != null) return lyric;
+          WebResourceResponse search = "GET".equals(request.getMethod()) ? artworkSearch.intercept(request.getUrl().toString()) : null;
+          if (search != null) return search;
           WebResourceResponse cover = "GET".equals(request.getMethod()) ? covers.intercept(request.getUrl().toString()) : null;
           if (cover != null) return cover;
           return assets.shouldInterceptRequest(request.getUrl());
@@ -140,6 +146,10 @@ final class WebPlayerHost {
         new WebViewClient() {
           @Override
           public WebResourceResponse shouldInterceptRequest(WebView web, WebResourceRequest request) {
+            WebResourceResponse lyric = "GET".equals(request.getMethod()) ? onlineLyrics.intercept(request.getUrl().toString()) : null;
+            if (lyric != null) return lyric;
+            WebResourceResponse search = "GET".equals(request.getMethod()) ? artworkSearch.intercept(request.getUrl().toString()) : null;
+            if (search != null) return search;
             WebResourceResponse cover = "GET".equals(request.getMethod()) ? covers.intercept(request.getUrl().toString()) : null;
             if (cover != null) return cover;
             return assets.shouldInterceptRequest(request.getUrl());

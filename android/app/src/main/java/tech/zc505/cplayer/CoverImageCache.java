@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import okhttp3.Cache;
 import okhttp3.CacheControl;
 import okhttp3.OkHttpClient;
@@ -20,6 +23,13 @@ final class CoverImageCache {
   private static CoverImageCache instance;
   private static final int MAX_BYTES = 2 * 1024 * 1024;
   private final OkHttpClient client;
+  private final ConcurrentHashMap<String, FutureTask<ImageData>> pending = new ConcurrentHashMap<>();
+
+  static final class ImageData {
+    final String type;
+    final byte[] bytes;
+    ImageData(String type, byte[] bytes) { this.type = type; this.bytes = bytes; }
+  }
 
   static synchronized CoverImageCache get(Context context) {
     if (instance == null) instance = new CoverImageCache(new File(context.getCacheDir(), "public-covers-v1"));
@@ -27,7 +37,11 @@ final class CoverImageCache {
   }
 
   private CoverImageCache(File directory) {
-    client = LxHttpBridge.publicClient().cache(new Cache(directory, 64L * 1024 * 1024))
+    this(directory, LxHttpBridge.publicClient());
+  }
+
+  CoverImageCache(File directory, OkHttpClient.Builder builder) {
+    client = builder.cache(new Cache(directory, 64L * 1024 * 1024))
         .followRedirects(false).retryOnConnectionFailure(false).callTimeout(2500, TimeUnit.MILLISECONDS)
         .addNetworkInterceptor(chain -> {
           Response response = chain.proceed(chain.request());
@@ -44,16 +58,40 @@ final class CoverImageCache {
   }
 
   WebResourceResponse intercept(String value) {
+    try {
+      ImageData image = read(value);
+      return new WebResourceResponse(image.type, null, 200, "OK",
+          Map.of("Cache-Control", "public, max-age=604800", "X-Content-Type-Options", "nosniff"),
+          new ByteArrayInputStream(image.bytes));
+    } catch (IOException unavailable) { return null; }
+  }
+
+  // Both WebView and MediaSession resolve the proxy to the same public CDN cache key.
+  ImageData read(String value) throws IOException {
     String target = CoverCachePolicy.target(value);
-    if (target == null) return null;
-    try { return load(target, false); }
-    catch (IOException ignored) {
-      // A previously downloaded cover remains useful when the device is offline.
-      try { return load(target, true); } catch (IOException unavailable) { return null; }
+    if (target == null) throw new IOException("Unsupported cached cover");
+    FutureTask<ImageData> task = new FutureTask<>(() -> {
+      try { return load(target, false); }
+      catch (IOException offline) { return load(target, true); }
+    });
+    FutureTask<ImageData> existing = pending.putIfAbsent(target, task);
+    FutureTask<ImageData> shared = existing == null ? task : existing;
+    try {
+      if (existing == null) task.run();
+      return shared.get();
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Cover request interrupted", interrupted);
+    } catch (ExecutionException failed) {
+      throw new IOException("Cover unavailable", failed.getCause());
+    } finally {
+      if (existing == null) pending.remove(target, task);
     }
   }
 
-  private WebResourceResponse load(String target, boolean offline) throws IOException {
+  void close() throws IOException { client.cache().close(); }
+
+  private ImageData load(String target, boolean offline) throws IOException {
     for (int hop = 0; hop < 3; hop++) {
       Request.Builder request = new Request.Builder().url(target)
           .header("Accept", "image/avif,image/webp,image/jpeg,image/png");
@@ -74,9 +112,8 @@ final class CoverImageCache {
             data.write(buffer, 0, count);
           }
         }
-        return new WebResourceResponse(type, null, 200, "OK",
-            Map.of("Cache-Control", "public, max-age=604800", "X-Content-Type-Options", "nosniff"),
-            new ByteArrayInputStream(data.toByteArray()));
+        if (data.size() == 0) throw new IOException("Empty cover");
+        return new ImageData(type, data.toByteArray());
       }
     }
     throw new IOException("Too many cover redirects");
