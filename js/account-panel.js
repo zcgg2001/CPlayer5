@@ -1,13 +1,13 @@
 import { createAccountSync } from './account-sync.js';
 import { createAccountLibrary } from './account-library.js?v=2';
-import { createAccountEntry } from './account-entry.js?v=2';
+import { createAccountEntry } from './account-entry.js?v=3';
 import { createOfflineDatabase } from './offline-audio.js';
 
 // The player normalizes content hashes during startup; preserve OAuth return intent.
 const initialAccountURL = new URL(location.href);
 const entry = createAccountEntry();
 
-export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, persistGuestQueue = false }) {
+export function initAccountPanel({ root, player, refreshFavorites, onSettings, openSettings, closeSettings, persistGuestQueue = false, persistSession = false }) {
   root.innerHTML = `
     <div class="account-heading"><div><p class="account-eyebrow">ZPLAYER ACCOUNT</p><h3>账号与多端</h3></div><span id="accountBadge">本地模式</span></div>
     <p id="accountNotice" role="status" aria-live="polite">正在检查账号服务…</p>
@@ -24,20 +24,24 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     <div class="account-install"><button id="accountInstall" type="button">安装播放器</button><span id="accountInstallHint" class="account-help">安装后可从桌面打开，支持离线界面和系统媒体键。</span></div>`;
   const $ = id => root.querySelector(`#${id}`);
   const storage = localStorage;
+  const ENTRY_MODE = 'cp_account_entry_mode';
+  let entryRevision = 0;
   let user = null, caps = {}, busy = false, timer, installPrompt, syncing = false, lastProgress = 0, switching = false, authenticated = false, entered = false, offlineMode = false;
   const library = createAccountLibrary({ storage, player, refreshFavorites, onSettings });
   const notice = (text, error = false) => { $('accountNotice').textContent = text; $('accountNotice').classList.toggle('account-error', error); };
-  const request = async (path, { method = 'GET', body } = {}) => {
+  const request = async (path, { method = 'GET', body, timeoutMs = 20000, allowNull = false } = {}) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(path, {
         method, credentials: 'same-origin', cache: 'no-store',
         headers: body ? { 'content-type': 'application/json' } : {},
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
       });
+      let parsed = true;
       const data = await response.json().catch(error => {
         if (controller.signal.aborted) throw error;
+        parsed = false;
         return null;
       });
       if (!response.ok) {
@@ -54,7 +58,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
           : messages[data?.code] || data?.message || data?.error?.message || '账号请求失败，请稍后重试';
         throw Object.assign(new Error(message), { status: response.status });
       }
-      if (data === null) throw new Error('账号服务返回异常，请稍后重试');
+      if (!parsed || (data === null && !allowNull)) throw new Error('账号服务返回异常，请稍后重试');
       return data;
     } catch (error) {
       if (controller.signal.aborted) throw new Error('连接账号服务超时，请检查网络后重试');
@@ -86,9 +90,12 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     $('accountBadge').textContent = user ? '云同步' : '本地模式'; $('accountIdentityName').textContent = user?.username || user?.email || user?.name || '';
   }
   function cachedIdentity() { try { const saved = JSON.parse(storage.getItem('cp_account_identity')); return saved?.id && saved.id === storage.getItem('cp_account_owner') ? saved : null; } catch { return null; } }
-  function openEntry(mode = 'login') { entry.open(mode); entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || ''); }
+  function rememberEntry(mode) { try { storage.setItem(ENTRY_MODE, mode); } catch { /* Session remains usable without storage. */ } }
+  function persistCookies() { try { if (persistSession) window.CPlayerNative?.postMessage(JSON.stringify({ op:'persistSession' })); } catch { /* A bridge failure must not invalidate a server-authenticated login. */ } }
+  function openEntry(mode = 'login') { entryRevision++; entry.open(mode); entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || ''); }
   $('accountOpenEntry').onclick = () => { closeSettings(); openEntry(); };
   function connect(next) {
+    entryRevision++; rememberEntry('account'); persistCookies();
     authenticated = true; entered = true; offlineMode = false;
     if (user?.id === next.id) { displayUser(); void sync.sync(); return; }
     if (!user && !storage.getItem('cp_account_owner')) storage.setItem('cp_guest_library_v1', JSON.stringify(library.capture()));
@@ -100,6 +107,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     void sync.sync();
   }
   function detach(erase = false) {
+    entryRevision++; rememberEntry('signed-out'); persistCookies();
     window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); sync.disconnect({ erase }); user = null; authenticated = false; offlineMode = false;
     library.switchLocalSettings(null, { erase });
     storage.removeItem('cp_account_owner'); storage.removeItem('cp_account_identity');
@@ -128,9 +136,9 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     try {
       const withProgress = player.isPlaying() && Date.now() - lastProgress >= 30000;
       sync.capture(captureForSync({ withProgress })); if (withProgress) lastProgress = Date.now();
-      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { connect(current.user); return; } authenticated = true; offlineMode = false; }
+      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { connect(current.user); return; } authenticated = true; offlineMode = false; displayUser(); }
       await sync.sync();
-    } catch (error) { if (error.status === 401) { authenticated = false; $('accountLogin').hidden = false; } notice(error.message, true); } finally { syncing = false; }
+    } catch (error) { if (error.status === 401) { authenticated = false; entered = false; offlineMode = false; openEntry(); $('accountLogin').hidden = false; } notice(error.message, true); } finally { syncing = false; }
   }
   $('accountSyncNow').onclick = () => run(flush);
   $('accountImportLocal').onclick = () => run(async () => { if (!confirm('将登录前的本地收藏、歌单、队列和设置合并到当前账号？同名项目使用本机版本。')) return; sync.import(JSON.parse(storage.getItem('cp_guest_library_v1') || '{}')); await sync.sync(); });
@@ -163,29 +171,60 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   window.addEventListener('storage', event => { if (event.key === 'cp_account_owner') { switching = true; player.suspend(); location.reload(); } });
   setInterval(() => { if (!document.hidden) flush(); }, 30000);
   renderLists();
+  function openOffline(saved) {
+    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend();
+    user = saved; entered = true; authenticated = false; offlineMode = true;
+    sync.connect(user.id); displayUser(); closeSettings();
+    notice('正在访问此设备保存的资料；联网验证身份后才能同步。');
+  }
   async function loadCapabilities() {
-    try { caps = await request('/api/account/config'); }
-    catch { caps = { enabled: false }; }
-    entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || '');
+    const revision = ++entryRevision;
+    const saved = cachedIdentity();
+    const resume = persistSession && !entered && !['guest', 'signed-out'].includes(storage.getItem(ENTRY_MODE));
+    entry.restoring(resume);
+    // Validate the cookie with the auth endpoint, which also returns its renewed
+    // expiry. Never authenticate from cached identity or store the session token.
+    const [capabilities, session] = await Promise.allSettled([
+      request('/api/account/config', { timeoutMs:8000 }),
+      resume ? request('/api/auth/get-session', { timeoutMs:8000, allowNull:true }) : Promise.resolve(null),
+    ]);
+    caps = capabilities.status === 'fulfilled' ? capabilities.value : { enabled:false };
+    entry.ready(caps, Boolean(window.cplayerDesktop), saved?.username || saved?.name || '');
+    if (revision !== entryRevision) return;
+    if (resume && session.status === 'fulfilled' && session.value?.user?.id && session.value?.session) {
+      const { id, name, username, email } = session.value.user;
+      connect({ id, name, username, email:email?.endsWith('.invalid') ? null : email });
+      entry.close();
+      if (params.has('device') || params.has('user_code')) setTimeout(openSettings, 0);
+      return;
+    }
+    const expired = session.status === 'fulfilled' && session.value === null
+      || session.status === 'rejected' && [401,403].includes(session.reason?.status);
+    if (resume && saved && !expired) { openOffline(saved); entry.close(); return; }
+    entry.restoring(false);
+    if (resume && saved && expired) entry.message('登录已过期，请重新验证。你的本机资料仍然保留。');
     notice(caps.enabled ? '游客模式 · 登录后可以同步收藏、歌单与播放进度。' : '暂未连接账号服务，可以使用游客模式。');
   }
   entry.configure({
     async submit({ mode, username, password }) {
-      await request(mode === 'register' ? '/api/auth/sign-up/username' : '/api/auth/sign-in/username', { method: 'POST', body: { username, password, rememberMe: false } });
+      entryRevision++;
+      await request(mode === 'register' ? '/api/auth/sign-up/username' : '/api/auth/sign-in/username', { method: 'POST', body: { username, password, rememberMe: persistSession } });
       connect((await request('/api/account/me')).user);
       if (params.has('device') || params.has('user_code')) setTimeout(openSettings, 0);
     },
     async offline() {
+      entryRevision++;
       const saved = cachedIdentity(); if (!saved || caps.enabled) throw new Error('请通过登录进入账号');
-      window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = saved; entered = true; authenticated = false; offlineMode = true;
-      sync.connect(user.id); displayUser(); closeSettings(); notice('正在访问此设备保存的资料；联网验证身份后才能同步。');
+      openOffline(saved);
     },
     async guest() {
+      entryRevision++; rememberEntry('guest');
       // Explicit guest selection never resumes a previously stored user session.
       if (user) await flush();
       if (caps.enabled) { try { await request('/api/auth/sign-out', { method: 'POST', body: {} }); } catch { /* Offline guest playback does not use account endpoints. */ } }
       await window.cplayerDesktop?.signOut();
       if (user || storage.getItem('cp_account_owner')) detach();
+      rememberEntry('guest');
       if (persistGuestQueue && !entered) library.restoreGuestQueue();
       entered = true; authenticated = false; offlineMode = false; closeSettings();
     },

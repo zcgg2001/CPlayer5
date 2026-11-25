@@ -24,6 +24,8 @@ WebView 通过 `WebViewAssetLoader` 从应用内读取 `/android-player/` 下的
 
 1.18.7 Android 预览构建默认优先使用自定义主备音源；播放器换源成功后自动记住选择，后续优先沿用，失败自动回退。ChKSz 前移至平台渠道首位，额度耗尽后在本机持续冷却至北京时间次日零点，重启也不会反复请求；预加载不消耗 ChKSz 额度。包含 1.18.6 音乐墙修复。详见 [换源与日额度策略](android-source-switch.md)。
 
+1.18.8 预览构建保留有效的 Android 登录会话，重启和覆盖更新后恢复原账号及音乐资料，断网时提供本机资料；主动退出、游客选择和会话失效均不会被自动恢复覆盖。首页左上角统一为 ZPlayer，移除重复小标识，调整标题与三个操作按钮的间距和触控区域，适配窄屏、横屏和大字号。旧版已丢失的临时登录仍需重新登录一次。详见 [Android 登录保留](accounts-and-devices.md#android-登录保留)。
+
 ## 安装与构建
 
 - Android 8.0（API 26）及以上；需要可用的 Android System WebView / Chrome。

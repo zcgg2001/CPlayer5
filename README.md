@@ -216,6 +216,8 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 1.18.7 Android 预览构建默认优先使用自定义主备音源；播放器换源成功后自动记住选择，后续优先沿用，失败自动回退。ChKSz 前移至平台渠道首位，额度耗尽后在本机持续冷却至北京时间次日零点，重启也不会反复请求；预加载不消耗 ChKSz 额度。包含 1.18.6 音乐墙修复。详见 [换源与日额度策略](docs/android-source-switch.md)。
 
+1.18.8 Android 预览构建修复更新后需要重复登录的问题：保留有效会话，启动时恢复原账号和音乐资料，断网打开本机资料，尊重主动退出与游客选择。首页左上角统一为 ZPlayer，优化标题、操作按钮和窄屏排版。详见 [Android 登录保留](docs/accounts-and-devices.md#android-登录保留)。
+
 新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署
@@ -352,7 +354,7 @@ GD 请求经同源后端转发，固定访问 music-api.gdstudio.xyz，不携带
 
 ### 账号与多端
 
-每次打开播放器先显示登录入口，可用用户名和密码直接注册、登录，或以游客身份进入并不限首数听歌。账号与密码哈希保存在服务器数据库，刷新、重启或更换设备后仍可用同一账号登录，无需邮箱、短信或第三方应用。认证采用 Better Auth；Node 使用持久 SQLite，Cloudflare 使用 D1。设置页保留云同步、保存歌单、设备会话、数据导出与注销，以及 PWA 安装入口；Electron 使用系统浏览器授权登录。
+网页和桌面端打开播放器先显示登录入口，可用用户名和密码直接注册、登录，或以游客身份进入并不限首数听歌。Android 从 1.18.8 起保留有效登录，重启或覆盖更新后自动恢复之前的账号；断网时打开本机资料，主动退出后不自动恢复。账号与密码哈希保存在服务器数据库，无需邮箱、短信或第三方应用。认证采用 Better Auth；Node 使用持久 SQLite，Cloudflare 使用 D1。设置页保留云同步、保存歌单、设备会话、数据导出与注销，以及 PWA 安装入口；Electron 使用系统浏览器授权登录。
 
 开发、配置和验证步骤见 [账号与多端](docs/accounts-and-devices.md)。本地直接运行：`npm run build && npm start`。线上配置数据库、站点地址与会话密钥后启用账号服务。桌面运行：`npm run desktop:dev`；打包：`npm run desktop:package`。
 

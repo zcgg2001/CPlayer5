@@ -3,9 +3,17 @@ export function createAccountEntry() {
   const $ = id => dialog.querySelector(`#${id}`);
   let mode = 'login', busy = false, ready = false, desktop = false, handlers = {};
   const message = (text, error = false) => { $('entryStatus').textContent = text; $('entryStatus').classList.toggle('is-error', error); };
+  const restoring = active => {
+    if (active) document.documentElement.dataset.accountRestoring = 'true';
+    else delete document.documentElement.dataset.accountRestoring;
+    dialog.setAttribute('aria-labelledby', active ? 'entryResumeTitle' : 'entryTitle');
+    if (active) dialog.removeAttribute('aria-describedby');
+    else dialog.setAttribute('aria-describedby', 'entrySubtitle');
+  };
   function controls() {
     $('entryFields').disabled = busy || !ready;
     $('entryGuest').disabled = busy;
+    $('entryResumeGuest').disabled = busy;
     $('entryOffline').disabled = busy;
     $('entryDesktopLogin').disabled = busy || !ready;
   }
@@ -22,11 +30,12 @@ export function createAccountEntry() {
     $('entryPassword').type = 'password'; $('entryShowPassword').textContent = '显示'; $('entryShowPassword').setAttribute('aria-pressed', 'false');
   }
   function open(nextMode = 'login') {
+    restoring(false);
     setMode(nextMode);
     if (!dialog.open) dialog.showModal();
     requestAnimationFrame(() => (ready && !desktop ? $('entryUsername') : $('entryGuest')).focus());
   }
-  function close() { $('entryPassword').value = ''; $('entryConfirm').value = ''; dialog.close(); }
+  function close() { $('entryPassword').value = ''; $('entryConfirm').value = ''; dialog.close(); restoring(false); }
   dialog.addEventListener('cancel', event => event.preventDefault());
   dialog.querySelectorAll('[data-entry-mode]').forEach(button => button.addEventListener('click', () => { if (!busy) setMode(button.dataset.entryMode); }));
   $('entryShowPassword').addEventListener('click', () => {
@@ -46,7 +55,7 @@ export function createAccountEntry() {
     try { await handlers.submit({ mode, username, password }); close(); }
     finally { $('entryPassword').value = ''; $('entryConfirm').value = ''; }
   }); });
-  $('entryGuest').addEventListener('click', () => { void run(async () => { message('正在进入游客模式…'); await handlers.guest?.(); close(); }); });
+  for (const id of ['entryGuest', 'entryResumeGuest']) $(id).addEventListener('click', () => { void run(async () => { message('正在进入游客模式…'); await handlers.guest?.(); close(); }); });
   $('entryOffline').addEventListener('click', () => { void run(async () => { await handlers.offline?.(); close(); }); });
   $('entryDesktopLogin').addEventListener('click', () => { void run(async () => { const result = await handlers.desktop(); message(`请在系统浏览器核对验证码 ${result.user_code}，登录后允许连接。`); }); });
   $('entryRetry').addEventListener('click', () => { void run(async () => { await handlers.retry?.(); }); });
@@ -54,9 +63,9 @@ export function createAccountEntry() {
   // as modules are ready so keyboard navigation cannot reach the player behind it.
   dialog.removeAttribute('open'); dialog.showModal();
   return {
-    open, close, message,
+    open, close, message, restoring,
     isOpen: () => dialog.open,
-    configure(callbacks) { handlers = callbacks; },
+    configure(callbacks) { handlers = callbacks; controls(); },
     ready(caps, isDesktop = false, offlineName = '') {
       ready = Boolean(caps.enabled && caps.username); desktop = isDesktop;
       $('entryForm').hidden = desktop; $('entryModes').hidden = desktop; $('entryDesktopLogin').hidden = !desktop;

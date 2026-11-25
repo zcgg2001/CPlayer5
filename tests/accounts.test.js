@@ -11,6 +11,45 @@ import { cleanRecords, mergeRecords } from '../js/account-data.js';
 import { createRequire } from 'node:module';
 const { appOrigin, tokenRoute } = createRequire(import.meta.url)('../desktop/policy.cjs');
 const origin = 'http://127.0.0.1:8787';
+
+test('remembered username login survives a new app session, refreshes its cookie and still obeys revocation', async t => {
+  const f = fixture(t), body = {username:'persistent_user',password:'test-persistent-password',rememberMe:true};
+  assert.equal((await f.call('/api/auth/sign-up/username', {body})).response.status, 200);
+  const signedIn = await f.call('/api/auth/sign-in/username', {body});
+  const cookieHeader = signedIn.response.headers.getSetCookie().find(value => value.startsWith('better-auth.session_token='));
+  assert.match(cookieHeader, /Max-Age=2592000/i);
+  assert.match(cookieHeader, /HttpOnly/i);
+  const cookie = cookieHeader.split(';')[0];
+  const resumed = await f.call('/api/auth/get-session', {cookie});
+  assert.equal(resumed.data.user.username, body.username);
+  assert.equal(resumed.data.user.id, signedIn.data.user.id);
+  // Time since issuance is derived from expiry by Better Auth. Simulate a
+  // later application launch so its HTTP response must renew the cookie too.
+  f.db.prepare('UPDATE session SET expiresAt = ?, updatedAt = ?').run(Date.now()+27*86400000, Date.now()-3*86400000);
+  const renewed = await f.call('/api/auth/get-session', {cookie});
+  assert.match(renewed.response.headers.getSetCookie().find(value => value.startsWith('better-auth.session_token=')), /Max-Age=2592000/i);
+  await f.call('/api/auth/sign-out', {cookie,body:{}});
+  assert.equal((await f.call('/api/auth/get-session', {cookie})).data, null);
+  assert.equal((await f.call('/api/account/me', {cookie})).response.status, 401);
+});
+
+test('remembered login clears an earlier temporary-session preference; cached identity cannot revive expired cookies', async t => {
+  const f = fixture(t), body = {username:'upgrade_user',password:'test-upgrade-password'};
+  await f.call('/api/auth/sign-up/username', {body});
+  const old = await f.call('/api/auth/sign-in/username', {body:{...body,rememberMe:false}});
+  const oldCookies = old.response.headers.getSetCookie();
+  assert.ok(oldCookies.some(value => value.startsWith('better-auth.dont_remember=')));
+  assert.doesNotMatch(oldCookies.find(value => value.startsWith('better-auth.session_token=')), /Max-Age/i);
+  const cookie = oldCookies.map(value => value.split(';')[0]).join('; ');
+  const upgraded = await f.call('/api/auth/sign-in/username', {cookie,body:{...body,rememberMe:true}});
+  const headers = upgraded.response.headers.getSetCookie();
+  assert.match(headers.find(value => value.startsWith('better-auth.dont_remember=')), /Max-Age=0/i);
+  const persistent = headers.find(value => value.startsWith('better-auth.session_token='));
+  assert.match(persistent, /Max-Age=2592000/i);
+  f.db.prepare('UPDATE session SET expiresAt = ?').run(Date.now()-1000);
+  assert.equal((await f.call('/api/auth/get-session', {cookie:persistent.split(';')[0]})).data, null);
+});
+
 function fixture(t, extra = {}) {
   const db = new DatabaseSync(':memory:'); db.exec('PRAGMA foreign_keys=ON'); applyLocalAccountMigrations(db);
   t.after(() => db.close()); const delivered = [];

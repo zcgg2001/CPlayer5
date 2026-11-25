@@ -38,6 +38,11 @@
 
         if (new URLSearchParams(location.search).get('app') === 'android' || navigator.userAgent.includes('CPlayerAndroid/')) {
             document.documentElement.classList.add('android-player');
+            try {
+                if (!['guest', 'signed-out'].includes(localStorage.getItem('cp_account_entry_mode'))) {
+                    document.documentElement.dataset.accountRestoring = 'true';
+                }
+            } catch { /* Login remains available when storage is disabled. */ }
         }
 
         // 在样式绘制前恢复主题，避免刷新时先亮后暗。
@@ -80,7 +85,7 @@
     <script defer src="./js/lucide-bridge.js?v=43"></script>
     <script src="./js/anime-progress-thumb.js?v=23"></script>
     <script src="playlist.js?v=22"></script>
-    <link rel="stylesheet" href="./css/account.css?v=3">
+    <link rel="stylesheet" href="./css/account.css?v=4">
     <link rel="stylesheet" href="./css/personal-library.css">
     <link rel="stylesheet" href="./css/android-player.css">
     <link rel="stylesheet" href="./css/music-wall.css">
@@ -90,6 +95,11 @@
 
 <body class="bg-bg-color text-on-bg-color font-sans transition-colors duration-300">
     <dialog id="accountEntryDialog" class="account-entry" open aria-labelledby="entryTitle" aria-describedby="entrySubtitle">
+        <div class="entry-resume" role="status" aria-live="polite">
+            <div class="entry-brand" data-no-i18n><span class="entry-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>ZPlayer</span></div>
+            <p id="entryResumeTitle">正在恢复登录状态…</p>
+            <button id="entryResumeGuest" type="button" disabled>使用游客模式</button>
+        </div>
         <div class="entry-layout">
             <aside class="entry-intro" aria-label="ZPlayer">
                 <div class="entry-brand"><span class="entry-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>ZPlayer</span></div>
@@ -113,7 +123,7 @@
                 <div class="entry-divider"><span>也可以先听听</span></div>
                 <button id="entryGuest" class="entry-guest" type="button" disabled>游客进入 <span aria-hidden="true">→</span></button><p id="entryGuestNote">无需登录，听歌不限首数</p>
                 <button id="entryOffline" class="entry-guest" type="button" hidden>打开本机离线资料</button>
-                <p class="entry-footnote">每次打开都由你选择登录或游客模式。</p>
+                <p class="entry-footnote"><span class="web-entry-note">每次打开都由你选择登录或游客模式。</span><span class="android-only">登录状态会保留，更新后可继续使用。</span></p>
             </section>
         </div>
     </dialog>
@@ -1093,7 +1103,6 @@
                     <i class="fas fa-chevron-left" aria-hidden="true"></i>
                 </button>
                 <div class="mobile-charts-header-copy">
-                    <span class="android-only android-wordmark"><i data-lucide="AudioLines" aria-hidden="true"></i> ZPlayer</span>
                     <strong id="mobileChartsPageTitle">音乐发现</strong>
                     <span id="mobileExploreSubtitle">排行榜 · 自动更新</span>
                 </div>

@@ -63,6 +63,7 @@ final class WebPlayerHost {
     if (BuildConfig.APPLICATION_ID.endsWith(".debug"))
       appAgent += " CPlayerPreview/" + BuildConfig.VERSION_CODE;
     settings.setUserAgentString(settings.getUserAgentString() + appAgent);
+    CookieManager.getInstance().setAcceptCookie(true);
     CookieManager.getInstance().setAcceptThirdPartyCookies(view, false);
     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
     if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER))
@@ -80,6 +81,12 @@ final class WebPlayerHost {
             if (body == null || body.length() > 8192) return;
             try {
               JSONObject command = new JSONObject(body);
+              if ("persistSession".equals(command.optString("op"))) {
+                // Persist HttpOnly login/renewal cookies before an APK update can
+                // terminate the process; never expose their values to JavaScript.
+                CookieManager.getInstance().flush();
+                return;
+              }
               if ("appearance".equals(command.optString("op"))) {
                 lightTheme = "light".equals(command.optString("theme"));
                 if (activity != null) activity.applyAppearance(lightTheme);

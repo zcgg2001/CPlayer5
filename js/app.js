@@ -40,7 +40,7 @@ import { createPlayerSource } from './player-source.js';
 let playerSourceUI = null;
 import { createAndroidSettings } from './android-settings.js';
 let androidSettingsUI = null;
-import { initAccountPanel } from './account-panel.js?v=5';
+import { initAccountPanel } from './account-panel.js?v=6';
 let accountPanel = null;
 let personalLibrary = null;
 import { initPersonalLibrary } from './personal-library.js';
@@ -500,6 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     accountPanel = initAccountPanel({
         root: document.getElementById('accountPanel'), openSettings, closeSettings,
         persistGuestQueue: androidPlayer,
+        persistSession: androidPlayer,
         refreshFavorites: () => discoveryTable?.refreshFavorites(),
         onSettings: keys => { if (keys.includes('cp_theme')) applyTheme(localStorage.getItem('cp_theme') || 'night', { persist: false }); },
         player: {
@@ -686,7 +687,7 @@ function setMobileExploreView(view, { syncRoute = true, resetScroll = true } = {
     const nextView = ['discovery', 'charts', 'artists', 'videos', ...(androidPlayer ? ['wall'] : [])].includes(view) ? view : 'discovery';
     mobileExploreView = nextView;
     const labels = {
-        discovery: ['发现音乐', '每日推荐与私人电台'],
+        discovery: [androidPlayer ? 'ZPlayer' : '发现音乐', '每日推荐与私人电台'],
         charts: ['音乐排行榜', '热歌、新歌与趋势'],
         artists: ['歌手中心', '实时榜单自动聚合'],
         videos: ['视频中心', '国内音乐视频与现场影像'],
@@ -711,6 +712,8 @@ function setMobileExploreView(view, { syncRoute = true, resetScroll = true } = {
         tab.tabIndex = selected ? 0 : -1;
     });
     if (dom.mobileChartsPageTitle) dom.mobileChartsPageTitle.textContent = labels[nextView][0];
+    dom.mobileChartsPageTitle?.toggleAttribute('data-no-i18n', androidPlayer && nextView === 'discovery');
+    dom.mobileChartsSheet.dataset.exploreView = nextView;
     if (dom.mobileExploreSubtitle) dom.mobileExploreSubtitle.textContent = labels[nextView][1];
     dom.mobileChartsSheet.classList.toggle('is-music-wall', nextView === 'wall');
     dom.mobileChartsSheet.querySelectorAll('.android-nav [data-android-action]').forEach(button => {

@@ -21,6 +21,13 @@
 .account-entry { position: fixed; inset: 0; z-index: 10000; margin: 0; padding: 32px; width: 100%; height: 100%; max-width: none; max-height: none; border: 0; color: #f5f3f7; background: radial-gradient(ellipse at 16% 15%, #4c26374d, transparent 55%), radial-gradient(ellipse at 90% 100%, #33324870, transparent 55%), #111217; overflow-y: auto; font-family: inherit; }
 .account-entry[open] { display: grid; place-items: center; align-items: safe center; } .account-entry:not([open]), .account-entry [hidden] { display: none !important; }
 .account-entry::backdrop { background: #111217; }
+.entry-resume { display: none; }
+html[data-account-restoring='true'] .account-entry .entry-layout { display: none; }
+html[data-account-restoring='true'] .account-entry .entry-resume { display: flex; flex-direction: column; align-items: center; gap: 24px; text-align: center; }
+.entry-resume p { color: inherit; font-size: 1rem; line-height: 1.5; }
+.entry-resume button { min-height: 48px; padding: 12px 24px; border: 1px solid currentColor; border-radius: 28px; font: inherit; color: inherit; background: transparent; }
+.entry-resume button:active { opacity: .7; }
+.android-player .web-entry-note { display: none; }
 .entry-layout { display: grid; grid-template-columns: 1fr 1fr; width: min(900px, 100%); border: 1px solid #ffffff12; border-radius: 28px; background: #191a21; overflow: hidden; box-shadow: 0 24px 100px #0005; }
 .entry-intro { padding: 38px 44px; background: radial-gradient(ellipse at 50% 40%, #49303c90, transparent 70%), #1c1c24; }
 .entry-brand { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 650; letter-spacing: -.5px; } .entry-brand b { color: #ff829c; }

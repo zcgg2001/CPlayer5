@@ -181,6 +181,7 @@ public final class MainActivity extends Activity {
   protected void onPause() {
     resumed = false;
     notifyPlayerVisibility();
+    android.webkit.CookieManager.getInstance().flush();
     super.onPause();
   }
 

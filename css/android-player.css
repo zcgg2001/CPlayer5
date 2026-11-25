@@ -95,7 +95,8 @@ html.android-player #mobileLayout button:disabled { opacity: .5; }
 .android-player .entry-brand b { color: var(--md-on-primary-container); }
 .android-player .entry-mark { background: var(--md-primary); border: 0; border-radius: 50%; width: 48px; height: 48px; }
 .android-player .entry-mark i { background: var(--md-on-primary); }
-.android-player .entry-intro :is(.entry-record, h1, p), .android-player .entry-footnote { display: none; }
+.android-player .entry-intro :is(.entry-record, h1, p) { display: none; }
+.android-player .entry-footnote { margin-top: 16px; color: var(--studio-muted); }
 .android-player .entry-card { position: relative; padding: 16px var(--android-gutter) 22px; }
 .android-player .entry-card .entry-language { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--studio-muted); font-size: .75rem; }
 .android-player .entry-language select { min-height: 44px; background: transparent; color: var(--studio-ink); border-color: var(--studio-line); }
@@ -126,18 +127,19 @@ html.android-player #mobileLayout #mobileChartsSheet {
 .android-player #mobileChartsSheet[aria-hidden='true'], .android-player #mobilePlaylistSheet[aria-hidden='true'] { visibility: hidden; pointer-events: none; }
 .android-player #mobileChartsSheet :is(#mobileChartsClose, .mobile-charts-spacer, #mobileExploreSubtitle) { display: none; }
 html.android-player #mobileChartsSheet .mobile-charts-header {
-  max-width: var(--android-width); width: 100%; margin: 0 auto; padding: 20px var(--android-gutter) 12px;
-  min-height: 66px; height: auto; flex: none; background: none; border: 0; box-shadow: none;
+  max-width: var(--android-width); width: 100%; margin: 0 auto; padding: 12px var(--android-gutter) 8px;
+  min-height: 72px; height: auto; flex: none; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: none; border: 0; box-shadow: none;
 }
-.android-player .mobile-charts-header-copy { gap: 5px; }
-.android-player #mobileChartsSheet .android-wordmark { display: flex; align-items: center; gap: 5px; color: var(--studio-accent); font-size: .77rem; font-weight: 700; }
-.android-player .android-wordmark i { display: flex; font-size: 16px; }
-.android-player #mobileChartsPageTitle { color: var(--studio-ink); font-size: clamp(1.75rem, 6vw, 2rem); letter-spacing: -.025em; line-height: 1.25; font-weight: 500; }
-.android-player .android-app-actions { display: flex; align-items: center; }
+.android-player .mobile-charts-header-copy { flex: 1 1 7rem; min-width: 0; gap: 0; }
+.android-player #mobileChartsPageTitle { color: var(--md-on-surface); font-size: 1.5rem; letter-spacing: -.025em; line-height: 1.3; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+.android-player #mobileChartsSheet[data-explore-view='discovery'] #mobileChartsPageTitle { font-size: 1.875rem; font-weight: 750; letter-spacing: -.045em; }
+.android-player .android-app-actions { display: flex; align-items: center; gap: 8px; flex: none; margin-inline-start: auto; }
 html.android-player #mobileLayout #mobileChartsSheet :is(.android-app-actions button, .mobile-explore-tab, .android-nav button, .android-shortcuts button) {
   border: 0; box-shadow: none; background: transparent !important; color: var(--studio-muted); min-height: 48px;
 }
 .android-player .android-app-actions button { display: grid; place-items: center; width: 48px; border-radius: 50%; font-size: 24px; }
+html.android-player #mobileLayout #mobileChartsSheet .android-app-actions button { color: var(--md-on-surface-variant); background: var(--md-surface-container) !important; }
 .android-player .android-app-actions .discover-button { padding: 0; }
 .android-player .android-app-actions .discover-button span { display: none; }
 .android-player #androidUpdateBanner:not([hidden]) {
@@ -564,7 +566,6 @@ html:root.android-player :is(#playbackQualityDialog,#downloadDialog) .liquid-qua
 @media (max-width: 359px) {
   .android-player .android-app-actions button { width: 48px; }
   .android-player #mobileChartsPageTitle { font-size: 1.5rem; }
-  .android-player .android-wordmark { font-size: .6875rem !important; }
   .android-player .android-shortcuts { gap: 4px; }
   html.android-player #mobileLayout #mobileChartsSheet .android-shortcuts button { padding: 12px; font-size: .8125rem; }
 }
@@ -592,7 +593,6 @@ html:root.android-player :is(#playbackQualityDialog,#downloadDialog) .liquid-qua
   .android-player .mobile-control-deck > .justify-between { grid-column: 1; }
   html.android-player #mobileLayout #mobilePlayBtn { height: 48px; }
   .android-player #mobileChartsSheet .mobile-charts-header { padding-top: 4px; min-height: 48px; }
-  .android-player #mobileChartsSheet .android-wordmark { display: none; }
   .android-player #mobileExploreTabs { padding-block: 0; }
   .android-player .android-search-wrap { display: none; }
   .android-player #mobileLayout .android-nav { min-height: 56px; padding-block: 4px; }
