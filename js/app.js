@@ -34,7 +34,7 @@ import { artworkUrl, bindArtwork, fallbackArtwork, artworkResolver, createArtwor
 import { createQueueStore } from './queue-store.js?v=1';
 import { createCoverCarousel, coverQueueWindow } from './cover-carousel.js';
 import { createMusicWall } from './music-wall.js';
-import { initAccountPanel } from './account-panel.js?v=4';
+import { initAccountPanel } from './account-panel.js?v=5';
 let accountPanel = null;
 let personalLibrary = null;
 import { initPersonalLibrary } from './personal-library.js';

@@ -24,7 +24,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     <div class="account-install"><button id="accountInstall" type="button">安装播放器</button><span id="accountInstallHint" class="account-help">安装后可从桌面打开，支持离线界面和系统媒体键。</span></div>`;
   const $ = id => root.querySelector(`#${id}`);
   const storage = localStorage;
-  let user = null, caps = {}, busy = false, timer, installPrompt, syncing = false, lastProgress = 0, switching = false, authenticated = false, entered = false;
+  let user = null, caps = {}, busy = false, timer, installPrompt, syncing = false, lastProgress = 0, switching = false, authenticated = false, entered = false, offlineMode = false;
   const library = createAccountLibrary({ storage, player, refreshFavorites, onSettings });
   const notice = (text, error = false) => { $('accountNotice').textContent = text; $('accountNotice').classList.toggle('account-error', error); };
   const request = async (path, { method = 'GET', body } = {}) => {
@@ -89,7 +89,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
   function openEntry(mode = 'login') { entry.open(mode); entry.ready(caps, Boolean(window.cplayerDesktop), cachedIdentity()?.username || cachedIdentity()?.name || ''); }
   $('accountOpenEntry').onclick = () => { closeSettings(); openEntry(); };
   function connect(next) {
-    authenticated = true; entered = true;
+    authenticated = true; entered = true; offlineMode = false;
     if (user?.id === next.id) { displayUser(); void sync.sync(); return; }
     if (!user && !storage.getItem('cp_account_owner')) storage.setItem('cp_guest_library_v1', JSON.stringify(library.capture()));
     window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend();
@@ -100,7 +100,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     void sync.sync();
   }
   function detach(erase = false) {
-    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); sync.disconnect({ erase }); user = null; authenticated = false;
+    window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); sync.disconnect({ erase }); user = null; authenticated = false; offlineMode = false;
     library.switchLocalSettings(null, { erase });
     storage.removeItem('cp_account_owner'); storage.removeItem('cp_account_identity');
     let guest = {}; try { guest = JSON.parse(storage.getItem('cp_guest_library_v1')) || {}; } catch {}
@@ -128,7 +128,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     try {
       const withProgress = player.isPlaying() && Date.now() - lastProgress >= 30000;
       sync.capture(captureForSync({ withProgress })); if (withProgress) lastProgress = Date.now();
-      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { connect(current.user); return; } authenticated = true; }
+      if (!authenticated) { const current = await request('/api/account/me'); if (current.user.id !== user.id) { connect(current.user); return; } authenticated = true; offlineMode = false; }
       await sync.sync();
     } catch (error) { if (error.status === 401) { authenticated = false; $('accountLogin').hidden = false; } notice(error.message, true); } finally { syncing = false; }
   }
@@ -177,7 +177,7 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
     },
     async offline() {
       const saved = cachedIdentity(); if (!saved || caps.enabled) throw new Error('请通过登录进入账号');
-      window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = saved; entered = true; authenticated = false;
+      window.dispatchEvent(new Event('cplayer:account-switching')); player.suspend(); user = saved; entered = true; authenticated = false; offlineMode = true;
       sync.connect(user.id); displayUser(); closeSettings(); notice('正在访问此设备保存的资料；联网验证身份后才能同步。');
     },
     async guest() {
@@ -187,12 +187,12 @@ export function initAccountPanel({ root, player, refreshFavorites, onSettings, o
       await window.cplayerDesktop?.signOut();
       if (user || storage.getItem('cp_account_owner')) detach();
       if (persistGuestQueue && !entered) library.restoreGuestQueue();
-      entered = true; authenticated = false; closeSettings();
+      entered = true; authenticated = false; offlineMode = false; closeSettings();
     },
     desktop: () => window.cplayerDesktop.signIn(),
     retry: loadCapabilities,
   });
   void loadCapabilities();
   window.addEventListener('pagehide', changed);
-  return { changed, queueChanged, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(captureForSync({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered };
+  return { changed, queueChanged, flush, request, library, user: () => user, signIn: () => openEntry(), checkpoint() { if (user && entered && !switching) { try { sync.capture(captureForSync({ withProgress: true })); } catch (error) { notice(error.message, true); } void flush(); } }, isOffline: () => offlineMode, canEnter() { if (!entered) { openEntry(); return false; } return true; }, isSignedIn: () => authenticated && entered };
 }
