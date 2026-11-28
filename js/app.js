@@ -397,6 +397,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         elements: {
             shell: dom.desktopShell,
             immersive: dom.desktopLayout,
+            playerBar: dom.desktopPlayerBar,
+            immersiveControls: document.getElementById('immersiveControlsHost'),
             opener: dom.desktopMiniPlayer,
             closeButton: dom.desktopImmersiveClose,
             backButton: dom.desktopBackBtn,
@@ -1681,7 +1683,7 @@ function applyTheme(theme, { persist = true, announce = false } = {}) {
     }
 
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    themeColor?.setAttribute('content', androidPlayer ? (isNight ? '#141218' : '#fdf7ff') : (isNight ? '#07070b' : '#eef4ff'));
+    themeColor?.setAttribute('content', isNight ? '#151517' : '#fafafa');
     document.querySelectorAll('[data-android-theme]').forEach(button => {
         button.setAttribute('aria-pressed', String(button.dataset.androidTheme === nextTheme));
     });
@@ -3805,7 +3807,7 @@ function updateLyrics(time) {
                 const containerHeight = scroller.clientHeight;
                 const lineTop = lines[idx].offsetTop;
                 const lineHeight = lines[idx].clientHeight;
-                const targetScroll = lineTop - (containerHeight / 2) + (lineHeight / 2);
+                const targetScroll = lineTop - containerHeight * 0.36 + lineHeight * 0.36;
 
                 if (listeningRoom) listeningRoom.follow(scrollerId, targetScroll);
                 else scroller.scrollTo({
@@ -5076,6 +5078,7 @@ class MobileUIManager {
     }
 
     bindEvents() {
+        document.getElementById('mobileLyricsToggle').addEventListener('click', () => this.toggleView());
         document.getElementById('mobileBrowseOpen').addEventListener('click', () => { this.closeSheet(); setMobileExploreOpen(false); });
         document.getElementById('mobileBrowsePlay').addEventListener('click', event => { event.stopPropagation(); togglePlayPause(); });
         document.getElementById('mobileBrowseNext').addEventListener('click', event => { event.stopPropagation(); playNextSong(); });
@@ -5620,6 +5623,7 @@ class MobileUIManager {
         this.currentMode = this.currentMode === 'cover' ? 'lyrics' : 'cover';
         this.dom.mobileLyricsContainer.inert = this.currentMode !== 'lyrics';
         this.dom.mobileCoverContainer.inert = this.currentMode !== 'cover';
+        document.getElementById('mobileLyricsToggle').setAttribute('aria-pressed', String(this.currentMode === 'lyrics'));
 
         if (this.currentMode === 'cover') {
             // Show Cover

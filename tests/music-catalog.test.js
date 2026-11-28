@@ -43,6 +43,17 @@ test('aggregation is idempotent across pages and does not mutate input',()=>{
   const next=aggregateSongs([...first,track('gd','1'),track('at38-qq','2')]);
   assert.equal(next.length,1);assert.equal(next[0].sources.length,3);assert.equal(JSON.stringify(first),before);
 });
+test('restored queue projections can match lyrics without losing linked sources',()=>{
+  const original=aggregateSongs([track('gd','1',{duration:239}),track('qq','2',{duration:240})])[0];
+  const restored={id:original.id,provider:original.provider,name:original.name,artist:original.artist,album:original.album,catalogId:original.catalogId,sources:original.sources};
+  const before=JSON.stringify(restored);
+  const groups=aggregateSongs([restored,track('netease','1',{duration:239})]);
+  assert.equal(groups.length,1);
+  assert.equal(groups[0].metadata.duration,239);
+  assert.deepEqual(groups[0].sources.map(s=>[s.provider,s.sourceId]),[['gd','1'],['qq','2'],['netease','1']]);
+  assert.equal(JSON.stringify(restored),before);
+  assert.equal(aggregateSongs([restored,track('qq','3',{name:'青花瓷 (Live)'})]).length,2);
+});
 test('artwork variants preserve signed and proxy URLs and reject unsafe schemes',()=>{
   assert.equal(artworkVariants('https://p1.music.126.net/x.jpg')[2].url,'https://p1.music.126.net/x.jpg?param=800y800');
   const signed='https://p1.music.126.net/x.jpg?token=abc';assert.deepEqual(artworkVariants(signed),[{label:'原图',url:signed}]);

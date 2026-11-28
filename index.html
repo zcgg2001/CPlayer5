@@ -5,14 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZPlayer</title>
-    <meta name="description" content="天空蓝与薰衣草紫的液态玻璃音乐播放器，让哆啦A梦随播放进度轻快前进。">
+    <meta name="description" content="发现喜欢的音乐，在专辑封面与流动歌词中专注聆听。">
     <meta property="og:type" content="website">
     <meta property="og:title" content="ZPlayer｜让音乐有表情">
-    <meta property="og:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
+    <meta property="og:description" content="以音乐为中心的聆听空间，发现、收藏与播放你的喜爱。">
     <meta property="og:image" content="__SITE_ORIGIN__/img/og-zplayer.png">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ZPlayer｜让音乐有表情">
-    <meta name="twitter:description" content="液态玻璃音乐空间，会跟随歌曲进度移动的哆啦A梦主题播放器。">
+    <meta name="twitter:description" content="以音乐为中心的聆听空间，发现、收藏与播放你的喜爱。">
     <meta name="twitter:image" content="__SITE_ORIGIN__/img/og-zplayer.png">
 
     <!-- Favicon -->
@@ -20,7 +20,7 @@
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#07070b">
+    <meta name="theme-color" content="#fafafa">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="ZPlayer">
@@ -50,7 +50,7 @@
             const savedTheme = localStorage.getItem('cp_theme');
             const initialTheme = savedTheme === 'light' || savedTheme === 'night'
                 ? savedTheme
-                : 'night';
+                : 'light';
             document.documentElement.dataset.theme = initialTheme;
             document.documentElement.style.colorScheme = initialTheme === 'night' ? 'dark' : 'light';
         } catch (error) {
@@ -70,7 +70,6 @@
     <link rel="stylesheet" href="./css/oneko-butterfly.css?v=45">
     <link rel="stylesheet" href="./css/desktop-pet-settings.css?v=1">
     <link rel="stylesheet" href="./css/page-scroll-spider.css?v=47">
-    <link rel="stylesheet" href="./css/listening-room.css?v=1">
     <link rel="stylesheet" href="./css/music-source-tabs.css?v=4">
     <link rel="stylesheet" href="./css/lyric-effects.css?v=3">
     <link rel="stylesheet" href="./css/lyric-scenes.css?v=1">
@@ -87,6 +86,7 @@
     <script src="playlist.js?v=22"></script>
     <link rel="stylesheet" href="./css/account.css?v=4">
     <link rel="stylesheet" href="./css/personal-library.css">
+    <link rel="stylesheet" href="./css/listening-room.css?v=2">
     <link rel="stylesheet" href="./css/android-player.css">
     <link rel="stylesheet" href="./css/music-wall.css">
     <link rel="stylesheet" href="./css/player-source.css">
@@ -155,12 +155,13 @@
                         <i data-lucide="AudioWaveform"></i>
                     </span>
                     <span class="app-brand-copy">
-                        <strong>505音乐之家</strong>
+                        <strong>ZPlayer</strong>
+                        <small>让喜欢的音乐，相遇。</small>
                     </span>
                 </div>
 
                 <nav class="app-navigation" aria-label="主导航">
-                    <p class="app-nav-label">浏览</p>
+                    <p class="app-nav-label">音乐</p>
                     <button id="desktopNavLibrary" class="app-nav-item" type="button"
                         data-shell-destination="library" aria-controls="desktopLibraryView" aria-current="page">
                         <i class="fas fa-compact-disc" aria-hidden="true"></i>
@@ -186,6 +187,7 @@
                         <i class="fas fa-search" aria-hidden="true"></i>
                         <span>搜索音乐</span>
                     </button>
+                    <p class="app-nav-label app-nav-group">我的音乐</p>
                     <button id="desktopImmersiveToggle" class="app-nav-item" type="button"
                         data-shell-destination="now-playing" aria-controls="desktopLayout" aria-expanded="false">
                         <i class="fas fa-headphones" aria-hidden="true"></i>
@@ -769,6 +771,7 @@
                             <span id="immersivePlaybackState">准备聆听</span>
                         </div>
                     </div>
+                    <div id="immersiveControlsHost"></div>
                 </div>
 
                 <div class="immersive-lyrics-pane">
@@ -999,6 +1002,12 @@
                 <button id="mobilePlaylistToggleBtn" class="p-3 opacity-70 active:scale-95 transition-transform"
                     aria-label="打开播放列表">
                     <i class="fas fa-list-ul text-xl"></i>
+                </button>
+            </div>
+
+            <div class="mobile-view-actions">
+                <button id="mobileLyricsToggle" type="button" aria-controls="mobileLyricsPage" aria-pressed="false" aria-label="切换封面与歌词">
+                    <i data-lucide="Captions" aria-hidden="true"></i><span>歌词</span>
                 </button>
             </div>
 
@@ -1517,6 +1526,7 @@
                     <div><h3 id="scrollSpiderSettingsTitle">滚动挂件</h3><p>上传自己的图片，或使用默认蜘蛛少女。</p></div>
                     <button id="scrollSpiderSettingsBtn" type="button" aria-haspopup="dialog">更换形象</button>
                 </section>
+                <label class="discovery-skin-setting"><span>显示滚动挂件<small>使用可拖动的形象控制页面滚动</small></span><input id="scrollSpiderEnabled" type="checkbox"></label>
 
                 <label class="discovery-skin-setting"><span>动漫进度指针<small>开启后在播放进度上显示角色；默认使用简洁圆点</small></span><input id="animeThumbSkin" type="checkbox"></label>
 

@@ -1,10 +1,10 @@
 import { BACKGROUNDS, RENDERERS, normalizeTuning } from './registry.js';
 const KEY = 'cp_lyricStudio_v1';
 export const DEFAULT_STUDIO = Object.freeze({
-  version: 1, view: 'auto', background: 'common', color: '#edbda5', font: 'sans-serif', align: 'center',
+  version: 1, view: 'auto', background: 'common', color: '#edbda5', font: 'sans-serif', align: 'left',
   lineHeight: 1.6, opacity: 1, subtitleOpacity: .7, motion: .65, backgroundOpacity: .65,
   blur: 24, quality: 'auto', translation: true, romanization: false, upcoming: true,
-  audioReactive: true, fountain: true, fountainStrength: .45, offset: 0, lead: 180, image: '', backgroundUrl: '', modes: {},
+  audioReactive: true, fountain: false, fountainStrength: .45, offset: 0, lead: 180, image: '', backgroundUrl: '', modes: {},
 });
 export function normalizeStudio(value = {}) {
   const output = { ...DEFAULT_STUDIO, modes: {} };

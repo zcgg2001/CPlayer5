@@ -52,7 +52,7 @@ test('manual browsing holds position while playback updates, then resumes the cu
   assert.equal(h.button.hidden, false);
   assert.equal(h.frames.size, 0);
   h.listeners.get('button:click')(); h.step(180);
-  assert.equal(h.scroller.scrollTop, 440);
+  assert.equal(h.scroller.scrollTop, 484.8);
   assert.equal(h.button.hidden, true);
   assert.equal(h.timers.size, 0);
 });
@@ -62,7 +62,7 @@ test('hidden lyrics and reduced motion do not keep animation loops running', () 
   h.follower.follow(900); h.step(3); h.setVisible(false); h.step();
   assert.equal(h.frames.size, 0);
   h.setVisible(true); h.setReduced(true); h.follower.recenter();
-  assert.equal(h.scroller.scrollTop, 440);
+  assert.equal(h.scroller.scrollTop, 484.8);
   assert.equal(h.frames.size, 0);
 });
 

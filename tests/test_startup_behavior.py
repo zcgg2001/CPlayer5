@@ -106,7 +106,8 @@ class StartupBehaviorTests(unittest.TestCase):
             "dom.desktopLibraryView?.focus();",
         ):
             self.assertIn(fragment, shell_init)
-        self.assertNotIn("dom.desktopPlayerBar", shell_init)
+        inert_targets = shell_init.split("inertTargets: [", 1)[1].split("],", 1)[0]
+        self.assertNotIn("dom.desktopPlayerBar", inert_targets)
 
     def test_desktop_search_switches_to_an_independent_main_view(self):
         startup = function_block(

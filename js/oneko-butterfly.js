@@ -39,6 +39,7 @@ export function initOnekoButterfly() {
   const pet = createDesktopPet({
     id: 'onekoPetLayer',
     storageKey: 'cplayer5:oneko',
+    defaultEnabled: false,
     resolveLayout,
     resolveSleepAnchor,
   });

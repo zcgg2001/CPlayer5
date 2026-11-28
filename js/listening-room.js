@@ -54,12 +54,13 @@ export function createLyricFollower(scroller, resumeButton, {
 
   function recenter() {
     const line = scroller.querySelector('.lrc-line.active');
-    if (line) follow(line.offsetTop - scroller.clientHeight / 2 + line.clientHeight / 2);
+    if (line) follow(line.offsetTop - scroller.clientHeight * 0.36 + line.clientHeight * 0.36);
   }
 
   function resume() {
     clearTimer(timer);
     following = true;
+    scroller.classList?.remove('is-browsing');
     if (resumeButton) resumeButton.hidden = true;
     recenter();
   }
@@ -67,6 +68,7 @@ export function createLyricFollower(scroller, resumeButton, {
   function hold() {
     if (!scroller.querySelector('[data-time]')) return;
     following = false;
+    scroller.classList?.add('is-browsing');
     stop();
     if (resumeButton) resumeButton.hidden = false;
     clearTimer(timer);
@@ -85,7 +87,7 @@ export function createLyricFollower(scroller, resumeButton, {
 
   return {
     follow, recenter, resume, stop,
-    reset() { stop(); clearTimer(timer); following = true; if (resumeButton) resumeButton.hidden = true; },
+    reset() { stop(); clearTimer(timer); following = true; scroller.classList?.remove('is-browsing'); if (resumeButton) resumeButton.hidden = true; },
     destroy() {
       stop(); clearTimer(timer);
       scroller.removeEventListener('wheel', hold);
@@ -129,9 +131,25 @@ export function createListeningRoom({ audio, artwork, titleSource, artistSource 
     image.referrerPolicy = 'no-referrer';
     image.onload = () => {
       if (version !== artworkVersion) return;
+      // Blurring a 160px source once avoids a full-screen blur on every frame.
+      // Cross-origin or older canvas implementations keep the CSS fallback.
+      let ambientSource = image.src;
+      let prepared = false;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 160;
+        const context = canvas.getContext('2d');
+        if (context && 'filter' in context) {
+          context.filter = 'blur(9px)';
+          context.drawImage(image, -20, -20, 200, 200);
+          ambientSource = canvas.toDataURL('image/jpeg', .8);
+          prepared = true;
+        }
+      } catch { /* A cover that cannot be read still works as a CSS image. */ }
       for (const background of backgrounds) {
         const next = 1 - background.active;
-        background.layers[next].style.backgroundImage = `url(${JSON.stringify(image.src)})`;
+        background.layers[next].style.backgroundImage = `url(${JSON.stringify(ambientSource)})`;
+        background.layers[next].classList.toggle('is-prepared', prepared);
         background.layers[next].classList.add('is-visible');
         background.layers[background.active].classList.remove('is-visible');
         background.active = next;
@@ -165,7 +183,8 @@ export function createListeningRoom({ audio, artwork, titleSource, artistSource 
   const resizeObserver = new ResizeObserver(entries => {
     for (const { target } of entries) {
       if (!target.clientHeight) continue;
-      target.style.setProperty('--lyrics-inset', `${target.clientHeight / 2}px`);
+      target.style.setProperty('--lyrics-inset', `${target.clientHeight * 0.36}px`);
+      target.style.setProperty('--lyrics-outset', `${target.clientHeight * 0.64}px`);
       followers.get(target.id)?.recenter();
     }
   });

@@ -62,7 +62,7 @@ export function createCoverCarousel({ host, caption, getSnapshot, onNavigate, on
   };
   function layout() {
     width = host.clientWidth;
-    size = Math.max(1, Math.min(width * .74, width - 96, host.clientHeight - 16, 420));
+    size = Math.max(1, Math.min(width * .86, width - 48, host.clientHeight - 16, 420));
     step = size * .86;
     stage.style.setProperty('--carousel-size', `${size}px`);
     cards.forEach(card => positionCard(card, card.slot));

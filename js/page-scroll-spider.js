@@ -6,7 +6,12 @@ export { PageScrollSpider, clamp, getHandlePosition, getScrollProgress, getWebCu
 export function initPageScrollSpider() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
   if (document.getElementById('pageScrollSpider')) return window.pageScrollSpider || null;
+  const enabledKey = 'cp_scrollSpider_enabled';
+  let savedEnabled = null;
+  try { savedEnabled = localStorage.getItem(enabledKey); } catch { /* Optional local preference. */ }
+  let enabled = savedEnabled === 'true';
   const resolveTarget = () => {
+    if (!enabled) return null;
     if (document.documentElement.classList.contains('android-player')) return null;
     if (window.matchMedia(DESKTOP_SHELL_MEDIA).matches) {
       return document.documentElement.classList.contains('desktop-immersive-open')
@@ -22,6 +27,24 @@ export function initPageScrollSpider() {
   });
   const settingsButton = document.getElementById('scrollSpiderSettingsBtn');
   const settingsPreview = document.getElementById('scrollSpiderSettingsPreview');
+  const settingsToggle = document.getElementById('scrollSpiderEnabled');
+  const syncEnabled = () => {
+    if (settingsToggle) settingsToggle.checked = enabled;
+    spider.scheduleLayout();
+  };
+  const toggle = () => {
+    enabled = settingsToggle.checked;
+    savedEnabled = String(enabled);
+    try { localStorage.setItem(enabledKey, savedEnabled); } catch { /* Keep session preference. */ }
+    syncEnabled();
+  };
+  settingsToggle?.addEventListener('change', toggle);
+  // Keep existing custom mascots visible; fresh installs begin with a quiet UI.
+  spider.appearance.ready.then(() => {
+    if (savedEnabled === null && spider.appearance.state.custom) enabled = true;
+    syncEnabled();
+  });
+  syncEnabled();
   const unsubscribe = spider.appearance.subscribe(state => { if (settingsPreview) settingsPreview.src = state.src; });
   const open = () => spider.openAppearance();
   settingsButton?.addEventListener('click', open);
@@ -34,6 +57,7 @@ export function initPageScrollSpider() {
     unsubscribe();
     viewObserver.disconnect();
     settingsButton?.removeEventListener('click', open);
+    settingsToggle?.removeEventListener('change', toggle);
     destroy();
     if (window.pageScrollSpider === spider) window.pageScrollSpider = null;
   };

@@ -1,8 +1,8 @@
 html.android-player #playerSourceButton {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 48px; max-width: calc(100% - 112px); padding: 8px 14px;
-  border: 1px solid var(--md-outline-variant); border-radius: 24px;
-  background: var(--md-secondary-container); color: var(--md-on-secondary-container);
+  border: 1px solid #ffffff24; border-radius: 24px;
+  background: #ffffff12; color: var(--room-ink);
   font-size: .85rem; font-weight: 650; line-height: 1.4; cursor: pointer;
 }
 #playerSourceButton [data-source-label] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

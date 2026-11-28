@@ -2,7 +2,7 @@
 export function initPlayerAppearance(dom, storage = globalThis.localStorage) {
   let saved;
   try { saved = JSON.parse(storage.getItem('zp_player_appearance')); } catch { /* Use defaults. */ }
-  const value = { shape: ['rounded', 'circle', 'petal'].includes(saved?.shape) ? saved.shape : 'petal', ambient: saved?.ambient !== false };
+  const value = { shape: ['rounded', 'circle', 'petal'].includes(saved?.shape) ? saved.shape : 'rounded', ambient: saved?.ambient !== false };
   function render() {
     document.documentElement.dataset.coverShape = value.shape;
     document.documentElement.dataset.coverAmbient = String(value.ambient);

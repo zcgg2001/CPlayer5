@@ -111,6 +111,15 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
   const history = createShellHistory('library');
   const cleanups = [];
   let immersiveOpener = elements.opener;
+  const playerBar = elements.playerBar;
+  const playerHome = playerBar?.parentElement;
+  const playerNextSibling = playerBar?.nextSibling;
+
+  function placePlayer(open) {
+    if (!playerBar || !playerHome || !elements.immersiveControls) return;
+    if (open) elements.immersiveControls.append(playerBar);
+    else playerHome.insertBefore(playerBar, playerNextSibling?.parentNode === playerHome ? playerNextSibling : null);
+  }
 
   const listen = (element, type, handler) => {
     if (!element) return;
@@ -133,6 +142,9 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
       immersiveOpener?.setAttribute('aria-expanded', 'false');
       immersiveOpener = trigger;
     }
+    // Move the same controls before restoring focus; the audio and event bindings
+    // stay alive, and the opener is back in the visible shell when closing.
+    placePlayer(immersiveOpen);
     setImmersiveState({ ...elements, opener: immersiveOpener }, immersiveOpen);
     elements.documentElement?.classList.toggle('desktop-immersive-open', immersiveOpen);
     (elements.navigationButtons ?? elements.destinationButtons)?.forEach(button => {
@@ -178,6 +190,6 @@ export function initAppShell({ elements, actions = {}, onImmersiveChange = () =>
       open ? 'now-playing' : 'library',
       { runAction: open },
     ),
-    destroy: () => cleanups.splice(0).forEach(cleanup => cleanup()),
+    destroy: () => { placePlayer(false); cleanups.splice(0).forEach(cleanup => cleanup()); },
   };
 }

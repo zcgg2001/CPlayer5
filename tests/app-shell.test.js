@@ -87,6 +87,49 @@ function fakeShellSetup() {
   return { elements, libraryButton, queueButton };
 }
 
+test('expanding and closing preserve live controls, restore their position and focus, and clean up', () => {
+  const { elements } = fakeShellSetup();
+  const parent = () => ({
+    children: [],
+    insertBefore(node, before) {
+      if (node.parentElement) node.parentElement.children.splice(node.parentElement.children.indexOf(node), 1);
+      this.children.splice(before ? this.children.indexOf(before) : this.children.length, 0, node);
+      node.parentElement = node.parentNode = this;
+    },
+    append(node) { this.insertBefore(node, null); },
+  });
+  const home = parent();
+  const marker = {};
+  const controls = clickableElement();
+  let clicks = 0;
+  controls.addEventListener('click', () => clicks++);
+  home.append(controls);
+  home.append(marker);
+  controls.nextSibling = marker;
+  elements.playerBar = controls;
+  elements.immersiveControls = parent();
+  elements.inertTargets = [fakeElement()];
+  elements.opener.focus = () => assert.equal(controls.parentElement, home, 'restore before focusing the opener');
+  const controller = initAppShell({ elements });
+
+  for (let cycle = 0; cycle < 3; cycle++) {
+    elements.opener.dispatch('click');
+    assert.deepEqual(elements.immersiveControls.children, [controls]);
+    assert.equal(elements.inertTargets[0].inert, true);
+    assert.equal(controls.inert, false);
+    controls.click();
+    if (cycle === 0) elements.eventTarget.dispatch('keydown', { key: 'Escape' });
+    else elements.closeButton.dispatch('click');
+    assert.deepEqual(home.children, [controls, marker]);
+    assert.equal(elements.inertTargets[0].inert, false);
+  }
+  assert.equal(clicks, 3, 'listeners stay attached without duplication');
+  controller.setImmersive(true);
+  controller.destroy();
+  assert.deepEqual(home.children, [controls, marker]);
+  assert.equal(elements.opener.listenerCount('click'), 0);
+});
+
 test('desktop shell begins at 768px with library active', () => {
   assert.equal(DESKTOP_SHELL_MEDIA, '(min-width: 768px)');
   assert.deepEqual(initialShellState(), {

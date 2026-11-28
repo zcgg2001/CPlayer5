@@ -178,10 +178,10 @@ class DesktopShellMarkupTests(unittest.TestCase):
         shortcut = self.markup.by_id["desktopSearchShortcut"]
         self.assertEqual(shortcut.get("aria-label"), "搜索音乐")
 
-    def test_desktop_brand_uses_505_music_home_name(self):
+    def test_desktop_brand_uses_zplayer_name(self):
         self.assertRegex(
             self.source,
-            r'(?s)<span class="app-brand-copy">\s*<strong>505音乐之家</strong>',
+            r'(?s)<span class="app-brand-copy">\s*<strong>ZPlayer</strong>',
         )
         self.assertRegex(
             self.source,

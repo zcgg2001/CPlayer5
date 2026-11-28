@@ -71,7 +71,7 @@ function createSurface(scroller, { onSeek, onFollow, preview = false }) {
     }
     if (changed && first !== undefined) {
       const line = nodes[first].element;
-      const target = line.offsetTop - scroller.clientHeight / 2 + line.clientHeight / 2;
+      const target = line.offsetTop - scroller.clientHeight * 0.36 + line.clientHeight * 0.36;
       if (preview) scroller.scrollTop = target; else onFollow?.(scroller.id, target);
     }
     previous = indexes;

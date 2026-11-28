@@ -35,7 +35,7 @@ class LyricsFocusTests(unittest.TestCase):
         self.assertGreaterEqual(self.source.count("filter: none;"), 6)
         self.assertNotIn("filter: blur(1px);", self.source)
 
-    def test_lyric_updates_assign_near_lines_and_preserve_vertical_centering(self):
+    def test_lyric_updates_assign_near_lines_and_preserve_focus_anchor(self):
         update = source_block(
             self.source,
             "function updateLyrics(time)",
@@ -45,7 +45,7 @@ class LyricsFocusTests(unittest.TestCase):
         self.assertIn("lines[idx - 1]?.classList.add('near');", update)
         self.assertIn("lines[idx + 1]?.classList.add('near');", update)
         self.assertIn(
-            "lineTop - (containerHeight / 2) + (lineHeight / 2)",
+            "lineTop - containerHeight * 0.36 + lineHeight * 0.36",
             update,
         )
 

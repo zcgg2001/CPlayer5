@@ -124,7 +124,10 @@ export function sameArtworkRelease(song, other) {
 export const sourceKey = song => `${song.provider || 'gd'}:${song.sourceId || song.id}`;
 
 export function catalogRecord(song) {
-  if (song.catalogId && song.sources?.length) return song;
+  // Queue/history projections retain identity and sources but omit derived
+  // metadata. Rehydrate those projections before matching cached recordings.
+  if (song.catalogId && song.sources?.length && song.metadata && song.provenance
+    && song.version && song.albumEntity?.artwork && song.artists) return song;
   const provider = song.provider || 'gd', raw = { ...song, provider };
   const info = extractMetadata(raw), version = versionOf(raw.name, raw.versionLabel);
   const artistNames = info.artistEntities?.length ? info.artistEntities : [{ name: raw.artist || '未知歌手' }];
@@ -135,7 +138,8 @@ export function catalogRecord(song) {
   const album = { ...info.albumEntity, name: albumName, id: entityId('album', `${key(albumName)}|${artistKey}`), artwork: artworkVariants(raw.cover || info.albumEntity?.cover) };
   const recordingId = entityId('recording', platformIdentity(raw));
   const source = { id: raw.id, sourceId: raw.sourceId || channelSourceId(provider, raw.id), provider, source: raw.source, name: raw.name, artist: raw.artist, album: albumName, cover: raw.cover, duration: info.metadata.duration, metadata: info.metadata, availability: raw.availability || info.availability || {status:'unknown'}, downloadAllowed: raw.downloadAllowed };
-  return { ...raw, ...info, catalogId: recordingId, songEntity: {id:workId, title:version.baseTitle, artistIds:artists.map(artist=>artist.id)}, version: {...version,id:recordingId,songId:workId}, artists, albumEntity: album, sources: [source], provenance: Object.fromEntries(Object.entries(info.metadata).filter(([,value]) => Array.isArray(value) ? value.length : value).map(([field,value])=>[field,[{provider,value}]])) };
+  const sources = song.catalogId && song.sources?.length ? song.sources.map(item => catalogRecord({ ...item, catalogId: undefined, sources: undefined }).sources[0]) : [source];
+  return { ...raw, ...info, catalogId: recordingId, songEntity: {id:workId, title:version.baseTitle, artistIds:artists.map(artist=>artist.id)}, version: {...version,id:recordingId,songId:workId}, artists, albumEntity: album, sources, provenance: Object.fromEntries(Object.entries(info.metadata).filter(([,value]) => Array.isArray(value) ? value.length : value).map(([field,value])=>[field,[{provider,value}]])) };
 }
 
 function sameRecording(a, b) {

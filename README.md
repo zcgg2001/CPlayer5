@@ -218,6 +218,8 @@ GitHub Actions 会在每次推送和 Pull Request 时运行相同检查，并探
 
 1.18.8 Android 预览构建修复更新后需要重复登录的问题：保留有效会话，启动时恢复原账号和音乐资料，断网打开本机资料，尊重主动退出与游客选择。首页左上角统一为 ZPlayer，优化标题、操作按钮和窄屏排版。详见 [Android 登录保留](docs/accounts-and-devices.md#android-登录保留)。
 
+1.19.0 参考 Coda 的设计语言更新桌面和手机核心界面：封面卡片首页、暖红强调色、浅深主题、悬浮播放条与导航、封面背景和大字号聚焦歌词。手机增加封面 / 歌词切换入口，桌面展开播放页沿用同一组控件；修复从历史和队列播放时不完整缓存元数据导致的解析卡住。新用户默认使用浅色、圆角封面和左对齐歌词，已保存的偏好继续生效。详见 [Coda 设计分析与改造记录](docs/CODA_UI_REPLICATION.md)。
+
 新构建输出 `ZPlayer-android-preview-<versionCode>.apk`，并附带供旧版更新识别的同内容 `CPlayer5-android-preview-<versionCode>.apk`。GitHub Releases 中已有版本仍使用旧文件名。应用会提示可覆盖安装的新版。使用 JDK 17、Android SDK 36 和 Python 3 运行 `npm run android:build` 可在 `output/android/` 生成 APK 和校验文件。GitHub Actions 的 **Android APK** 工作流提供测试构建。[版本发布](https://github.com/zcgg2001/CPlayer5/releases) · [构建与签名说明](docs/android.md)
 
 ### Cloudflare 部署

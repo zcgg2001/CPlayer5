@@ -35,6 +35,21 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
     cover.append(bindArtwork(image, song, { size: 160 }));
     return cover;
   };
+  // Decorative covers come from the current recommendation pool. Reuse the
+  // shared artwork resolver, including its fallback and request cancellation.
+  const featureArt = new Map();
+  function updateFeatureArt(card, entry, index) {
+    if (!entry) return;
+    const song = catalogRecord(entry.song || entry);
+    const key = `${song.id}:${song.cover || song.picUrl || ''}`;
+    if (featureArt.get(card) === key) return;
+    featureArt.set(card, key);
+    let host = card.querySelector('.discover-feature-art');
+    if (!host) { host = el('span', 'discover-feature-art'); host.setAttribute('aria-hidden', 'true'); card.prepend(host); }
+    const image = el('img'); image.alt = ''; image.width = image.height = 320;
+    image.loading = index < 2 ? 'eager' : 'lazy'; image.decoding = 'async';
+    host.replaceChildren(bindArtwork(image, song, { size: 400 }));
+  }
   root.classList.add('discovery-home');
   const androidActions = document.documentElement.classList.contains('android-player') && document.querySelector('.android-app-actions');
   const preferences = button('音乐偏好', openPreferences, { glyph: 'SlidersHorizontal' });
@@ -48,7 +63,7 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
   dailyCard.append(el('span', 'discover-eyebrow', 'DAILY MIX'), dailyCount, el('h2', '', '每日推荐'), dailyNote);
   const dailyActions = el('div', 'discover-actions');
   const dailyPlay = button('播放今日推荐', () => playBatch(daily, '每日推荐'), { glyph: 'Play', className: 'discover-button is-primary' }); dailyPlay.disabled = true;
-  const dailyView = button('查看全部', () => showTracks('每日推荐', daily, '每天按偏好与听歌记录整理 · 最多 30 首'));
+  const dailyView = button('查看全部', () => showTracks('每日推荐', daily, '每天按偏好与听歌记录整理 · 最多 30 首'), { className: 'discover-feature-open' });
   dailyActions.append(dailyPlay, dailyView); dailyCard.append(dailyActions);
   const radioCard = el('section', 'discover-radio-card'); radioCard.append(icon('Radio'), el('span', 'discover-eyebrow', 'JUST FOR YOU'), el('h2', '', '私人电台'), el('p', '', '从喜欢的声音出发，让下一首自然发生。'));
   const radioStatus = el('p', 'discover-radio-status', '随时可以退出，保留原播放队列'); radioStatus.setAttribute('role', 'status');
@@ -57,10 +72,16 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
   const radioNext = button('下一首', () => advanceRadio(), { glyph: 'SkipForward' });
   const radioStop = button('退出电台', () => radio.stop()); radioNext.hidden = radioStop.hidden = true;
   radioActions.append(radioStart, radioNext, radioStop); radioCard.append(radioActions, radioStatus);
-  const seeds = el('div', 'discover-actions'); seeds.append(button('歌曲电台', () => startRadio('song'), { glyph: 'Disc3' }), button('艺人电台', () => startRadio('artist'), { glyph: 'UserRound' })); radioCard.append(seeds);
+  radioCard.append(button('电台选项', () => {
+    openDialog('私人电台');
+    dialogBody.append(el('p', 'discover-help', '从当前歌曲或歌手出发，继续发现喜欢的音乐。'));
+    const seeds = el('div', 'discover-actions');
+    seeds.append(button('歌曲电台', () => startRadio('song'), { glyph: 'Disc3' }), button('艺人电台', () => startRadio('artist'), { glyph: 'UserRound' }));
+    dialogBody.append(seeds);
+  }, { glyph: 'Ellipsis', className: 'discover-feature-options' }));
   hero.append(dailyCard, radioCard); root.append(hero);
   const shortcuts = androidActions && document.querySelector('.android-shortcuts');
-  if (shortcuts) dailyCard.after(shortcuts);
+  if (shortcuts) hero.after(shortcuts);
   const feedback = el('div', 'discover-feedback'); feedback.setAttribute('role', 'status'); root.append(feedback);
   const homeStatus = el('div', 'discover-home-status'); homeStatus.setAttribute('role', 'status'); root.append(homeStatus);
   const historyList = section('继续播放', '保留最近播放的位置', button('查看历史', () => showHistory()));
@@ -68,17 +89,27 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
   const newsList = section('新歌速递', '网易云新歌榜 · 保留榜单顺序', button('查看新歌榜', () => openPlaylist('3779629')));
   const sceneList = section('此刻，想听什么', '按场景挑选公开歌单'); sceneList.className = 'discover-scenes';
   SCENES.forEach(scene => { const card = button('', () => showCollections(scene.category, `${scene.name}歌单`), { className: 'discover-scene', title: `${scene.name}歌单` }); card.append(icon(scene.icon), el('strong', '', scene.name), el('span', '', scene.note)); sceneList.append(card); });
+  const scenesSection = sceneList.parentElement;
+  scenesSection.classList.add('discover-feature-scenes');
+  hero.append(scenesSection);
   const browse = el('div', 'discover-browse'); browse.append(button('全部榜单', () => showCharts(), { glyph: 'TrendingUp' }), button('按标签发现', () => showTags(), { glyph: 'Tags' }), button('导入歌单 / 本地库', openPreferences, { glyph: 'Library' })); root.append(browse);
   // Operators control module order; data and personalization remain local.
   const moduleHost = el('div', 'discover-module-host');
   const moduleNodes = { daily: dailyCard, radio: radioCard, history: historyList.parentElement, recommendations: likesList.parentElement, news: newsList.parentElement, scenes: sceneList.parentElement };
   const applyModules = settings => {
     if (!settings?.modules) return;
-    if (!moduleHost.isConnected) root.insertBefore(moduleHost, hero);
-    for (const [id, node] of Object.entries(moduleNodes)) { node.style.display = settings.modules.includes(id) ? '' : 'none'; moduleHost.append(node); }
-    for (const id of settings.modules) moduleHost.append(moduleNodes[id]);
-    if (shortcuts) dailyCard.after(shortcuts);
-    hero.remove();
+    if (!moduleHost.isConnected) hero.after(moduleHost);
+    const features = new Set(['daily', 'radio', 'scenes']);
+    for (const [id, node] of Object.entries(moduleNodes)) {
+      node.style.display = settings.modules.includes(id) ? '' : 'none';
+      (features.has(id) ? hero : moduleHost).append(node);
+    }
+    for (const id of settings.modules) {
+      const node = moduleNodes[id];
+      if (node) (features.has(id) ? hero : moduleHost).append(node);
+    }
+    hero.hidden = !settings.modules.some(id => features.has(id));
+    if (shortcuts) hero.after(shortcuts);
   };
   if (globalThis.location) void runtimePolicy().then(applyModules);
   let variation = 0;
@@ -94,6 +125,7 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
     dialogBody.scrollTop = 0; return modalController.signal;
   }
   const radio = createRadio({ fetchBatch: service.radioBatch, profile, onChange: state => {
+    radioCard.dataset.active = String(state.active);
     radioNext.hidden = radioStop.hidden = !state.active; radioStart.hidden = state.active; radioNext.disabled = state.loading;
     radioStatus.textContent = !state.active ? '随时可以退出，保留原播放队列' : state.loading ? '正在挑选下一首…' : state.error || state.reason || '电台已开启';
   } });
@@ -139,6 +171,7 @@ export function createDiscoveryHome({ onUpdate = () => {}, onCollect = () => {},
   }
   function renderRecommendations() {
     daily = service.rank({ limit: 30 }); dailyCount.textContent = homeLoading && !daily.length ? '—' : String(daily.length);
+    [dailyCard, radioCard, ...sceneList.children].forEach((card, index) => updateFeatureArt(card, daily[index % Math.max(1, daily.length)], index));
     dailyPlay.disabled = dailyView.disabled = !daily.length;
     dailyNote.textContent = daily.length ? `${dayKey().slice(5).replace('-', ' 月 ')} 日 · 为你整理 ${daily.length} 首`
       : homeLoading ? '正在整理今日推荐…' : '还没有足够的歌曲，试试选择偏好或导入歌单';

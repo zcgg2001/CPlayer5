@@ -53,6 +53,7 @@ export function createDesktopPet({
   id,
   storageKey = 'desktop-pet',
   storage,
+  defaultEnabled = true,
   resolveLayout = getPetLayout,
   resolveSleepAnchor = () => null,
 } = {}) {
@@ -81,7 +82,7 @@ export function createDesktopPet({
       return {};
     }
   })();
-  let enabled = storedState.enabled !== false;
+  let enabled = typeof storedState.enabled === 'boolean' ? storedState.enabled : defaultEnabled;
   let suspended = false;
   let destroyed = false;
   let layout;

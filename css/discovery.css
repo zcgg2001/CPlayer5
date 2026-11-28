@@ -1,17 +1,8 @@
 /* Compact browsing surfaces. Lyrics keep their existing artwork-driven palette. */
-:root { --discovery-accent-weak: #39242e; --studio-muted: #b1b3bf; --discovery-hover: #272933; }
-html[data-theme='light'] { --studio-bg: #fbfbfd; --studio-surface: #fff; --studio-raised: #f4f5f8; --studio-line: #ecedf2; --studio-ink: #14161a; --studio-muted: #5b6068; --studio-accent: #d33a56; --studio-accent-ink: #fff; --discovery-accent-weak: #fdeef1; --discovery-hover: #f7f7fa; }
+:root { --discovery-accent-weak: var(--studio-accent-soft); --discovery-hover: var(--studio-raised); }
 html:root :is(#desktopApp, .track-more-menu) { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
 html:root :is(#desktopApp, .music-source-filter, .track-more-menu) :focus-visible { outline: 2px solid var(--studio-accent); outline-offset: 2px; }
 .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; overflow: hidden !important; clip-path: inset(50%); white-space: nowrap; }
-html:root #desktopShell .app-navigation { margin-top: 28px; }
-html:root #desktopShell .app-sidebar { background: var(--studio-surface) !important; padding: 24px 16px; border-right: 1px solid var(--studio-line); }
-html:root #desktopShell .app-nav-label { font-size: 12px; line-height: 1.5; margin: 16px 12px 8px; }
-html:root #desktopShell .app-nav-item { min-height: 40px; height: 40px; border-radius: 8px; padding: 0 12px; gap: 12px; font-size: 14px; font-weight: 500; color: var(--studio-muted) !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
-html:root #desktopShell .app-nav-item i { color: inherit !important; }
-html:root #desktopShell .app-nav-item:hover { background: var(--studio-raised) !important; }
-html:root #desktopShell .app-nav-item[aria-current='page'] { color: var(--studio-accent) !important; background: var(--discovery-accent-weak) !important; }
-html:root #desktopShell .app-topbar { padding-inline: 28px; background: var(--studio-bg) !important; }
 html:root #desktopLibraryView { padding: 20px 28px 32px; background: var(--studio-bg) !important; scroll-padding-top: 76px; }
 html:root #desktopLibraryView .library-content { max-width: 1280px; }
 html:root #desktopLibraryView #desktopDiscoveryView > .library-heading { min-height: 64px; margin: 0 0 12px; align-items: center; }
@@ -99,69 +90,41 @@ html:root #desktopLibraryView .discovery-list { display: block; padding: 0 12px;
 .player-buffering b { width: 4px; height: 4px; border-radius: 50%; background: var(--studio-muted); animation: discovery-pulse .8s infinite alternate; }
 .player-buffering b:nth-child(2) { animation-delay: .2s; }.player-buffering b:nth-child(3) { animation-delay: .4s; }
 html:root #desktopPlayerBar.is-buffering .player-buffering { display: inline-flex; }
-html:root #desktopPlayerBar { grid-template-columns: minmax(230px,320px) minmax(260px,560px) minmax(260px,320px); justify-content: space-between; gap: 20px; min-height: 88px; height: 88px; padding: 8px 24px; box-shadow: none; border-top: 1px solid var(--studio-line); }
-html:root #desktopPlayerBar .player-controls { display: grid; min-width: 0; gap: 0; }
-html:root #desktopPlayerBar .player-meta { position: relative; gap: 0; }
 html:root #desktopMiniPlayer { align-items: start; }
 html:root #desktopMiniPlayer .player-meta-copy { padding-top: 1px; }
 html:root #desktopMiniPlayer #songTitle { font-size: 14px; font-weight: 500; line-height: 1.5; }
 html:root #desktopMiniPlayer #artistName { font-size: 12px; line-height: 1.5; }
 html:root #desktopMiniCover { border-radius: 8px; }
-html:root #desktopPlayerBar .player-tags { position: absolute; left: 68px; right: 0; bottom: 0; padding: 0; display: flex; }
-html:root #desktopPlayerBar #sourceTag { font-size: 10px; line-height: 1.5; max-width: 100%; }
-html:root #desktopPlayerBar .transport-controls { gap: 12px; }
-html:root #desktopPlayerBar #playPauseBtn { width: 44px; height: 44px; min-width: 44px; flex-basis: 44px; color: var(--studio-accent-ink) !important; background: var(--studio-accent) !important; box-shadow: none !important; }
-html:root #desktopPlayerBar .player-timeline { grid-template-columns: 35px minmax(0,1fr) 35px; gap: 8px; }
-html:root #desktopPlayerBar .progress-bar-container { height: 24px; }
-html:root #desktopPlayerBar .progress-track { height: 4px; border-radius: 3px; }
-html:root #desktopPlayerBar .progress-bar-container:hover .progress-track { height: 6px; }
-html:root #desktopPlayerBar :is(#currentTime,#totalTime) { font-size: 11px; }
-html:root #desktopPlayerBar .player-action-button { position: relative; width: 36px; height: 36px; flex-basis: 36px; }
-html:root #desktopPlayerBar .player-actions { gap: 4px; }
 html:root #desktopPlayerBar #desktopFavoriteBtn[aria-pressed='true'] { color: var(--studio-accent) !important; }
 .player-queue-count { position: absolute; right: -2px; top: -2px; min-width: 14px; padding: 0 3px; border-radius: 6px; color: var(--studio-muted); background: var(--studio-raised); font-size: 9px; line-height: 14px; font-variant-numeric: tabular-nums; }
 /* The quality label is a text control, so it must not inherit a square icon-button width. */
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger { width: auto; min-width: 76px; flex: 0 0 auto; min-height: 36px; height: 36px; gap: 6px; padding-inline: 10px; }
 html:root #desktopPlayerBar .player-actions .playback-quality-trigger > * { flex-shrink: 0; }
-html:root #desktopLayout { bottom: 88px; }
 html:root #doraemonThumb { --anime-progress-thumb-size: 14px; width: 14px; height: 14px; border: 2px solid var(--studio-accent); border-radius: 50%; background: var(--studio-surface); box-shadow: 0 1px 4px #0002; }
 html:root #doraemonThumb .anime-progress-thumb__character { display: none; }
 html:root #doraemonThumb .anime-progress-thumb__tooltip { font-size: 11px; }
 html:root #desktopLibraryView .bilibili-discovery .discovery-table-head { display: none; }
 @media (min-width: 768px) {
   html:root #desktopApp { display: grid !important; width: 100%; height: 100dvh; overflow: hidden; }
-  html:root #desktopShell { display: grid; width: 100%; height: 100dvh; min-height: 100dvh; grid-template-columns: 240px minmax(0,1fr); grid-template-rows: 56px minmax(0,1fr) 88px; gap: 0; padding: 0; overflow: hidden; }
   html:root #mobileLayout { display: none !important; }
-  html:root #desktopLibraryView { padding-right: 88px; }
+
   html:root #pageScrollSpider { --page-scroll-spider-size: 60px; width: 64px; }
   html:root #pageScrollSpider .page-scroll-spider__configure { right: calc(100% - 8px); width: 32px; height: 32px; transform: translateY(calc(var(--page-scroll-y) + var(--page-scroll-spider-size) - 32px)); }
 }
 @media (min-width: 768px) and (max-width: 1199px) {
-  html:root #desktopShell { grid-template-columns: 72px minmax(0,1fr); }
-  html:root #desktopShell .app-sidebar { padding: 20px 10px; align-items: center; }
-  html:root #desktopShell .app-brand-copy, html:root #desktopShell .app-nav-item > span, html:root #desktopShell .app-nav-label { display: none; }
-  html:root #desktopShell .app-nav-item { width: 44px; padding: 0; justify-content: center; }
-  html:root #desktopShell .app-sidebar-tools { width: auto; }
   html:root #desktopLibraryView { padding-inline: 20px; }
-  html:root #desktopLibraryView { padding-right: 72px; }
+
   html:root #pageScrollSpider { --page-scroll-spider-size: 48px; width: 52px; }
   html:root #desktopLibraryView .source-navigation-meta { display: none; }
   .discovery-table-head, .discovery-track-row { grid-template-columns: 36px minmax(0,1fr) 60px 108px; gap: 10px; }
   .discovery-table-head .track-album, .discovery-track-row .track-album { display: none; }
   .discovery-filter-label { width: 140px; }
-  html:root #desktopPlayerBar { grid-template-columns: minmax(180px,230px) minmax(240px,1fr) auto; gap: 12px; padding-inline: 16px; }
-  html:root #desktopPlayerBar .player-actions { gap: 0; }
-  html:root #desktopPlayerBar #desktopDownloadBtn { display: none; }
-  html:root #desktopPlayerBar #desktopPlayerQueueBtn { display: inline-flex; }
-  html:root #desktopLayout .immersive-stage { padding: 80px 30px 30px; gap: 20px; }
 }
 @media (min-width: 768px) and (max-width: 900px) {
   .discovery-filter-label { width: 126px; }
   #discoverySort { max-width: 84px; }
   .discovery-toolbar { gap: 3px; }
   .discovery-play-all span { display: none; }
-  html:root #desktopPlayerBar { grid-template-columns: 180px minmax(220px,1fr) 228px; gap: 8px; padding-inline: 12px; }
-  html:root #desktopPlayerBar .player-actions .player-action-button { width: 32px; flex-basis: 32px; }
   html:root #desktopPlayerBar .player-actions .playback-quality-trigger { min-width: 64px; padding-inline: 8px; }
   html:root #desktopPlayerBar .playback-quality-dot { display: none; }
 }
@@ -176,7 +139,6 @@ html.anime-thumb-enabled:root #doraemonThumb { --anime-progress-thumb-size: 28px
 html.anime-thumb-enabled:root #doraemonThumb .anime-progress-thumb__character { display: block; }
 html:root #desktopPlayerBar .volume-popup { width: 112px; height: 44px; bottom: calc(100% + 12px); padding: 12px 16px; border-radius: 10px; }
 html:root #desktopPlayerBar .volume-slider-vertical { writing-mode: horizontal-tb; width: 80px; height: 16px; transform: none; appearance: auto; -webkit-appearance: auto; }
-@media (min-width: 768px) and (max-width: 1199px) { html:root #desktopPlayerBar #playerFullscreenBtn { display: none; } }
 html:root #mobileDoraemonThumb { --anime-progress-thumb-size: 14px; width: 14px; height: 14px; border: 2px solid var(--studio-accent); border-radius: 50%; background: var(--studio-surface); }
 html:root #mobileDoraemonThumb .anime-progress-thumb__character { display: none; }
 html.anime-thumb-enabled:root #mobileDoraemonThumb { --anime-progress-thumb-size: 28px; width: 28px; height: 28px; border: 0; background: transparent; }
